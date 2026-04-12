@@ -63,7 +63,7 @@ fn run_knots(repo_root: &Path, db_path: &Path, home: &Path, args: &[&str]) -> Ou
 }
 
 fn run_repo_debug_knots(repo_root: &Path, db_path: &Path, home: &Path, args: &[&str]) -> Output {
-    let binary = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/debug/knots");
+    let binary = knots_binary();
     Command::new(binary)
         .arg("--repo-root")
         .arg(repo_root)
