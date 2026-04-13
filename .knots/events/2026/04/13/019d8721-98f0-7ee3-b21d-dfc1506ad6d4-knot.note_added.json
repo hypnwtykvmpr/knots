@@ -1,0 +1,15 @@
+{
+  "event_id": "019d8721-98f0-7ee3-b21d-dfc1506ad6d4",
+  "occurred_at": "2026-04-13T13:56:59.248104Z",
+  "knot_id": "knots-d6dc",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "claude-code",
+    "content": "# Implementation Plan: Add --tag / -t to `kno new`\n\n## Summary\nAdd a `--tag` / `-t` repeatable flag to the `kno new` command so users can tag knots at creation time instead of requiring a separate `kno update --add-tag` call.\n\n## Complexity\n**Low** — The tag infrastructure (normalization, events, DB storage) already exists in the update path. This change threads tags through the create path.\n\n## Files to Change\n\n### 1. `src/cli.rs` — Add `--tag` / `-t` arg to `NewArgs`\nAdd a new field to `NewArgs`:\n```rust\n#[arg(short = 't', long = \"tag\", help = \"Add tag (repeatable).\")]\npub tags: Vec<String>,\n```\n\n### 2. `src/write_queue.rs` — Add `tags` field to `NewOperation`\nAdd `pub tags: Vec<String>` to the `NewOperation` struct.\n\n### 3. `src/write_dispatch/operation_map.rs` — Pass tags in `map_new`\nIn `map_new()`, add `tags: args.tags.clone()` to the `NewOperation` construction.\n\n### 4. `src/app/types.rs` — Add `tags` field to `CreateKnotOptions`\nAdd `pub tags: Vec<String>` to `CreateKnotOptions`. Already derives `Default` so `Vec` defaults to empty.\n\n### 5. `src/write_dispatch/execute/mod.rs` — Pass tags into `CreateKnotOptions`\nIn `execute_new()`, set `tags: args.tags.clone()` in the `CreateKnotOptions` construction.\n\n### 6. `src/app/knot_create.rs` — Emit tag events and store tags\nTwo changes:\n- In `write_optional_create_events()`: emit a `KnotTagAdd` event for each normalized, non-empty, deduplicated tag.\n- In `upsert_knot_hot()`: pass the normalized tags slice instead of `&[]`.\n\n## Test Strategy\n\n### Unit tests (`src/cli_tests.rs`)\n1. `new_tag_long_flag_parses` — `kno new \"Title\" --tag foo --tag bar` parses both tags.\n2. `new_tag_short_flag_parses` — `kno new \"Title\" -t foo -t bar` parses both tags.\n3. `new_tag_defaults_empty` — `kno new \"Title\"` has empty tags vec.\n\n### Integration test (`tests/cli_dispatch.rs`)\n4. `test_new_with_tags` — Create a knot with `--tag`, then `kno show --json` and assert tags are present.\n\n## Risks & Dependencies\n- **Short flag `-t` conflict**: No existing `-t` on `NewArgs`. Confirmed available.\n- **Tag normalization**: Reuse `normalize_tag()` from `helpers.rs`.\n- **No breaking changes**: Tags default to empty vec, existing callers unaffected.\n\n## Acceptance Criteria\n- `kno new \"Title\" --tag foo` creates a knot with tag `foo`\n- `kno new \"Title\" -t foo -t bar` creates with both tags\n- Tags are normalized (lowercased, trimmed) and deduplicated\n- `KnotTagAdd` events emitted for each tag\n- Tags appear in `kno show --json` output\n- Existing `kno new` without tags works unchanged\n- All tests pass; `make sanity` passes",
+    "datetime": "2026-04-13T13:56:59.248104Z",
+    "entry_id": "019d8721-98f0-7ee3-b21d-dfbcef5cb0a6",
+    "model": "claude-opus-4-6",
+    "username": "Claude",
+    "version": "4.6"
+  }
+}

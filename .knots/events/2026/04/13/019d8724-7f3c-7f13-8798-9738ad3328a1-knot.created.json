@@ -1,0 +1,17 @@
+{
+  "event_id": "019d8724-7f3c-7f13-8798-9738ad3328a1",
+  "occurred_at": "2026-04-13T14:00:09.276041Z",
+  "knot_id": "knots-26c2",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Recover knot state after merge-triggered knots sync imports stale metadata",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

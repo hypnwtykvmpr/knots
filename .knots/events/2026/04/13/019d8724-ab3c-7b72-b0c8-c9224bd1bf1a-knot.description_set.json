@@ -1,0 +1,9 @@
+{
+  "event_id": "019d8724-ab3c-7b72-b0c8-c9224bd1bf1a",
+  "occurred_at": "2026-04-13T14:00:20.540692Z",
+  "knot_id": "knots-26c2",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Investigate and fix the Knots bug where a merge-triggered knots sync/import can restore an older knot title/state even though newer local implementation, review, and shipment notes/tags are already attached. The concrete failure mode observed on 2026-04-13: knot 21fe had been advanced locally through implementation review and shipment, then a merge imported knots updates and the knot snapped back to its older READY_FOR_PLANNING metadata while retaining newer notes and branch/commit tags. The fix should preserve the latest authoritative knot state and metadata across sync/import, or surface a safe recovery path that does not require manual re-advancement."
+  }
+}

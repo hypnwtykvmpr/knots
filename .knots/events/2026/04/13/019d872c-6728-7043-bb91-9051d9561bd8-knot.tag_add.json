@@ -1,0 +1,9 @@
+{
+  "event_id": "019d872c-6728-7043-bb91-9051d9561bd8",
+  "occurred_at": "2026-04-13T14:08:47.400639Z",
+  "knot_id": "knots-d6dc",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/new-tag-flag"
+  }
+}

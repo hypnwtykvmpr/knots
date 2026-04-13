@@ -1,0 +1,9 @@
+{
+  "event_id": "019d8724-ab3c-7b72-b0c8-c930d6964cdc",
+  "occurred_at": "2026-04-13T14:00:20.540692Z",
+  "knot_id": "knots-26c2",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Reproduce or otherwise explain how a merge-triggered knots sync/import can regress a knot to older title/state metadata while preserving newer notes/tags. 2. Implement a fix so the latest authoritative knot metadata survives the sync/import path, or add a deterministic recovery mechanism if true automatic preservation is impossible. 3. Add regression coverage for the stale-metadata reversion path and document any remaining operator constraints."
+  }
+}
