@@ -1,0 +1,9 @@
+{
+  "event_id": "019d85d4-acf1-7cc3-afb1-b8b1f3437820",
+  "occurred_at": "2026-04-13T07:53:20.864971Z",
+  "knot_id": "knots-eb5e",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Agent-visible failure-path instructions for workflow steps use `kno rollback <id>` with the required actor and agent metadata flags.\n2. Happy-path instructions continue to use `kno next ...` and remain unchanged for successful completion.\n3. Prompt or skill text no longer tells agents to use manual state mutation such as `kno update --status ...` for rollback-style exits.\n4. Automated tests cover the emitted failure-path instruction text."
+  }
+}

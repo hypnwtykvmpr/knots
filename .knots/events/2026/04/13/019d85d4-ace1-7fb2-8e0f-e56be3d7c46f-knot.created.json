@@ -1,0 +1,17 @@
+{
+  "event_id": "019d85d4-ace1-7fb2-8e0f-e56be3d7c46f",
+  "occurred_at": "2026-04-13T07:53:20.864971Z",
+  "knot_id": "knots-eb5e",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nMake Knots-generated workflow instructions use `kno rollback` for non-happy-path exits so agents are not given conflicting failure-path commands. Failure and request-changes paths should describe one rollback-based contract instead of mixing `kno next` with manual state mutation.\n\nVerification:\n1. Inspect the relevant claim or skill prompt for an agent-owned review step with a reject path; expected result: the failure path tells the agent to use `kno rollback <id> --actor-kind agent --agent-name <AGENT_NAME> --agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`.\n2. Inspect the corresponding happy-path instructions; expected result: they still use `kno next ...` and do not regress.\n3. Add and run targeted tests for the emitted prompt or skill text; expected result: failure paths use rollback syntax and no longer instruct agents to mutate state manually.\n\nConstraints:\n- Remove ambiguity between claim-boundary text and workflow skill text for reject paths.\n- Standardize on `kno rollback` rather than `kno update --status ...` for step failure exits.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Use rollback commands in failure-path prompts",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
