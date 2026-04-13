@@ -1,0 +1,9 @@
+{
+  "event_id": "019d857b-266d-7ee1-b913-999ee7fa930f",
+  "occurred_at": "2026-04-13T06:15:33.726302Z",
+  "knot_id": "knots-e64c",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Lease-backed `kno claim` and `kno poll --claim` completion commands no longer include `--actor-kind`, `--agent-name`, `--agent-model`, or `--agent-version`.\n2. The work_sdlc prompt templates and public docs no longer instruct agents to restate identity flags when advancing a lease-backed step.\n3. Automated tests cover lease-backed completion guidance and fail if explicit identity flags reappear."
+  }
+}

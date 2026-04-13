@@ -1,0 +1,17 @@
+{
+  "event_id": "019d857b-265e-7da0-bb12-58e683899a72",
+  "occurred_at": "2026-04-13T06:15:33.726302Z",
+  "knot_id": "knots-e64c",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nOur lease forensics showed that Knots claim/poll prompts are telling agents to run `kno next ... --actor-kind agent --agent-name <AGENT_NAME> --agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`. Foolery only forwards that returned prompt. Update Knots so lease-backed completion guidance treats the lease as the source of actor and agent identity and stops instructing clients to restate those flags.\n\nVerification:\n1. Add or update automated tests covering `kno claim --json --lease ...` and `kno poll --claim --json --lease ...`; the targeted lease-aware tests pass and assert that the completion command omits `--actor-kind`, `--agent-name`, `--agent-model`, and `--agent-version`.\n2. `cargo test` passes in `/Users/cartine/knots`.\n3. `rg -n -- \"--agent-name <AGENT_NAME>|--agent-model <AGENT_MODEL>|--agent-version <AGENT_VERSION>|--actor-kind agent\" src/poll_claim.rs loom/work_sdlc/prompts README.md` does not show those placeholders in claim/poll completion guidance or workflow step templates.\n\nConstraints:\n- The observed bad command came from `kno claim` output for `maestro-acf4`; Foolerys outer execution prompt only instructed `kno claim ... --lease ...` and then forwarded the returned prompt verbatim.\n- The primary source is `src/poll_claim.rs`; the loom prompt templates and README currently reinforce the same explicit-flag pattern.\n- Focus on observable prompt and completion-command behavior, not just internal refactoring.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Remove explicit agent flags from lease-backed completion prompts",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
