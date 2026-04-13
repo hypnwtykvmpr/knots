@@ -1,0 +1,17 @@
+{
+  "event_id": "019d86ee-0bcf-7e80-8f0a-baa5f167aed4",
+  "occurred_at": "2026-04-13T13:00:40.783406Z",
+  "knot_id": "knots-d6dc",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "add --tag and -t to know new so you can add tags at the same time as creation",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
