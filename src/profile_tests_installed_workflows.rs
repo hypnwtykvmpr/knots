@@ -77,6 +77,20 @@ fn load_includes_builtin_profiles_from_all_workflow_bundles() {
         registry.require("explore").expect("explore").workflow_id,
         "explore_sdlc"
     );
+    assert_eq!(
+        registry
+            .require("execution_plan_sdlc/autopilot")
+            .expect("execution plan autopilot")
+            .workflow_id,
+        "execution_plan_sdlc"
+    );
+    assert_eq!(
+        registry
+            .require("execution_plan_sdlc/semiauto")
+            .expect("execution plan semiauto")
+            .workflow_id,
+        "execution_plan_sdlc"
+    );
 }
 
 #[test]
@@ -105,6 +119,13 @@ fn load_for_repo_keeps_non_work_builtin_profiles_alongside_installed_workflows()
     assert_eq!(
         registry.require("explore").expect("explore").workflow_id,
         "explore_sdlc"
+    );
+    assert_eq!(
+        registry
+            .require("execution_plan_sdlc/autopilot")
+            .expect("execution plan autopilot")
+            .workflow_id,
+        "execution_plan_sdlc"
     );
 
     let _ = std::fs::remove_dir_all(root);

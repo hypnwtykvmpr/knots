@@ -16,9 +16,9 @@ use super::{GitAdapter, SyncError, SyncSummary};
 mod apply_helpers;
 use apply_helpers::{
     build_index_upsert, current_unix_ms_string, invalid_event, is_stale_precondition, optional_i64,
-    optional_string, parse_gate_data, parse_invariants, parse_lease_data, parse_metadata_entry,
-    read_json_file, required_profile_id, required_string, required_workflow_id, IndexUpsertParams,
-    MetadataProjection,
+    optional_string, parse_execution_plan_data, parse_gate_data, parse_invariants,
+    parse_lease_data, parse_metadata_entry, read_json_file, required_profile_id, required_string,
+    required_workflow_id, IndexUpsertParams, MetadataProjection,
 };
 
 pub struct IncrementalApplier<'a> {
@@ -344,6 +344,10 @@ impl<'a> IncrementalApplier<'a> {
             "knot.lease_data_set" => {
                 let ld = parse_lease_data(data, path)?;
                 self.apply_metadata_update(knot_id, |r| r.lease_data = ld)
+            }
+            "knot.execution_plan_data_set" => {
+                let execution_plan_data = parse_execution_plan_data(data, path)?;
+                self.apply_metadata_update(knot_id, |r| r.execution_plan_data = execution_plan_data)
             }
             "knot.lease_id_set" => {
                 let lid = optional_string(data.get("lease_id"));

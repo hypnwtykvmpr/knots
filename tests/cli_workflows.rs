@@ -80,6 +80,7 @@ fn bootstrap_builtin_workflows(root: &Path, db: &Path, home: &Path) {
         ("gate", "gate_sdlc"),
         ("lease", "lease_sdlc"),
         ("explore", "explore_sdlc"),
+        ("execution_plan", "execution_plan_sdlc"),
     ] {
         let output = run_knots(
             root,
@@ -452,4 +453,42 @@ fn workflow_install_does_not_switch_without_set_default() {
     assert_eq!(shown_json["workflow_id"], "custom_flow");
     assert_eq!(shown_json["profile_id"], "custom_flow/autopilot");
     assert_eq!(shown_json["state"], "ready_for_work");
+}
+
+#[test]
+fn execution_plan_builtin_type_resolves_default_workflow_and_profile() {
+    let root = unique_workspace("knots-cli-execution-plan-builtin");
+    let home = unique_workspace("knots-cli-execution-plan-builtin-home");
+    std::fs::create_dir_all(root.join(".knots")).expect(".knots dir should exist");
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_builtin_workflows(&root, &db, &home);
+
+    let current = run_knots(
+        &root,
+        &db,
+        &home,
+        &["workflow", "current", "--type", "execution_plan", "--json"],
+    );
+    assert_success(&current);
+    let current_json: Value = serde_json::from_slice(&current.stdout).expect("current json");
+    assert_eq!(current_json["knot_type"], "execution_plan");
+    assert_eq!(current_json["id"], "execution_plan_sdlc");
+    assert_eq!(current_json["default_profile"], "autopilot");
+
+    let created = run_knots(
+        &root,
+        &db,
+        &home,
+        &["new", "Execution plan", "--type", "execution_plan"],
+    );
+    assert_success(&created);
+    let knot_id = parse_created_id(&created);
+
+    let shown = run_knots(&root, &db, &home, &["show", &knot_id, "--json"]);
+    assert_success(&shown);
+    let shown_json: Value = serde_json::from_slice(&shown.stdout).expect("show json");
+    assert_eq!(shown_json["type"], "execution_plan");
+    assert_eq!(shown_json["workflow_id"], "execution_plan_sdlc");
+    assert_eq!(shown_json["profile_id"], "autopilot");
+    assert_eq!(shown_json["state"], "ready_for_design");
 }

@@ -102,6 +102,7 @@ fn bootstrap_builtin_workflows(repo_root: &Path, db_path: &Path) {
         ("gate", "gate_sdlc"),
         ("lease", "lease_sdlc"),
         ("explore", "explore_sdlc"),
+        ("execution_plan", "execution_plan_sdlc"),
     ] {
         let output = run_knots(
             repo_root,

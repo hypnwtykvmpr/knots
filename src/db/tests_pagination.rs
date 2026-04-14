@@ -44,6 +44,7 @@ fn insert_test_knots(conn: &rusqlite::Connection, count: usize) {
                 step_history: &[],
                 gate_data: &gate_data,
                 lease_data: &lease_data,
+                execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
                 lease_id: None,
                 workflow_id: "work_sdlc",
                 profile_id: "autopilot",

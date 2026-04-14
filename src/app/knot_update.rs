@@ -63,6 +63,7 @@ struct UpdateState {
     handoff_capsules: Vec<crate::domain::metadata::MetadataEntry>,
     invariants: Vec<crate::domain::invariant::Invariant>,
     gate_data: crate::domain::gate::GateData,
+    execution_plan_data: crate::domain::execution_plan::ExecutionPlanData,
     current_precondition: Option<String>,
 }
 
@@ -83,6 +84,7 @@ impl UpdateState {
             handoff_capsules: record.handoff_capsules.clone(),
             invariants: record.invariants.clone(),
             gate_data: record.gate_data.clone(),
+            execution_plan_data: record.execution_plan_data.clone(),
             current_precondition: precondition,
         }
     }
@@ -102,6 +104,7 @@ impl UpdateState {
         self.handoff_capsules = record.handoff_capsules.clone();
         self.invariants = record.invariants.clone();
         self.gate_data = record.gate_data.clone();
+        self.execution_plan_data = record.execution_plan_data.clone();
     }
 }
 
@@ -355,6 +358,7 @@ fn write_update_events_and_cache(
             invariants: &us.invariants,
             knot_type: us.knot_type,
             gate_data: &us.gate_data,
+            execution_plan_data: &us.execution_plan_data,
             step_metadata: step_metadata.as_ref(),
             next_step_metadata: next_step_metadata.as_ref(),
         }),
@@ -389,6 +393,7 @@ fn write_update_events_and_cache(
             ),
             gate_data: &us.gate_data,
             lease_data: &current.lease_data,
+            execution_plan_data: &us.execution_plan_data,
             lease_id: current.lease_id.as_deref(),
             workflow_id,
             profile_id,

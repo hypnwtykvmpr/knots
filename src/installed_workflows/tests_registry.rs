@@ -395,6 +395,7 @@ fn registry_helpers_cover_lookup_and_sorting() {
         listed,
         vec![
             "custom_flow v3",
+            "execution_plan_sdlc v1",
             "explore_sdlc v1",
             "gate_sdlc v1",
             "lease_sdlc v1",
@@ -417,11 +418,12 @@ fn registry_exposes_builtin_defaults_for_each_knot_type() {
     ensure_builtin_registry(&root);
     let registry = InstalledWorkflowRegistry::load(&root).expect("registry should load");
 
-    let expected: [(KnotType, &str, &str); 4] = [
+    let expected: [(KnotType, &str, &str); 5] = [
         (KnotType::Work, "work_sdlc", "autopilot"),
         (KnotType::Gate, "gate_sdlc", "evaluate"),
         (KnotType::Lease, "lease_sdlc", "lease"),
         (KnotType::Explore, "explore_sdlc", "explore"),
+        (KnotType::ExecutionPlan, "execution_plan_sdlc", "autopilot"),
     ];
 
     for (knot_type, workflow_id, profile_id) in expected {

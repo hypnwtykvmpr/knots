@@ -1,0 +1,8 @@
+profile semiauto "Semi-automatic" {
+    description "Human-reviewed execution plan authoring flow"
+    phases [authoring_phase]
+
+    override review {
+        executor human
+    }
+}

@@ -354,6 +354,13 @@ fn apply_fixes_workflow_registry_repairs_missing_builtin_entries_without_clobber
                     registered: vec![WorkflowRef::new("custom_flow", Some(1))],
                 },
             ),
+            (
+                KnotType::ExecutionPlan.as_str().to_string(),
+                KnotTypeWorkflowConfig {
+                    default: WorkflowRef::new("custom_flow", Some(1)),
+                    registered: vec![WorkflowRef::new("custom_flow", Some(1))],
+                },
+            ),
         ]),
         default_profiles: std::collections::BTreeMap::new(),
     };
@@ -396,6 +403,13 @@ fn apply_fixes_workflow_registry_repairs_missing_builtin_entries_without_clobber
         .map(|workflow| workflow.id.as_str())
         .collect::<Vec<_>>();
     assert!(explore_workflows.contains(&"explore_sdlc"));
+
+    let execution_plan_workflows = registry
+        .registered_workflows_for_knot_type(KnotType::ExecutionPlan)
+        .iter()
+        .map(|workflow| workflow.id.as_str())
+        .collect::<Vec<_>>();
+    assert!(execution_plan_workflows.contains(&"execution_plan_sdlc"));
 
     let repaired = read_repo_config(&root).expect("config should reload");
     assert_eq!(

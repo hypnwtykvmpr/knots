@@ -5,8 +5,8 @@ use crate::events::FullEvent;
 use crate::workflow::normalize_profile_id;
 
 use super::{
-    parse_gate_data_value, parse_invariants_value, parse_metadata_entry_for_rehydrate,
-    RehydrateProjection,
+    parse_execution_plan_data_value, parse_gate_data_value, parse_invariants_value,
+    parse_metadata_entry_for_rehydrate, RehydrateProjection,
 };
 
 pub(crate) fn apply_rehydrate_event(projection: &mut RehydrateProjection, event: &FullEvent) {
@@ -32,6 +32,9 @@ pub(crate) fn apply_rehydrate_event(projection: &mut RehydrateProjection, event:
         "knot.type_set" => apply_type_set(projection, data, event),
         "knot.gate_data_set" => {
             apply_gate_data_set(projection, data, event);
+        }
+        "knot.execution_plan_data_set" => {
+            apply_execution_plan_data_set(projection, data, event);
         }
         "knot.tag_add" => apply_tag_add(projection, data),
         "knot.tag_remove" => apply_tag_remove(projection, data),
@@ -81,6 +84,9 @@ fn apply_created(
     }
     if data.contains_key("gate") {
         p.gate_data = parse_gate_data_value(data.get("gate"));
+    }
+    if data.contains_key("execution_plan") {
+        p.execution_plan_data = parse_execution_plan_data_value(data.get("execution_plan"));
     }
     p.created_at = Some(event.occurred_at.clone());
     p.updated_at = event.occurred_at.clone();
@@ -203,6 +209,15 @@ fn apply_gate_data_set(
     event: &FullEvent,
 ) {
     p.gate_data = parse_gate_data_value(data.get("gate"));
+    p.updated_at = event.occurred_at.clone();
+}
+
+fn apply_execution_plan_data_set(
+    p: &mut RehydrateProjection,
+    data: &serde_json::Map<String, Value>,
+    event: &FullEvent,
+) {
+    p.execution_plan_data = parse_execution_plan_data_value(data.get("execution_plan"));
     p.updated_at = event.occurred_at.clone();
 }
 

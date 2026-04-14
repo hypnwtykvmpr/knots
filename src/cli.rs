@@ -215,7 +215,7 @@ pub struct NewArgs {
     #[arg(
         short = 'k',
         long = "type",
-        help = "Knot type (work, gate, lease, or explore)."
+        help = "Knot type (work, gate, lease, explore, or execution_plan)."
     )]
     pub knot_type: Option<String>,
 

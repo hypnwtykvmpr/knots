@@ -45,6 +45,7 @@ fn sample_knot() -> KnotView {
         step_history: vec![],
         gate: None,
         lease: None,
+        execution_plan: None,
         lease_id: None,
         lease_expiry_ts: 0,
         lease_agent: None,

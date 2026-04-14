@@ -1,0 +1,154 @@
+{
+  "format": "knots-bundle",
+  "format_version": 2,
+  "workflow": {
+    "name": "execution_plan_sdlc",
+    "version": 1,
+    "default_profile": "autopilot"
+  },
+  "states": [
+    {
+      "id": "ready_for_design",
+      "kind": "queue",
+      "prompt": null
+    },
+    {
+      "id": "design",
+      "kind": "action",
+      "prompt": "design",
+      "executor": "agent",
+      "output": "note"
+    },
+    {
+      "id": "ready_for_review",
+      "kind": "queue",
+      "prompt": null
+    },
+    {
+      "id": "review",
+      "kind": "action",
+      "prompt": "review",
+      "executor": "agent",
+      "output": "approval"
+    },
+    {
+      "id": "shipped",
+      "kind": "terminal",
+      "prompt": null
+    },
+    {
+      "id": "abandoned",
+      "kind": "terminal",
+      "prompt": null
+    },
+    {
+      "id": "blocked",
+      "kind": "escape",
+      "prompt": null
+    },
+    {
+      "id": "deferred",
+      "kind": "escape",
+      "prompt": null
+    }
+  ],
+  "steps": [
+    {
+      "id": "design_step",
+      "queue": "ready_for_design",
+      "action": "design"
+    },
+    {
+      "id": "review_step",
+      "queue": "ready_for_review",
+      "action": "review"
+    }
+  ],
+  "phases": [
+    {
+      "id": "authoring_phase",
+      "produce_step": "design_step",
+      "gate_step": "review_step"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "autopilot",
+      "display_name": "Autopilot",
+      "description": "Agent-owned design and review flow for execution plan authoring",
+      "phases": [
+        "authoring_phase"
+      ],
+      "outputs": {},
+      "executors": {}
+    },
+    {
+      "id": "semiauto",
+      "display_name": "Semi-automatic",
+      "description": "Human-reviewed execution plan authoring flow",
+      "phases": [
+        "authoring_phase"
+      ],
+      "outputs": {},
+      "executors": {
+        "review": "human"
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "name": "design",
+      "accept": [
+        "Objective and scope are reflected in the plan design",
+        "Waves and dependencies are coherent",
+        "The plan records clear next actions for downstream execution"
+      ],
+      "body": "# Design\n\nAuthor the execution plan artifact for this knot.\n\n## Step Boundary\n\n- This session is authorized only for `design`.\n- Complete exactly one design action, then stop.\n- Allowed resting states after this session: `ready_for_review`,\n  `ready_for_design`, or `blocked`.\n- Record the design in the plan artifact output before advancing.\n\n## Actions\n\n1. Review the knot goal, description, and existing context.\n2. Draft a coherent execution plan structure with waves, dependencies, and\n   handoff-ready details.\n3. Ensure the authored plan is suitable for a later review pass.\n4. Advance to `ready_for_review` when the design is ready.\n",
+      "params": [],
+      "outcomes": [
+        {
+          "name": "design_complete",
+          "target": "ready_for_review",
+          "is_success": true
+        },
+        {
+          "name": "insufficient_context",
+          "target": "ready_for_design",
+          "is_success": false
+        },
+        {
+          "name": "blocked_by_dependency",
+          "target": "blocked",
+          "is_success": false
+        }
+      ]
+    },
+    {
+      "name": "review",
+      "accept": [
+        "The execution plan design is complete and internally consistent",
+        "The proposed waves and dependencies are reviewable and actionable",
+        "The artifact is ready to serve as the source plan for execution"
+      ],
+      "body": "# Review\n\nReview the authored execution plan before it is considered shipped.\n\n## Step Boundary\n\n- This session is authorized only for `review`.\n- Complete exactly one review action, then stop.\n- Allowed resting states after this session: `shipped`, `ready_for_design`,\n  or `blocked`.\n- Review work is metadata-only and should not modify repository code.\n\n## Actions\n\n1. Inspect the authored plan artifact and its supporting knot context.\n2. Confirm the design is complete, coherent, and actionable.\n3. Approve the plan to move it to `shipped`, or send it back for revision.\n",
+      "params": [],
+      "outcomes": [
+        {
+          "name": "approved",
+          "target": "shipped",
+          "is_success": true
+        },
+        {
+          "name": "changes_requested",
+          "target": "ready_for_design",
+          "is_success": false
+        },
+        {
+          "name": "blocked_by_dependency",
+          "target": "blocked",
+          "is_success": false
+        }
+      ]
+    }
+  ]
+}

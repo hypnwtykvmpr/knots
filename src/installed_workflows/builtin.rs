@@ -30,6 +30,13 @@ pub fn explore_sdlc_workflow_for_test() -> Result<WorkflowDefinition, ProfileErr
     explore_sdlc_workflow()
 }
 
+/// Test-visible wrapper to build the bundled execution plan workflow.
+#[cfg(test)]
+#[allow(dead_code)]
+pub fn execution_plan_sdlc_workflow_for_test() -> Result<WorkflowDefinition, ProfileError> {
+    execution_plan_sdlc_workflow()
+}
+
 pub fn builtin_workflows() -> Result<Vec<(KnotType, WorkflowDefinition)>, ProfileError> {
     KnotType::ALL
         .into_iter()
@@ -74,12 +81,21 @@ pub(super) fn explore_sdlc_workflow() -> Result<WorkflowDefinition, ProfileError
     )
 }
 
+pub(super) fn execution_plan_sdlc_workflow() -> Result<WorkflowDefinition, ProfileError> {
+    build_builtin_workflow(
+        crate::loom_execution_plan_bundle::BUNDLE_JSON,
+        "Built-in execution plan workflow",
+        Some("autopilot"),
+    )
+}
+
 fn builtin_workflow(knot_type: KnotType) -> Result<WorkflowDefinition, ProfileError> {
     match knot_type {
         KnotType::Work => work_sdlc_workflow(),
         KnotType::Gate => gate_sdlc_workflow(),
         KnotType::Lease => lease_sdlc_workflow(),
         KnotType::Explore => explore_sdlc_workflow(),
+        KnotType::ExecutionPlan => execution_plan_sdlc_workflow(),
     }
 }
 

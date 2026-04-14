@@ -1,5 +1,8 @@
+use std::path::Path;
+
 use crate::app::{App, AppError, StateActorMetadata, UpdateKnotPatch};
 use crate::dispatch::{knot_ref, resolve_next_state};
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::knot_type::KnotType;
 use crate::domain::metadata::MetadataEntryInput;
 use crate::lease_guard::{release_bound_lease, validate_next_bound_lease};
@@ -104,6 +107,7 @@ fn build_update_patch(
         gate_owner_kind: parse_gate_owner_kind_arg(args.gate_owner_kind.as_deref())?,
         gate_failure_modes: parse_gate_failure_modes_option(&args.gate_failure_modes)?,
         clear_gate_failure_modes: args.clear_gate_failure_modes,
+        execution_plan_data: load_execution_plan_data(args.execution_plan_file.as_deref())?,
         add_note,
         add_handoff_capsule,
         expected_profile_etag: args.if_match.clone(),
@@ -115,6 +119,28 @@ fn build_update_patch(
             agent_version: args.agent_version.clone(),
         },
     })
+}
+
+fn load_execution_plan_data(path: Option<&str>) -> Result<Option<ExecutionPlanData>, AppError> {
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    let resolved = Path::new(path);
+    let bytes = std::fs::read(resolved).map_err(|err| {
+        AppError::InvalidArgument(format!(
+            "failed to read execution plan file '{}': {}",
+            resolved.display(),
+            err
+        ))
+    })?;
+    let payload = serde_json::from_slice(&bytes).map_err(|err| {
+        AppError::InvalidArgument(format!(
+            "invalid execution plan JSON in '{}': {}",
+            resolved.display(),
+            err
+        ))
+    })?;
+    Ok(Some(payload))
 }
 
 fn build_note_input(

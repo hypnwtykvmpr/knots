@@ -39,6 +39,16 @@ fn open_with_context_bootstraps_builtin_workflows_for_local_only_store() {
             .expect("explore default workflow"),
         "explore_sdlc"
     );
+    assert_eq!(
+        app.current_workflow_id_for_knot_type(crate::domain::knot_type::KnotType::ExecutionPlan)
+            .expect("execution plan default workflow"),
+        "execution_plan_sdlc"
+    );
+    assert_eq!(
+        app.default_profile_id_for_knot_type(crate::domain::knot_type::KnotType::ExecutionPlan)
+            .expect("execution plan default profile"),
+        "execution_plan_sdlc/autopilot"
+    );
 
     let _ = std::fs::remove_dir_all(root);
 }

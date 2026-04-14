@@ -8,13 +8,14 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::lease::LeaseData;
 use crate::domain::metadata::MetadataEntry;
 use crate::domain::step_history::StepRecord;
 
-pub const CURRENT_SCHEMA_VERSION: i64 = 16;
+pub const CURRENT_SCHEMA_VERSION: i64 = 17;
 
 mod catalog;
 mod migrations;
@@ -137,6 +138,8 @@ pub struct KnotCacheRecord {
     pub gate_data: GateData,
     #[serde(default)]
     pub lease_data: LeaseData,
+    #[serde(default)]
+    pub execution_plan_data: ExecutionPlanData,
     pub lease_id: Option<String>,
     #[serde(default)]
     pub lease_expiry_ts: i64,
@@ -180,6 +183,7 @@ pub struct UpsertKnotHot<'a> {
     pub step_history: &'a [StepRecord],
     pub gate_data: &'a GateData,
     pub lease_data: &'a LeaseData,
+    pub execution_plan_data: &'a ExecutionPlanData,
     pub lease_id: Option<&'a str>,
     pub workflow_id: &'a str,
     pub profile_id: &'a str,
@@ -197,6 +201,7 @@ pub fn upsert_knot_hot(conn: &Connection, args: &UpsertKnotHot<'_>) -> Result<()
     let step_history_json = to_json_text(args.step_history)?;
     let gate_data_json = to_json_text(args.gate_data)?;
     let lease_data_json = to_json_text(args.lease_data)?;
+    let execution_plan_data_json = to_json_text(args.execution_plan_data)?;
     with_write_retry(|| {
         conn.execute(
             r#"
@@ -204,17 +209,17 @@ INSERT INTO knot_hot (
     id, title, state, updated_at, body, description, acceptance,
     priority, knot_type, tags_json, notes_json,
     handoff_capsules_json, invariants_json, step_history_json,
-    gate_data_json, lease_data_json, lease_id,
+    gate_data_json, lease_data_json, execution_plan_data_json, lease_id,
     workflow_id, profile_id, profile_etag,
     deferred_from_state, blocked_from_state, created_at
 )
 VALUES (
     ?1, ?2, ?3, ?4, ?5, ?6, ?7,
     ?8, ?9, ?10, ?11,
-    ?12, ?13, ?14, ?15,
-    ?16, ?17,
-    ?18, ?19, ?20,
-    ?21, ?22, ?23
+    ?12, ?13, ?14, ?15, ?16,
+    ?17, ?18,
+    ?19, ?20, ?21,
+    ?22, ?23, ?24
 )
 ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
@@ -232,6 +237,7 @@ ON CONFLICT(id) DO UPDATE SET
     step_history_json = excluded.step_history_json,
     gate_data_json = excluded.gate_data_json,
     lease_data_json = excluded.lease_data_json,
+    execution_plan_data_json = excluded.execution_plan_data_json,
     lease_id = excluded.lease_id,
     workflow_id = excluded.workflow_id,
     profile_id = excluded.profile_id,
@@ -257,6 +263,7 @@ ON CONFLICT(id) DO UPDATE SET
                 step_history_json.as_str(),
                 gate_data_json.as_str(),
                 lease_data_json.as_str(),
+                execution_plan_data_json.as_str(),
                 args.lease_id,
                 args.workflow_id,
                 args.profile_id,
@@ -282,7 +289,7 @@ pub fn get_knot_hot(conn: &Connection, id: &str) -> Result<Option<KnotCacheRecor
 SELECT id, title, state, updated_at, body, description, acceptance,
        priority, knot_type, tags_json, notes_json,
        handoff_capsules_json, invariants_json, step_history_json,
-       gate_data_json, lease_data_json, lease_id, lease_expiry_ts,
+       gate_data_json, lease_data_json, execution_plan_data_json, lease_id, lease_expiry_ts,
        workflow_id, profile_id, profile_etag,
        deferred_from_state, blocked_from_state, created_at
 FROM knot_hot
@@ -300,7 +307,7 @@ pub fn list_knot_hot(conn: &Connection) -> Result<Vec<KnotCacheRecord>> {
 SELECT id, title, state, updated_at, body, description, acceptance,
        priority, knot_type, tags_json, notes_json,
        handoff_capsules_json, invariants_json, step_history_json,
-       gate_data_json, lease_data_json, lease_id, lease_expiry_ts,
+       gate_data_json, lease_data_json, execution_plan_data_json, lease_id, lease_expiry_ts,
        workflow_id, profile_id, profile_etag,
        deferred_from_state, blocked_from_state, created_at
 FROM knot_hot
@@ -336,7 +343,8 @@ pub fn list_knot_hot_paginated(
         "SELECT id, title, state, updated_at, body, description, \
          acceptance, priority, knot_type, tags_json, notes_json, \
          handoff_capsules_json, invariants_json, step_history_json, \
-         gate_data_json, lease_data_json, lease_id, lease_expiry_ts, \
+         gate_data_json, lease_data_json, execution_plan_data_json, lease_id, \
+         lease_expiry_ts, \
          workflow_id, profile_id, profile_etag, \
          deferred_from_state, blocked_from_state, created_at \
          FROM knot_hot{} ORDER BY updated_at DESC, id ASC",
@@ -406,6 +414,7 @@ fn row_to_knot_cache_record(row: &rusqlite::Row<'_>) -> Result<KnotCacheRecord> 
     let step_history_json: String = row.get(13)?;
     let gate_data_json: String = row.get(14)?;
     let lease_data_json: String = row.get(15)?;
+    let execution_plan_data_json: String = row.get(16)?;
     Ok(KnotCacheRecord {
         id: row.get(0)?,
         title: row.get(1)?,
@@ -423,14 +432,15 @@ fn row_to_knot_cache_record(row: &rusqlite::Row<'_>) -> Result<KnotCacheRecord> 
         step_history: from_json_text(step_history_json, 13)?,
         gate_data: from_json_text(gate_data_json, 14)?,
         lease_data: from_json_text(lease_data_json, 15)?,
-        lease_id: row.get(16)?,
-        lease_expiry_ts: row.get(17)?,
-        workflow_id: row.get(18)?,
-        profile_id: row.get(19)?,
-        profile_etag: row.get(20)?,
-        deferred_from_state: row.get(21)?,
-        blocked_from_state: row.get(22)?,
-        created_at: row.get(23)?,
+        execution_plan_data: from_json_text(execution_plan_data_json, 16)?,
+        lease_id: row.get(17)?,
+        lease_expiry_ts: row.get(18)?,
+        workflow_id: row.get(19)?,
+        profile_id: row.get(20)?,
+        profile_etag: row.get(21)?,
+        deferred_from_state: row.get(22)?,
+        blocked_from_state: row.get(23)?,
+        created_at: row.get(24)?,
     })
 }
 

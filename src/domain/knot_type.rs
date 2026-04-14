@@ -11,14 +11,16 @@ pub enum KnotType {
     Gate,
     Lease,
     Explore,
+    ExecutionPlan,
 }
 
 impl KnotType {
-    pub const ALL: [KnotType; 4] = [
+    pub const ALL: [KnotType; 5] = [
         KnotType::Work,
         KnotType::Gate,
         KnotType::Lease,
         KnotType::Explore,
+        KnotType::ExecutionPlan,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -27,6 +29,7 @@ impl KnotType {
             KnotType::Gate => "gate",
             KnotType::Lease => "lease",
             KnotType::Explore => "explore",
+            KnotType::ExecutionPlan => "execution_plan",
         }
     }
 }
@@ -47,6 +50,7 @@ impl FromStr for KnotType {
             "gate" => Ok(KnotType::Gate),
             "lease" => Ok(KnotType::Lease),
             "explore" | "exploration" => Ok(KnotType::Explore),
+            "execution_plan" | "execution-plan" | "plan" => Ok(KnotType::ExecutionPlan),
             _ => Err(ParseKnotTypeError {
                 value: value.to_string(),
             }),
@@ -212,6 +216,43 @@ mod tests {
     fn parse_knot_type_explore() {
         assert_eq!(parse_knot_type(Some("explore")), KnotType::Explore);
         assert_eq!(parse_knot_type(Some("exploration")), KnotType::Explore);
+    }
+
+    #[test]
+    fn parses_execution_plan_type() {
+        assert_eq!(
+            KnotType::from_str("execution_plan").unwrap(),
+            KnotType::ExecutionPlan
+        );
+        assert_eq!(
+            KnotType::from_str("execution-plan").unwrap(),
+            KnotType::ExecutionPlan
+        );
+        assert_eq!(KnotType::from_str("plan").unwrap(), KnotType::ExecutionPlan);
+        assert_eq!(KnotType::ExecutionPlan.as_str(), "execution_plan");
+    }
+
+    #[test]
+    fn serde_round_trip_execution_plan() {
+        let serialized =
+            serde_json::to_string(&KnotType::ExecutionPlan).expect("serialize should succeed");
+        assert_eq!(serialized, "\"execution_plan\"");
+        let deserialized: KnotType =
+            serde_json::from_str(&serialized).expect("deserialize should succeed");
+        assert_eq!(deserialized, KnotType::ExecutionPlan);
+    }
+
+    #[test]
+    fn parse_knot_type_execution_plan() {
+        assert_eq!(
+            parse_knot_type(Some("execution_plan")),
+            KnotType::ExecutionPlan
+        );
+        assert_eq!(
+            parse_knot_type(Some("execution-plan")),
+            KnotType::ExecutionPlan
+        );
+        assert_eq!(parse_knot_type(Some("plan")), KnotType::ExecutionPlan);
     }
 
     #[test]

@@ -32,6 +32,7 @@ fn update_op_with_lease(id: &str, lease_id: &str) -> WriteOperation {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        execution_plan_file: None,
         add_note: None,
         note_username: None,
         note_datetime: None,

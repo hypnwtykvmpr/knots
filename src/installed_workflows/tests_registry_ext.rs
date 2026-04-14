@@ -439,6 +439,12 @@ fn ensure_builtin_registration_adds_missing_entries_without_changing_defaults() 
             .map(|workflow| workflow.workflow_id),
         Some("lease_sdlc".to_string())
     );
+    assert_eq!(
+        config
+            .current_workflow_ref_for_knot_type(KnotType::ExecutionPlan)
+            .map(|workflow| workflow.workflow_id),
+        Some("execution_plan_sdlc".to_string())
+    );
 
     let registry = InstalledWorkflowRegistry::load(&root).expect("registry should load");
     let work_ids = registry
@@ -456,6 +462,13 @@ fn ensure_builtin_registration_adds_missing_entries_without_changing_defaults() 
         .collect::<Vec<_>>();
     assert!(explore_ids.contains(&"custom_flow"));
     assert!(explore_ids.contains(&"explore_sdlc"));
+
+    let execution_plan_ids = registry
+        .registered_workflows_for_knot_type(KnotType::ExecutionPlan)
+        .iter()
+        .map(|workflow| workflow.id.as_str())
+        .collect::<Vec<_>>();
+    assert!(execution_plan_ids.contains(&"execution_plan_sdlc"));
 
     let _ = std::fs::remove_dir_all(root);
 }

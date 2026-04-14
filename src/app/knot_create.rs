@@ -168,6 +168,7 @@ impl App {
                 invariants: &[],
                 knot_type: options.knot_type,
                 gate_data: &options.gate_data,
+                execution_plan_data: &options.execution_plan_data,
                 step_metadata: step_metadata.as_ref(),
                 next_step_metadata: next_step_metadata.as_ref(),
             }),
@@ -201,6 +202,7 @@ impl App {
                 step_history: &[],
                 gate_data: &options.gate_data,
                 lease_data: &options.lease_data,
+                execution_plan_data: &options.execution_plan_data,
                 lease_id: None,
                 workflow_id: profile.workflow_id.as_str(),
                 profile_id: profile.id.as_str(),
@@ -255,6 +257,14 @@ impl App {
                 knot_id.to_string(),
                 FullEventKind::KnotLeaseDataSet,
                 json!({"lease_data": &options.lease_data}),
+            );
+            self.writer.write(&EventRecord::full(event))?;
+        }
+        if !options.execution_plan_data.is_empty() {
+            let event = FullEvent::new(
+                knot_id.to_string(),
+                FullEventKind::KnotExecutionPlanDataSet,
+                json!({"execution_plan": &options.execution_plan_data}),
             );
             self.writer.write(&EventRecord::full(event))?;
         }

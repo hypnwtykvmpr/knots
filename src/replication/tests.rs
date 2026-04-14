@@ -377,6 +377,7 @@ fn push_blocks_with_active_leases() {
             step_history: &[],
             gate_data: &gate_data,
             lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "lease_sdlc",
             profile_id: "autopilot",

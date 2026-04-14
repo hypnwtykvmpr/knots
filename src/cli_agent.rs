@@ -155,6 +155,12 @@ pub struct UpdateArgs {
         help = "Clear all gate failure-mode mappings."
     )]
     pub clear_gate_failure_modes: bool,
+    #[arg(
+        long = "execution-plan-file",
+        value_name = "PATH",
+        help = "Load structured execution plan JSON from a file."
+    )]
+    pub execution_plan_file: Option<std::path::PathBuf>,
     #[arg(short = 'n', long = "add-note", help = "Add note content.")]
     pub add_note: Option<String>,
     #[arg(long = "note-username", help = "Note author username.")]

@@ -43,6 +43,7 @@ mod loom_compat_harness;
 mod loom_compat_harness_tests;
 #[cfg(test)]
 mod loom_compat_prompt_resolution_tests;
+mod loom_execution_plan_bundle;
 mod loom_explore_bundle;
 mod loom_gate_bundle;
 mod loom_lease_bundle;

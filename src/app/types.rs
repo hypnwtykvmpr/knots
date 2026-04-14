@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use crate::db::{EdgeRecord, KnotCacheRecord};
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::knot_type::{parse_knot_type, KnotType};
@@ -33,6 +34,8 @@ pub struct KnotView {
     pub gate: Option<GateData>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lease: Option<LeaseData>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_plan: Option<ExecutionPlanData>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lease_id: Option<String>,
     #[serde(default)]
@@ -123,6 +126,7 @@ pub struct UpdateKnotPatch {
     pub gate_owner_kind: Option<crate::domain::gate::GateOwnerKind>,
     pub gate_failure_modes: Option<std::collections::BTreeMap<String, Vec<String>>>,
     pub clear_gate_failure_modes: bool,
+    pub execution_plan_data: Option<ExecutionPlanData>,
     pub add_note: Option<crate::domain::metadata::MetadataEntryInput>,
     pub add_handoff_capsule: Option<crate::domain::metadata::MetadataEntryInput>,
     pub expected_profile_etag: Option<String>,
@@ -146,6 +150,7 @@ impl UpdateKnotPatch {
             || self.gate_owner_kind.is_some()
             || self.gate_failure_modes.is_some()
             || self.clear_gate_failure_modes
+            || self.execution_plan_data.is_some()
             || self.add_note.is_some()
             || self.add_handoff_capsule.is_some()
     }
@@ -156,6 +161,7 @@ pub struct CreateKnotOptions {
     pub knot_type: KnotType,
     pub gate_data: GateData,
     pub lease_data: LeaseData,
+    pub execution_plan_data: ExecutionPlanData,
     pub acceptance: Option<String>,
     pub tags: Vec<String>,
 }
@@ -166,6 +172,8 @@ impl From<KnotCacheRecord> for KnotView {
         let knot_type = parse_knot_type(value.knot_type.as_deref());
         let gate = (knot_type == KnotType::Gate).then_some(value.gate_data.clone());
         let lease = (knot_type == KnotType::Lease).then_some(value.lease_data.clone());
+        let execution_plan =
+            should_include_execution_plan(&value).then_some(value.execution_plan_data.clone());
         Self {
             id: value.id,
             alias: None,
@@ -184,6 +192,7 @@ impl From<KnotCacheRecord> for KnotView {
             step_history: value.step_history,
             gate,
             lease,
+            execution_plan,
             lease_id: value.lease_id,
             lease_expiry_ts: value.lease_expiry_ts,
             lease_agent: None,
@@ -199,6 +208,11 @@ impl From<KnotCacheRecord> for KnotView {
             child_summaries: Vec::new(),
         }
     }
+}
+
+fn should_include_execution_plan(value: &KnotCacheRecord) -> bool {
+    parse_knot_type(value.knot_type.as_deref()) == KnotType::ExecutionPlan
+        || !value.execution_plan_data.is_empty()
 }
 
 #[derive(Debug, Clone, Serialize)]

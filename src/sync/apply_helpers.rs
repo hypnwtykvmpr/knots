@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
 use crate::db::{self, KnotCacheRecord, UpsertKnotHot};
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::lease::LeaseData;
@@ -39,6 +40,7 @@ pub(super) struct MetadataProjection {
     pub step_history: Vec<StepRecord>,
     pub gate_data: GateData,
     pub lease_data: LeaseData,
+    pub execution_plan_data: ExecutionPlanData,
     pub lease_id: Option<String>,
     pub workflow_id: String,
     pub profile_id: String,
@@ -66,6 +68,7 @@ impl MetadataProjection {
             step_history: existing.step_history.clone(),
             gate_data: existing.gate_data.clone(),
             lease_data: existing.lease_data.clone(),
+            execution_plan_data: existing.execution_plan_data.clone(),
             lease_id: existing.lease_id.clone(),
             workflow_id: existing.workflow_id.clone(),
             profile_id: existing.profile_id.clone(),
@@ -96,6 +99,7 @@ impl MetadataProjection {
                 step_history: &self.step_history,
                 gate_data: &self.gate_data,
                 lease_data: &self.lease_data,
+                execution_plan_data: &self.execution_plan_data,
                 lease_id: self.lease_id.as_deref(),
                 workflow_id: &self.workflow_id,
                 profile_id: &self.profile_id,
@@ -243,6 +247,17 @@ pub(super) fn parse_lease_data(
         .map_err(|err| invalid_event(path, &format!("invalid 'lease_data' payload: {}", err)))
 }
 
+pub(super) fn parse_execution_plan_data(
+    object: &Map<String, Value>,
+    path: &Path,
+) -> Result<ExecutionPlanData, SyncError> {
+    let raw = object
+        .get("execution_plan")
+        .ok_or_else(|| invalid_event(path, "missing 'execution_plan' field"))?;
+    serde_json::from_value(raw.clone())
+        .map_err(|err| invalid_event(path, &format!("invalid 'execution_plan' payload: {}", err)))
+}
+
 pub(super) fn invalid_event(path: &Path, message: &str) -> SyncError {
     SyncError::InvalidEvent {
         path: path.to_path_buf(),
@@ -320,6 +335,13 @@ pub(super) fn build_index_upsert(
         .as_ref()
         .map(|r| r.lease_data.clone())
         .unwrap_or_default();
+    let mut execution_plan_data = existing
+        .as_ref()
+        .map(|r| r.execution_plan_data.clone())
+        .unwrap_or_default();
+    if params.data.contains_key("execution_plan") {
+        execution_plan_data = parse_execution_plan_data(params.data, params.absolute_path)?;
+    }
     let lease_id = existing.as_ref().and_then(|r| r.lease_id.clone());
     let deferred_from_state =
         optional_string(params.data.get("deferred_from_state")).or_else(|| {
@@ -350,6 +372,7 @@ pub(super) fn build_index_upsert(
         step_history,
         gate_data,
         lease_data,
+        execution_plan_data,
         lease_id,
         workflow_id: params.workflow_id.to_string(),
         profile_id: params.profile_id.to_string(),

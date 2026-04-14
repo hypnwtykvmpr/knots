@@ -1,6 +1,7 @@
 use serde_json::Value;
 
 use crate::db::{EdgeDirection, KnotCacheRecord};
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::knot_type::KnotType;
@@ -180,6 +181,7 @@ pub(crate) struct KnotHeadData<'a> {
     pub invariants: &'a [Invariant],
     pub knot_type: KnotType,
     pub gate_data: &'a GateData,
+    pub execution_plan_data: &'a ExecutionPlanData,
     pub step_metadata: Option<&'a crate::workflow::StepMetadata>,
     pub next_step_metadata: Option<&'a crate::workflow::StepMetadata>,
 }
@@ -217,6 +219,13 @@ pub(crate) fn build_knot_head_data(head: KnotHeadData<'_>) -> Value {
         "gate".to_string(),
         serde_json::to_value(head.gate_data).expect("gate data should serialize"),
     );
+    if !head.execution_plan_data.is_empty() {
+        payload.insert(
+            "execution_plan".to_string(),
+            serde_json::to_value(head.execution_plan_data)
+                .expect("execution plan data should serialize"),
+        );
+    }
     insert_optional_string(
         &mut payload,
         "deferred_from_state",

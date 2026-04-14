@@ -70,6 +70,7 @@ fn apply_full_event_updates_acceptance_metadata() {
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "knots_sdlc",
             profile_id: "autopilot",

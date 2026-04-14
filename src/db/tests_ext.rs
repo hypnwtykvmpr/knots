@@ -37,6 +37,7 @@ fn upsert_and_get_knot_hot_round_trips_invariants() {
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "work_sdlc",
             profile_id: "autopilot",
@@ -86,6 +87,7 @@ fn upsert_knot_hot_with_empty_invariants_round_trips() {
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "work_sdlc",
             profile_id: "autopilot",
@@ -148,6 +150,7 @@ fn count_active_leases_returns_count() {
                 step_history: &[],
                 gate_data: &gate_data,
                 lease_data: &LeaseData::default(),
+                execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
                 lease_id: None,
                 workflow_id: "work_sdlc",
                 profile_id: "autopilot",
@@ -197,6 +200,7 @@ fn get_knot_hot_accepts_legacy_empty_lease_data_json() {
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "work_sdlc",
             profile_id: "autopilot",
@@ -220,6 +224,137 @@ fn get_knot_hot_accepts_legacy_empty_lease_data_json() {
     assert_eq!(
         record.lease_data,
         crate::domain::lease::LeaseData::default()
+    );
+
+    cleanup_db_files(&path);
+}
+
+#[test]
+fn upsert_and_get_knot_hot_round_trips_execution_plan_data() {
+    use crate::db::{get_knot_hot, upsert_knot_hot, UpsertKnotHot};
+    use crate::domain::execution_plan::{
+        ExecutionPlanData, ExecutionPlanStatus, ExecutionPlanStep, ExecutionPlanStepStatus,
+        ExecutionPlanWave,
+    };
+
+    let path = unique_db_path();
+    let conn = open_connection(&path).expect("connection should open");
+    let execution_plan_data = ExecutionPlanData {
+        status: ExecutionPlanStatus::Active,
+        repo_path: Some("/repo".to_string()),
+        objective: Some("Ship the payload".to_string()),
+        mode: Some("autopilot".to_string()),
+        model: Some("gpt-5".to_string()),
+        assumptions: vec!["assume beat ids already exist".to_string()],
+        beat_ids: vec!["beat-1".to_string()],
+        unassigned_beat_ids: vec!["beat-2".to_string()],
+        waves: vec![ExecutionPlanWave {
+            id: "wave-1".to_string(),
+            title: "Persist".to_string(),
+            summary: "Store the plan".to_string(),
+            beat_ids: vec!["beat-1".to_string()],
+            blocked_by_wave_ids: vec!["wave-0".to_string()],
+            steps: vec![ExecutionPlanStep {
+                id: "step-1".to_string(),
+                title: "Add DB column".to_string(),
+                summary: "Persist typed payload".to_string(),
+                status: ExecutionPlanStepStatus::InProgress,
+                beat_ids: vec!["beat-1".to_string()],
+                blocked_by_step_ids: vec!["step-0".to_string()],
+                assignee: Some("codex".to_string()),
+            }],
+        }],
+    };
+
+    upsert_knot_hot(
+        &conn,
+        &UpsertKnotHot {
+            id: "K-plan",
+            title: "Execution plan",
+            state: "design",
+            updated_at: "2026-04-14T10:00:00Z",
+            body: None,
+            description: Some("plan"),
+            acceptance: None,
+            priority: None,
+            knot_type: Some("execution_plan"),
+            tags: &[],
+            notes: &[],
+            handoff_capsules: &[],
+            invariants: &[],
+            step_history: &[],
+            gate_data: &crate::domain::gate::GateData::default(),
+            lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &execution_plan_data,
+            lease_id: None,
+            workflow_id: "execution_plan_sdlc",
+            profile_id: "autopilot",
+            profile_etag: Some("etag-plan"),
+            deferred_from_state: None,
+            blocked_from_state: None,
+            created_at: Some("2026-04-14T09:00:00Z"),
+        },
+    )
+    .expect("upsert should succeed");
+
+    let record = get_knot_hot(&conn, "K-plan")
+        .expect("get should succeed")
+        .expect("record should exist");
+    assert_eq!(record.execution_plan_data, execution_plan_data);
+
+    cleanup_db_files(&path);
+}
+
+#[test]
+fn get_knot_hot_accepts_legacy_empty_execution_plan_data_json() {
+    use crate::db::{get_knot_hot, upsert_knot_hot, UpsertKnotHot};
+
+    let path = unique_db_path();
+    let conn = open_connection(&path).expect("connection should open");
+
+    upsert_knot_hot(
+        &conn,
+        &UpsertKnotHot {
+            id: "K-legacy-plan",
+            title: "Legacy plan",
+            state: "design",
+            updated_at: "2026-04-14T10:00:00Z",
+            body: None,
+            description: None,
+            acceptance: None,
+            priority: None,
+            knot_type: Some("execution_plan"),
+            tags: &[],
+            notes: &[],
+            handoff_capsules: &[],
+            invariants: &[],
+            step_history: &[],
+            gate_data: &crate::domain::gate::GateData::default(),
+            lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
+            lease_id: None,
+            workflow_id: "execution_plan_sdlc",
+            profile_id: "autopilot",
+            profile_etag: None,
+            deferred_from_state: None,
+            blocked_from_state: None,
+            created_at: None,
+        },
+    )
+    .expect("upsert should succeed");
+
+    conn.execute(
+        "UPDATE knot_hot SET execution_plan_data_json = '{}' WHERE id = ?1",
+        params!["K-legacy-plan"],
+    )
+    .expect("legacy payload should update");
+
+    let record = get_knot_hot(&conn, "K-legacy-plan")
+        .expect("legacy read should succeed")
+        .expect("record should exist");
+    assert_eq!(
+        record.execution_plan_data,
+        crate::domain::execution_plan::ExecutionPlanData::default()
     );
 
     cleanup_db_files(&path);

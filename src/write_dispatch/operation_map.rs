@@ -97,6 +97,10 @@ fn map_update(args: &crate::cli::UpdateArgs) -> WriteOperation {
         gate_owner_kind: args.gate_owner_kind.clone(),
         gate_failure_modes: args.gate_failure_modes.clone(),
         clear_gate_failure_modes: args.clear_gate_failure_modes,
+        execution_plan_file: args
+            .execution_plan_file
+            .as_ref()
+            .map(|path| absolutize_path(path).to_string_lossy().into_owned()),
         if_match: args.if_match.clone(),
         actor_kind: args.actor_kind.clone(),
         agent_name: args.agent_name.clone(),
@@ -106,6 +110,16 @@ fn map_update(args: &crate::cli::UpdateArgs) -> WriteOperation {
         approve_terminal_cascade: args.cascade_terminal_descendants,
         lease_id: args.lease.clone(),
     })
+}
+
+fn absolutize_path(path: &std::path::Path) -> std::path::PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .join(path)
+    }
 }
 
 fn map_next(args: &crate::cli::NextArgs) -> WriteOperation {

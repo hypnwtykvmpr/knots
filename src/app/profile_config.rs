@@ -174,8 +174,17 @@ fn try_registry_default(
     workflow_id: &str,
 ) -> Result<Option<String>, AppError> {
     if let Some(pid) = registry.default_profile_id_for_workflow(workflow_id) {
-        if app.profile_registry.require(&pid).is_ok() {
-            return Ok(Some(pid));
+        if let Ok(profile) = app.profile_registry.require(&pid) {
+            if profile.workflow_id == workflow_id {
+                return Ok(Some(profile.id.clone()));
+            }
+        }
+        let suffix = pid.rsplit('/').next().unwrap_or(pid.as_str());
+        let namespaced = installed_workflows::namespaced_profile_id(workflow_id, suffix);
+        if let Ok(profile) = app.profile_registry.require(&namespaced) {
+            if profile.workflow_id == workflow_id {
+                return Ok(Some(profile.id.clone()));
+            }
         }
     }
     if let Ok(wf) = registry.require_workflow(workflow_id) {

@@ -1,0 +1,31 @@
+workflow execution_plan_sdlc v1 {
+
+    action design {
+        produce agent
+        output note
+    }
+
+    action review {
+        gate review agent
+        output approval
+        constraint read_only
+        constraint no_git_write
+        constraint metadata_only
+    }
+
+    terminal shipped
+    terminal abandoned
+    escape blocked
+    escape deferred
+
+    * -> abandoned
+    * -> deferred
+
+    phase authoring_phase {
+        produce design
+        gate review
+    }
+
+    include "profiles/autopilot.loom"
+    include "profiles/semiauto.loom"
+}

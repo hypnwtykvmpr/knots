@@ -153,6 +153,7 @@ fn show_knot_fails_when_cache_contains_legacy_workflow_id() {
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "knots_sdlc",
             profile_id: "autopilot",

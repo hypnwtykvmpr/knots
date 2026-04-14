@@ -47,6 +47,7 @@ impl App {
                 step_history: &record.step_history,
                 gate_data: &record.gate_data,
                 lease_data: &record.lease_data,
+                execution_plan_data: &record.execution_plan_data,
                 lease_id,
                 workflow_id: &record.workflow_id,
                 profile_id: &record.profile_id,

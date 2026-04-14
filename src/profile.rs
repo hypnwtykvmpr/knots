@@ -192,11 +192,22 @@ impl ProfileRegistry {
 
     pub fn load_for_repo(repo_root: &Path) -> Result<Self, ProfileError> {
         let mut registry = Self::empty();
+        for (_knot_type, builtin) in installed_workflows::builtin::builtin_workflows()? {
+            for profile in builtin.list_profiles() {
+                registry.insert_builtin_profile(profile);
+            }
+        }
         let installed = installed_workflows::InstalledWorkflowRegistry::load(repo_root)?;
         for workflow in installed.list() {
             if workflow.builtin {
                 for profile in workflow.list_profiles() {
-                    registry.insert_builtin_profile(profile);
+                    let namespaced =
+                        installed_workflows::namespaced_profile_id(&workflow.id, &profile.id);
+                    let canonical = registry
+                        .lookup(&profile.id)
+                        .map(|existing| existing.id.clone())
+                        .unwrap_or_else(|| profile.id.clone());
+                    registry.aliases.entry(namespaced).or_insert(canonical);
                 }
                 continue;
             }
@@ -222,9 +233,20 @@ impl ProfileRegistry {
     }
 
     fn insert_builtin_profile(&mut self, profile: ProfileDefinition) {
-        let canonical_id = profile.id.clone();
+        let raw_id = profile.id.clone();
+        let namespaced_id =
+            installed_workflows::namespaced_profile_id(&profile.workflow_id, &raw_id);
+        let canonical_id = if self.profiles.contains_key(&raw_id) {
+            namespaced_id.clone()
+        } else {
+            raw_id.clone()
+        };
+        let mut profile = profile;
+        profile.id = canonical_id.clone();
         self.aliases
-            .insert(canonical_id.clone(), canonical_id.clone());
+            .entry(raw_id)
+            .or_insert_with(|| canonical_id.clone());
+        self.aliases.insert(namespaced_id, canonical_id.clone());
         self.profiles.insert(canonical_id, profile);
     }
 

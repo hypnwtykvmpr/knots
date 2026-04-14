@@ -189,6 +189,7 @@ pub fn apply_latest_snapshots_at_store(
                     step_history: &record.step_history,
                     gate_data: &record.gate_data,
                     lease_data: &record.lease_data,
+                    execution_plan_data: &record.execution_plan_data,
                     lease_id: record.lease_id.as_deref(),
                     workflow_id: &record.workflow_id,
                     profile_id: &record.profile_id,
@@ -316,6 +317,7 @@ mod tests {
                 step_history: &[],
                 gate_data: &crate::domain::gate::GateData::default(),
                 lease_data: &crate::domain::lease::LeaseData::default(),
+                execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
                 lease_id: None,
                 workflow_id: "work_sdlc",
                 profile_id: "default",
@@ -377,6 +379,10 @@ mod tests {
             .expect("hot query should succeed")
             .expect("hot knot should exist");
         assert_eq!(hot.title, "Hot");
+        assert_eq!(
+            hot.execution_plan_data,
+            crate::domain::execution_plan::ExecutionPlanData::default()
+        );
 
         let _ = std::fs::remove_dir_all(root);
         let _ = std::fs::remove_dir_all(root2);

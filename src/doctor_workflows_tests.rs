@@ -27,6 +27,7 @@ fn workflow_registry_check_passes_when_builtins_are_registered() {
     assert!(check.detail.contains("gate=gate_sdlc"));
     assert!(check.detail.contains("lease=lease_sdlc"));
     assert!(check.detail.contains("explore=explore_sdlc"));
+    assert!(check.detail.contains("execution_plan=execution_plan_sdlc"));
 
     let _ = std::fs::remove_dir_all(root);
 }

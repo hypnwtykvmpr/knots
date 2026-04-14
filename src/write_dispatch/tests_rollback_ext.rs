@@ -264,6 +264,7 @@ fn normalize_and_format_helpers() {
         step_history: vec![],
         gate: None,
         lease: None,
+        execution_plan: None,
         lease_id: None,
         lease_expiry_ts: 0,
         lease_agent: None,

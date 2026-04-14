@@ -222,6 +222,7 @@ fn builtin_workflow_refs_cover_all_builtin_knot_types() {
         (KnotType::Gate, "gate_sdlc"),
         (KnotType::Lease, "lease_sdlc"),
         (KnotType::Explore, "explore_sdlc"),
+        (KnotType::ExecutionPlan, "execution_plan_sdlc"),
     ];
     for (knot_type, workflow_id) in refs {
         let reference = builtin::builtin_workflow_ref(knot_type);
@@ -230,7 +231,7 @@ fn builtin_workflow_refs_cover_all_builtin_knot_types() {
     }
 
     let workflows = builtin::builtin_workflows().expect("builtin workflows should load");
-    assert_eq!(workflows.len(), 4);
+    assert_eq!(workflows.len(), 5);
     assert!(workflows
         .iter()
         .any(|(knot_type, workflow)| *knot_type == KnotType::Work && workflow.id == "work_sdlc"));
@@ -242,6 +243,9 @@ fn builtin_workflow_refs_cover_all_builtin_knot_types() {
         .any(|(knot_type, workflow)| *knot_type == KnotType::Lease && workflow.id == "lease_sdlc"));
     assert!(workflows.iter().any(|(knot_type, workflow)| {
         *knot_type == KnotType::Explore && workflow.id == "explore_sdlc"
+    }));
+    assert!(workflows.iter().any(|(knot_type, workflow)| {
+        *knot_type == KnotType::ExecutionPlan && workflow.id == "execution_plan_sdlc"
     }));
 }
 
@@ -271,6 +275,16 @@ fn builtin_non_work_workflows_expose_expected_profiles_and_prompts() {
     assert_eq!(explore.default_profile.as_deref(), Some("explore"));
     assert!(explore.prompts.contains_key("exploration"));
     assert!(explore.require_profile("explore").is_ok());
+
+    let execution_plan = builtin::execution_plan_sdlc_workflow_for_test()
+        .expect("execution plan workflow should build");
+    assert!(execution_plan.builtin);
+    assert_eq!(execution_plan.id, "execution_plan_sdlc");
+    assert_eq!(execution_plan.default_profile.as_deref(), Some("autopilot"));
+    assert!(execution_plan.prompts.contains_key("design"));
+    assert!(execution_plan.prompts.contains_key("review"));
+    assert!(execution_plan.require_profile("autopilot").is_ok());
+    assert!(execution_plan.require_profile("semiauto").is_ok());
 }
 
 #[test]

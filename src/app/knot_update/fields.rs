@@ -25,6 +25,7 @@ pub(crate) fn collect_field_events(
     collect_priority(patch, events, id, at, &mut us.priority)?;
     collect_type(patch, events, id, at, &mut us.knot_type);
     collect_gate(patch, events, id, at, &mut us.gate_data, us.knot_type)?;
+    collect_execution_plan(patch, events, id, at, &mut us.execution_plan_data);
     collect_tags(patch, events, id, at, &mut us.tags);
     collect_invariants(patch, events, id, at, &mut us.invariants, current);
     collect_note(patch, events, id, at, &mut us.notes)?;
@@ -223,6 +224,27 @@ fn collect_tags(
                 id.to_string(),
                 FullEventKind::KnotTagRemove.as_str(),
                 json!({"tag": normalized}),
+            ));
+        }
+    }
+}
+
+fn collect_execution_plan(
+    patch: &UpdateKnotPatch,
+    events: &mut Vec<FullEvent>,
+    id: &str,
+    at: &str,
+    execution_plan_data: &mut crate::domain::execution_plan::ExecutionPlanData,
+) {
+    if let Some(next) = patch.execution_plan_data.clone() {
+        if next != *execution_plan_data {
+            *execution_plan_data = next;
+            events.push(FullEvent::with_identity(
+                new_event_id(),
+                at.to_string(),
+                id.to_string(),
+                FullEventKind::KnotExecutionPlanDataSet.as_str(),
+                json!({"execution_plan": &*execution_plan_data}),
             ));
         }
     }

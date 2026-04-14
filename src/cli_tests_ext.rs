@@ -377,3 +377,23 @@ fn new_type_explore_parses() {
         other => panic!("expected New, got {:?}", other),
     }
 }
+
+#[test]
+fn update_parses_execution_plan_file() {
+    let cli = parse(&[
+        "kno",
+        "update",
+        "abc123",
+        "--execution-plan-file",
+        "tmp/plan.json",
+    ]);
+    match cli.command {
+        Commands::Update(args) => {
+            assert_eq!(
+                args.execution_plan_file.as_deref(),
+                Some(std::path::Path::new("tmp/plan.json"))
+            );
+        }
+        other => panic!("expected Update, got {:?}", other),
+    }
+}

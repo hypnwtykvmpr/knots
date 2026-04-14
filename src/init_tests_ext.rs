@@ -148,6 +148,11 @@ fn init_local_store_for_named_local_only_project_skips_repo_artifacts() {
         registry.current_workflow_id_for_knot_type(crate::domain::knot_type::KnotType::Explore),
         "explore_sdlc"
     );
+    assert_eq!(
+        registry
+            .current_workflow_id_for_knot_type(crate::domain::knot_type::KnotType::ExecutionPlan),
+        "execution_plan_sdlc"
+    );
 
     let _ = std::fs::remove_dir_all(home);
 }

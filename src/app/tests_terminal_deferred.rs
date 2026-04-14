@@ -58,6 +58,7 @@ fn update_can_abandon_parent_with_deferred_child_without_auto_resolution() {
                 gate_owner_kind: None,
                 gate_failure_modes: None,
                 clear_gate_failure_modes: false,
+                execution_plan_data: None,
                 add_note: None,
                 add_handoff_capsule: None,
                 expected_profile_etag: None,

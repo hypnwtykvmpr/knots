@@ -1,4 +1,8 @@
 use super::{App, AppError, KnotView, StateActorMetadata, UpdateKnotPatch};
+use crate::domain::execution_plan::{
+    ExecutionPlanData, ExecutionPlanStatus, ExecutionPlanStep, ExecutionPlanStepStatus,
+    ExecutionPlanWave,
+};
 use crate::domain::metadata::MetadataEntryInput;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -41,6 +45,7 @@ fn empty_patch() -> UpdateKnotPatch {
         gate_owner_kind: None,
         gate_failure_modes: None,
         clear_gate_failure_modes: false,
+        execution_plan_data: None,
         add_note: None,
         add_handoff_capsule: None,
         expected_profile_etag: None,
@@ -215,6 +220,80 @@ fn update_knot_requires_at_least_one_change() {
         app.update_knot(&c.id, empty_patch()),
         Err(AppError::InvalidArgument(_))
     ));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn update_knot_persists_execution_plan_and_rehydrates_it() {
+    let root = unique_workspace();
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().expect("u"), root.clone()).expect("o");
+    let created = app
+        .create_knot("Plan", None, Some("idea"), Some("default"))
+        .expect("created");
+
+    let execution_plan_data = ExecutionPlanData {
+        status: ExecutionPlanStatus::Active,
+        repo_path: Some("/repo".to_string()),
+        objective: Some("Ship the feature".to_string()),
+        mode: Some("autopilot".to_string()),
+        model: Some("gpt-5".to_string()),
+        assumptions: vec!["assume current beats are correct".to_string()],
+        beat_ids: vec!["beat-1".to_string()],
+        unassigned_beat_ids: vec!["beat-2".to_string()],
+        waves: vec![ExecutionPlanWave {
+            id: "wave-1".to_string(),
+            title: "Persist".to_string(),
+            summary: "Thread the payload".to_string(),
+            beat_ids: vec!["beat-1".to_string()],
+            blocked_by_wave_ids: vec![],
+            steps: vec![ExecutionPlanStep {
+                id: "step-1".to_string(),
+                title: "Add schema".to_string(),
+                summary: "Persist JSON".to_string(),
+                status: ExecutionPlanStepStatus::Pending,
+                beat_ids: vec!["beat-1".to_string()],
+                blocked_by_step_ids: vec![],
+                assignee: Some("codex".to_string()),
+            }],
+        }],
+    };
+
+    let updated = app
+        .update_knot(
+            &created.id,
+            UpdateKnotPatch {
+                execution_plan_data: Some(execution_plan_data.clone()),
+                ..empty_patch()
+            },
+        )
+        .expect("update should succeed");
+    assert_eq!(updated.execution_plan.as_ref(), Some(&execution_plan_data));
+
+    let shown = app.show_knot(&created.id).expect("show").expect("exists");
+    assert_eq!(shown.execution_plan.as_ref(), Some(&execution_plan_data));
+
+    let conn = crate::db::open_connection(db.to_str().expect("u")).expect("db");
+    crate::db::delete_knot_hot(&conn, &created.id).expect("delete hot");
+    crate::db::upsert_knot_warm(&conn, &created.id, &created.title).expect("warm");
+    crate::db::upsert_cold_catalog(
+        &conn,
+        &created.id,
+        &created.title,
+        &shown.state,
+        &shown.updated_at,
+    )
+    .expect("cold");
+
+    let rehydrated = app
+        .rehydrate(&created.id)
+        .expect("rehydrate")
+        .expect("exists");
+    assert_eq!(
+        rehydrated.execution_plan.as_ref(),
+        Some(&execution_plan_data)
+    );
+
     let _ = std::fs::remove_dir_all(root);
 }
 #[test]

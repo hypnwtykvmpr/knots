@@ -63,6 +63,7 @@ pub struct UpdateOperation {
     pub gate_owner_kind: Option<String>,
     pub gate_failure_modes: Vec<String>,
     pub clear_gate_failure_modes: bool,
+    pub execution_plan_file: Option<String>,
     pub add_note: Option<String>,
     pub note_username: Option<String>,
     pub note_datetime: Option<String>,

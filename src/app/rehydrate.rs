@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde_json::Value;
 
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::knot_type::{parse_knot_type, KnotType};
@@ -33,6 +34,7 @@ pub(crate) struct RehydrateProjection {
     pub step_history: Vec<StepRecord>,
     pub gate_data: GateData,
     pub lease_data: LeaseData,
+    pub execution_plan_data: ExecutionPlanData,
     pub lease_id: Option<String>,
     pub workflow_id: String,
     pub profile_id: String,
@@ -73,6 +75,7 @@ fn new_projection(title: String, state: String, updated_at: String) -> Rehydrate
         step_history: Vec::new(),
         gate_data: GateData::default(),
         lease_data: LeaseData::default(),
+        execution_plan_data: ExecutionPlanData::default(),
         lease_id: None,
         workflow_id: String::new(),
         profile_id: String::new(),
@@ -196,6 +199,10 @@ fn apply_index_head(
     if data.contains_key("gate") {
         projection.gate_data = parse_gate_data_value(data.get("gate"));
     }
+    if data.contains_key("execution_plan") {
+        projection.execution_plan_data =
+            parse_execution_plan_data_value(data.get("execution_plan"));
+    }
     projection.profile_etag = Some(event_id.to_string());
 }
 
@@ -248,6 +255,13 @@ pub(crate) fn parse_invariants_value(value: Option<&Value>) -> Vec<Invariant> {
 pub(crate) fn parse_gate_data_value(value: Option<&Value>) -> GateData {
     let Some(value) = value.cloned() else {
         return GateData::default();
+    };
+    serde_json::from_value(value).unwrap_or_default()
+}
+
+pub(crate) fn parse_execution_plan_data_value(value: Option<&Value>) -> ExecutionPlanData {
+    let Some(value) = value.cloned() else {
+        return ExecutionPlanData::default();
     };
     serde_json::from_value(value).unwrap_or_default()
 }

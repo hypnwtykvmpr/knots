@@ -39,6 +39,7 @@ fn sample_record(id: &str, state: &str, deferred_from_state: Option<&str>) -> Kn
         step_history: Vec::new(),
         gate_data: crate::domain::gate::GateData::default(),
         lease_data: crate::domain::lease::LeaseData::default(),
+        execution_plan_data: crate::domain::execution_plan::ExecutionPlanData::default(),
         lease_id: None,
         lease_expiry_ts: 0,
         workflow_id: "work_sdlc".to_string(),

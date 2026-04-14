@@ -145,6 +145,7 @@ fn benchmark_write_path(app: &App, iterations: u32) -> Result<f64, PerfError> {
                     gate_owner_kind: None,
                     gate_failure_modes: None,
                     clear_gate_failure_modes: false,
+                    execution_plan_data: None,
                     add_note: None,
                     add_handoff_capsule: None,
                     expected_profile_etag: knot.profile_etag.clone(),
