@@ -1,7 +1,6 @@
 use super::{App, AppError, KnotView, StateActorMetadata, UpdateKnotPatch};
 use crate::domain::execution_plan::{
-    ExecutionPlanData, ExecutionPlanStatus, ExecutionPlanStep, ExecutionPlanStepStatus,
-    ExecutionPlanWave,
+    ExecutionPlanAgent, ExecutionPlanBeat, ExecutionPlanData, ExecutionPlanStep, ExecutionPlanWave,
 };
 use crate::domain::metadata::MetadataEntryInput;
 use std::path::{Path, PathBuf};
@@ -233,29 +232,33 @@ fn update_knot_persists_execution_plan_and_rehydrates_it() {
         .expect("created");
 
     let execution_plan_data = ExecutionPlanData {
-        status: ExecutionPlanStatus::Active,
         repo_path: Some("/repo".to_string()),
         objective: Some("Ship the feature".to_string()),
+        summary: Some("Execution plan for selected beats".to_string()),
         mode: Some("autopilot".to_string()),
         model: Some("gpt-5".to_string()),
         assumptions: vec!["assume current beats are correct".to_string()],
         beat_ids: vec!["beat-1".to_string()],
         unassigned_beat_ids: vec!["beat-2".to_string()],
         waves: vec![ExecutionPlanWave {
-            id: "wave-1".to_string(),
-            title: "Persist".to_string(),
-            summary: "Thread the payload".to_string(),
-            beat_ids: vec!["beat-1".to_string()],
-            blocked_by_wave_ids: vec![],
-            steps: vec![ExecutionPlanStep {
-                id: "step-1".to_string(),
-                title: "Add schema".to_string(),
-                summary: "Persist JSON".to_string(),
-                status: ExecutionPlanStepStatus::Pending,
-                beat_ids: vec!["beat-1".to_string()],
-                blocked_by_step_ids: vec![],
-                assignee: Some("codex".to_string()),
+            wave_index: 1,
+            name: "Persist".to_string(),
+            objective: "Thread the payload".to_string(),
+            agents: vec![ExecutionPlanAgent {
+                role: "backend".to_string(),
+                count: 1,
+                specialty: Some("storage".to_string()),
             }],
+            beats: vec![ExecutionPlanBeat {
+                id: "beat-1".to_string(),
+                title: "Persist plan payload".to_string(),
+            }],
+            steps: vec![ExecutionPlanStep {
+                step_index: 1,
+                beat_ids: vec!["beat-1".to_string()],
+                notes: Some("Persist JSON".to_string()),
+            }],
+            notes: Some("First wave".to_string()),
         }],
     };
 

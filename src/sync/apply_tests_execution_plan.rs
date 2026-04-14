@@ -5,8 +5,7 @@ use uuid::Uuid;
 
 use crate::db;
 use crate::domain::execution_plan::{
-    ExecutionPlanData, ExecutionPlanStatus, ExecutionPlanStep, ExecutionPlanStepStatus,
-    ExecutionPlanWave,
+    ExecutionPlanAgent, ExecutionPlanBeat, ExecutionPlanData, ExecutionPlanStep, ExecutionPlanWave,
 };
 use crate::sync::GitAdapter;
 
@@ -75,17 +74,27 @@ fn apply_index_event_reads_execution_plan_payload() {
             "terminal": false,
             "type": "execution_plan",
             "execution_plan": {
-                "status": "active",
                 "repo_path": "/repo",
                 "objective": "Ship sync payload",
+                "summary": "Execution plan for sync payload",
                 "waves": [{
-                    "id": "wave-1",
-                    "title": "Persist",
+                    "wave_index": 1,
+                    "name": "Persist",
+                    "objective": "Store the payload",
+                    "agents": [{
+                        "role": "backend",
+                        "count": 1
+                    }],
+                    "beats": [{
+                        "id": "beat-1",
+                        "title": "Persist payload"
+                    }],
                     "steps": [{
-                        "id": "step-1",
-                        "title": "Read index",
-                        "status": "pending"
-                    }]
+                        "step_index": 1,
+                        "beat_ids": ["beat-1"],
+                        "notes": "Read index"
+                    }],
+                    "notes": "Wave note"
                 }]
             }
         }
@@ -102,29 +111,33 @@ fn apply_index_event_reads_execution_plan_payload() {
         .expect("hot lookup should succeed")
         .expect("record should exist");
     let expected = ExecutionPlanData {
-        status: ExecutionPlanStatus::Active,
         repo_path: Some("/repo".to_string()),
         objective: Some("Ship sync payload".to_string()),
+        summary: Some("Execution plan for sync payload".to_string()),
         mode: None,
         model: None,
         assumptions: vec![],
         beat_ids: vec![],
         unassigned_beat_ids: vec![],
         waves: vec![ExecutionPlanWave {
-            id: "wave-1".to_string(),
-            title: "Persist".to_string(),
-            summary: String::new(),
-            beat_ids: vec![],
-            blocked_by_wave_ids: vec![],
-            steps: vec![ExecutionPlanStep {
-                id: "step-1".to_string(),
-                title: "Read index".to_string(),
-                summary: String::new(),
-                status: ExecutionPlanStepStatus::Pending,
-                beat_ids: vec![],
-                blocked_by_step_ids: vec![],
-                assignee: None,
+            wave_index: 1,
+            name: "Persist".to_string(),
+            objective: "Store the payload".to_string(),
+            agents: vec![ExecutionPlanAgent {
+                role: "backend".to_string(),
+                count: 1,
+                specialty: None,
             }],
+            beats: vec![ExecutionPlanBeat {
+                id: "beat-1".to_string(),
+                title: "Persist payload".to_string(),
+            }],
+            steps: vec![ExecutionPlanStep {
+                step_index: 1,
+                beat_ids: vec!["beat-1".to_string()],
+                notes: Some("Read index".to_string()),
+            }],
+            notes: Some("Wave note".to_string()),
         }],
     };
     assert_eq!(record.execution_plan_data, expected);

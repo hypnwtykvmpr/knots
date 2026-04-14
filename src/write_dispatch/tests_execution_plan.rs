@@ -69,10 +69,14 @@ fn execute_operation_update_loads_execution_plan_file() {
     std::fs::write(
         &plan_path,
         serde_json::json!({
-            "status": "active",
             "repo_path": "/repo",
             "objective": "Ship file-based update",
-            "waves": [{"id": "wave-1", "title": "Persist"}]
+            "summary": "Execution plan for file-based update",
+            "waves": [{
+                "wave_index": 1,
+                "name": "Persist",
+                "objective": "Store the plan"
+            }]
         })
         .to_string(),
     )
