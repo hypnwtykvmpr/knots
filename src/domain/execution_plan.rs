@@ -1,33 +1,23 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecutionPlanStatus {
+    #[default]
     Draft,
     Active,
     Complete,
     Aborted,
 }
 
-impl Default for ExecutionPlanStatus {
-    fn default() -> Self {
-        Self::Draft
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecutionPlanStepStatus {
+    #[default]
     Pending,
     InProgress,
     Complete,
     Failed,
-}
-
-impl Default for ExecutionPlanStepStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

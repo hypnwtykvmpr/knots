@@ -88,6 +88,10 @@ fn execute_queued_request(request: &QueuedWriteRequest) -> QueuedWriteResponse {
 mod tests;
 
 #[cfg(test)]
+#[path = "write_dispatch/tests_execution_plan.rs"]
+mod tests_execution_plan;
+
+#[cfg(test)]
 #[path = "write_dispatch/tests_rollback_ext.rs"]
 mod tests_rollback_ext;
 

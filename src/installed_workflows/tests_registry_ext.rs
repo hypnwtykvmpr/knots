@@ -445,7 +445,6 @@ fn ensure_builtin_registration_adds_missing_entries_without_changing_defaults() 
             .map(|workflow| workflow.workflow_id),
         Some("execution_plan_sdlc".to_string())
     );
-
     let registry = InstalledWorkflowRegistry::load(&root).expect("registry should load");
     let work_ids = registry
         .registered_workflows_for_knot_type(KnotType::Work)

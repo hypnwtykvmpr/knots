@@ -486,8 +486,7 @@ fn read_response_file(path: &Path) -> Result<Option<QueuedWriteResponse>, QueueE
         return Ok(None);
     }
     let bytes = fs::read(path)?;
-    let response = serde_json::from_slice(&bytes)?;
-    Ok(Some(response))
+    Ok(Some(serde_json::from_slice(&bytes)?))
 }
 fn now_nanos() -> u128 {
     SystemTime::now()

@@ -440,6 +440,9 @@ mod tests_acceptance_ext;
 #[path = "apply_tests_event_paths.rs"]
 mod tests_event_paths;
 #[cfg(test)]
+#[path = "apply_tests_execution_plan.rs"]
+mod tests_execution_plan;
+#[cfg(test)]
 #[path = "apply_tests_ext.rs"]
 mod tests_ext;
 #[cfg(test)]
