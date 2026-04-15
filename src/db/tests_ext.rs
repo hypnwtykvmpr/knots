@@ -233,7 +233,7 @@ fn get_knot_hot_accepts_legacy_empty_lease_data_json() {
 fn upsert_and_get_knot_hot_round_trips_execution_plan_data() {
     use crate::db::{get_knot_hot, upsert_knot_hot, UpsertKnotHot};
     use crate::domain::execution_plan::{
-        ExecutionPlanAgent, ExecutionPlanBeat, ExecutionPlanData, ExecutionPlanStep,
+        ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep,
         ExecutionPlanWave,
     };
 
@@ -245,9 +245,9 @@ fn upsert_and_get_knot_hot_round_trips_execution_plan_data() {
         summary: Some("Execution plan for payload work".to_string()),
         mode: Some("autopilot".to_string()),
         model: Some("gpt-5".to_string()),
-        assumptions: vec!["assume beat ids already exist".to_string()],
-        beat_ids: vec!["beat-1".to_string()],
-        unassigned_beat_ids: vec!["beat-2".to_string()],
+        assumptions: vec!["assume knot ids already exist".to_string()],
+        knot_ids: vec!["knot-1".to_string()],
+        unassigned_knot_ids: vec!["knot-2".to_string()],
         waves: vec![ExecutionPlanWave {
             wave_index: 1,
             name: "Persist".to_string(),
@@ -257,13 +257,13 @@ fn upsert_and_get_knot_hot_round_trips_execution_plan_data() {
                 count: 1,
                 specialty: None,
             }],
-            beats: vec![ExecutionPlanBeat {
-                id: "beat-1".to_string(),
+            knots: vec![ExecutionPlanKnot {
+                id: "knot-1".to_string(),
                 title: "Store payload".to_string(),
             }],
             steps: vec![ExecutionPlanStep {
                 step_index: 1,
-                beat_ids: vec!["beat-1".to_string()],
+                knot_ids: vec!["knot-1".to_string()],
                 notes: Some("Persist typed payload".to_string()),
             }],
             notes: Some("Wave note".to_string()),

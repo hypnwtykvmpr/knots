@@ -11,7 +11,7 @@ pub struct ExecutionPlanAgent {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ExecutionPlanBeat {
+pub struct ExecutionPlanKnot {
     #[serde(default)]
     pub id: String,
     #[serde(default)]
@@ -23,7 +23,7 @@ pub struct ExecutionPlanStep {
     #[serde(default)]
     pub step_index: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub beat_ids: Vec<String>,
+    pub knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
 }
@@ -39,7 +39,7 @@ pub struct ExecutionPlanWave {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub agents: Vec<ExecutionPlanAgent>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub beats: Vec<ExecutionPlanBeat>,
+    pub knots: Vec<ExecutionPlanKnot>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub steps: Vec<ExecutionPlanStep>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -61,9 +61,9 @@ pub struct ExecutionPlanData {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assumptions: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub beat_ids: Vec<String>,
+    pub knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub unassigned_beat_ids: Vec<String>,
+    pub unassigned_knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub waves: Vec<ExecutionPlanWave>,
 }
@@ -76,8 +76,8 @@ impl ExecutionPlanData {
             && self.mode.is_none()
             && self.model.is_none()
             && self.assumptions.is_empty()
-            && self.beat_ids.is_empty()
-            && self.unassigned_beat_ids.is_empty()
+            && self.knot_ids.is_empty()
+            && self.unassigned_knot_ids.is_empty()
             && self.waves.is_empty()
     }
 }
@@ -89,7 +89,7 @@ const fn default_agent_count() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::{
-        ExecutionPlanAgent, ExecutionPlanBeat, ExecutionPlanData, ExecutionPlanStep,
+        ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep,
         ExecutionPlanWave,
     };
 
@@ -104,12 +104,12 @@ mod tests {
         let data = ExecutionPlanData {
             repo_path: Some("/repo".to_string()),
             objective: Some("Ship the plan".to_string()),
-            summary: Some("Execution plan for caller-selected beats".to_string()),
+            summary: Some("Execution plan for caller-selected knots".to_string()),
             mode: Some("autopilot".to_string()),
             model: Some("gpt-5".to_string()),
-            assumptions: vec!["assume existing beats are valid".to_string()],
-            beat_ids: vec!["beat-1".to_string()],
-            unassigned_beat_ids: vec!["beat-2".to_string()],
+            assumptions: vec!["assume existing knots are valid".to_string()],
+            knot_ids: vec!["knot-1".to_string()],
+            unassigned_knot_ids: vec!["knot-2".to_string()],
             waves: vec![ExecutionPlanWave {
                 wave_index: 1,
                 name: "Persist data".to_string(),
@@ -119,13 +119,13 @@ mod tests {
                     count: 2,
                     specialty: Some("api".to_string()),
                 }],
-                beats: vec![ExecutionPlanBeat {
-                    id: "beat-1".to_string(),
+                knots: vec![ExecutionPlanKnot {
+                    id: "knot-1".to_string(),
                     title: "Persist execution-plan data".to_string(),
                 }],
                 steps: vec![ExecutionPlanStep {
                     step_index: 1,
-                    beat_ids: vec!["beat-1".to_string()],
+                    knot_ids: vec!["knot-1".to_string()],
                     notes: Some("Land the schema before API wiring.".to_string()),
                 }],
                 notes: Some("Wave focuses on persistence only.".to_string()),

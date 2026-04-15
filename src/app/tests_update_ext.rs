@@ -1,6 +1,6 @@
 use super::{App, AppError, KnotView, StateActorMetadata, UpdateKnotPatch};
 use crate::domain::execution_plan::{
-    ExecutionPlanAgent, ExecutionPlanBeat, ExecutionPlanData, ExecutionPlanStep, ExecutionPlanWave,
+    ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
 };
 use crate::domain::metadata::MetadataEntryInput;
 use std::path::{Path, PathBuf};
@@ -234,12 +234,12 @@ fn update_knot_persists_execution_plan_and_rehydrates_it() {
     let execution_plan_data = ExecutionPlanData {
         repo_path: Some("/repo".to_string()),
         objective: Some("Ship the feature".to_string()),
-        summary: Some("Execution plan for selected beats".to_string()),
+        summary: Some("Execution plan for selected knots".to_string()),
         mode: Some("autopilot".to_string()),
         model: Some("gpt-5".to_string()),
-        assumptions: vec!["assume current beats are correct".to_string()],
-        beat_ids: vec!["beat-1".to_string()],
-        unassigned_beat_ids: vec!["beat-2".to_string()],
+        assumptions: vec!["assume current knots are correct".to_string()],
+        knot_ids: vec!["knot-1".to_string()],
+        unassigned_knot_ids: vec!["knot-2".to_string()],
         waves: vec![ExecutionPlanWave {
             wave_index: 1,
             name: "Persist".to_string(),
@@ -249,13 +249,13 @@ fn update_knot_persists_execution_plan_and_rehydrates_it() {
                 count: 1,
                 specialty: Some("storage".to_string()),
             }],
-            beats: vec![ExecutionPlanBeat {
-                id: "beat-1".to_string(),
+            knots: vec![ExecutionPlanKnot {
+                id: "knot-1".to_string(),
                 title: "Persist plan payload".to_string(),
             }],
             steps: vec![ExecutionPlanStep {
                 step_index: 1,
-                beat_ids: vec!["beat-1".to_string()],
+                knot_ids: vec!["knot-1".to_string()],
                 notes: Some("Persist JSON".to_string()),
             }],
             notes: Some("First wave".to_string()),

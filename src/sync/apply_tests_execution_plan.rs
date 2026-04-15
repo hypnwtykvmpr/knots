@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::db;
 use crate::domain::execution_plan::{
-    ExecutionPlanAgent, ExecutionPlanBeat, ExecutionPlanData, ExecutionPlanStep, ExecutionPlanWave,
+    ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
 };
 use crate::sync::GitAdapter;
 
@@ -85,13 +85,13 @@ fn apply_index_event_reads_execution_plan_payload() {
                         "role": "backend",
                         "count": 1
                     }],
-                    "beats": [{
-                        "id": "beat-1",
+                    "knots": [{
+                        "id": "knot-1",
                         "title": "Persist payload"
                     }],
                     "steps": [{
                         "step_index": 1,
-                        "beat_ids": ["beat-1"],
+                        "knot_ids": ["knot-1"],
                         "notes": "Read index"
                     }],
                     "notes": "Wave note"
@@ -117,8 +117,8 @@ fn apply_index_event_reads_execution_plan_payload() {
         mode: None,
         model: None,
         assumptions: vec![],
-        beat_ids: vec![],
-        unassigned_beat_ids: vec![],
+        knot_ids: vec![],
+        unassigned_knot_ids: vec![],
         waves: vec![ExecutionPlanWave {
             wave_index: 1,
             name: "Persist".to_string(),
@@ -128,13 +128,13 @@ fn apply_index_event_reads_execution_plan_payload() {
                 count: 1,
                 specialty: None,
             }],
-            beats: vec![ExecutionPlanBeat {
-                id: "beat-1".to_string(),
+            knots: vec![ExecutionPlanKnot {
+                id: "knot-1".to_string(),
                 title: "Persist payload".to_string(),
             }],
             steps: vec![ExecutionPlanStep {
                 step_index: 1,
-                beat_ids: vec!["beat-1".to_string()],
+                knot_ids: vec!["knot-1".to_string()],
                 notes: Some("Read index".to_string()),
             }],
             notes: Some("Wave note".to_string()),
