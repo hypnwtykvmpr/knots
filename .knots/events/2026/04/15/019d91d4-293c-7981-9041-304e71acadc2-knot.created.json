@@ -1,0 +1,17 @@
+{
+  "event_id": "019d91d4-293c-7981-9041-304e71acadc2",
+  "occurred_at": "2026-04-15T15:48:13.756383Z",
+  "knot_id": "knots-18c0",
+  "type": "knot.created",
+  "data": {
+    "body": "When removing a wave containing steps with knot_ids, or a step with knot_ids, display a warning showing affected references and prompt for confirmation. TTY detection: prompt interactively if stdin is a TTY, error if not a TTY and --force is not set. Cascade info rendering for clear user feedback.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Interactive cascade delete prompts for plan editing",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

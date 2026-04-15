@@ -1,0 +1,17 @@
+{
+  "event_id": "019d91d3-f0b5-77e2-a830-073f15ef76ec",
+  "occurred_at": "2026-04-15T15:47:59.285105Z",
+  "knot_id": "knots-4264",
+  "type": "knot.created",
+  "data": {
+    "body": "Pure edit functions on ExecutionPlanData (add/remove/move waves and steps, renumbering) plus App methods that perform read-modify-write under the repo lock. Emits KnotExecutionPlanDataSet events. Includes CascadeInfo struct for reporting affected knot_ids on remove operations.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Domain logic and app methods for execution plan editing",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019d91d4-2944-7621-9630-f5bf3c9b5277",
+  "occurred_at": "2026-04-15T15:48:13.756383Z",
+  "knot_id": "knots-18c0",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Removing wave with knot_id references shows cascade warning. 2. Removing step with knot_id references shows cascade warning. 3. --force suppresses prompts. 4. Non-TTY without --force returns error. 5. Interactive prompt accepts yes/no. 6. Coverage >= 95%."
+  }
+}

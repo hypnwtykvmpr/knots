@@ -1,0 +1,17 @@
+{
+  "event_id": "019d91cc-32d6-7932-8b7b-92245340a0ea",
+  "occurred_at": "2026-04-15T15:39:31.92664Z",
+  "knot_id": "knots-0e61",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nSupport incremental editing of execution_plan wave and step structure through the CLI. Add subcommands or flags for adding/removing/reordering waves and steps within a plan payload, rather than requiring a full JSON file replacement each time.\n\nVerification:\n1. Can add a new wave to an existing execution_plan payload without rewriting the entire JSON.\n2. Can remove a wave, and if it contains steps with knot_ids, the CLI interactively warns about cascading removal of those references before proceeding.\n3. Can add/remove individual steps within a wave.\n4. Can reorder waves (e.g., swap wave 2 and wave 3) and reorder steps within a wave.\n5. Removing a parent artifact (wave containing steps, step containing knot references) prompts for confirmation before cascading the delete.\n\nConstraints:\n- Interactive prompts for cascading deletes (suppress with a --force flag for scripting).\n- Reordering must renumber wave_index/step_index to maintain contiguity.\n- Preserve all other payload fields (assumptions, objective, knot_ids, etc.) untouched during structural edits.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add incremental wave and step editing to execution_plan CLI",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

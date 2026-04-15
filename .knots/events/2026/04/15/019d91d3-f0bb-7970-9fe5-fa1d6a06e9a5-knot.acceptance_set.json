@@ -1,0 +1,9 @@
+{
+  "event_id": "019d91d3-f0bb-7970-9fe5-fa1d6a06e9a5",
+  "occurred_at": "2026-04-15T15:47:59.285105Z",
+  "knot_id": "knots-4264",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. add_wave/remove_wave/move_wave functions work on ExecutionPlanData. 2. add_step/remove_step/move_step functions work on waves. 3. renumber_waves and renumber_steps maintain contiguous indices. 4. remove operations return CascadeInfo with affected knot_ids. 5. App methods acquire locks and emit correct events. 6. All functions have unit tests. 7. Coverage >= 95%."
+  }
+}

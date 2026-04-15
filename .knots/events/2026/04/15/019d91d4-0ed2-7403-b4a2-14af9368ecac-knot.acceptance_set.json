@@ -1,0 +1,9 @@
+{
+  "event_id": "019d91d4-0ed2-7403-b4a2-14af9368ecac",
+  "occurred_at": "2026-04-15T15:48:06.988303Z",
+  "knot_id": "knots-5c47",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. kno plan wave add/remove/move parse correctly. 2. kno plan step add/remove/move parse correctly. 3. Operations map to correct WriteOperation variants. 4. End-to-end CLI tests pass. 5. --force flag available on remove subcommands. 6. Coverage >= 95%."
+  }
+}

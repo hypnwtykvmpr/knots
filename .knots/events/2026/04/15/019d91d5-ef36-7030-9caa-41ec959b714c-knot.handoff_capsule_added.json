@@ -1,0 +1,15 @@
+{
+  "event_id": "019d91d5-ef36-7030-9caa-41ec959b714c",
+  "occurred_at": "2026-04-15T15:50:09.974118Z",
+  "knot_id": "knots-4264",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "claude",
+    "content": "Planning complete. No children needed - this is a leaf implementation knot. Two new files: src/domain/execution_plan_edit.rs (pure edit functions + CascadeInfo) and src/app/execution_plan_edit.rs (App methods with locking). Test coverage in inline tests.",
+    "datetime": "2026-04-15T15:50:09.974118Z",
+    "entry_id": "019d91d5-ef36-7030-9caa-41df192a7fbb",
+    "model": "opus-4-6",
+    "username": "unknown",
+    "version": "1m"
+  }
+}

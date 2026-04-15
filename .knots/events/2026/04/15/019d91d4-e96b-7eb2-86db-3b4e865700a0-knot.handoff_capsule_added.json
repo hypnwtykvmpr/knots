@@ -1,0 +1,15 @@
+{
+  "event_id": "019d91d4-e96b-7eb2-86db-3b4e865700a0",
+  "occurred_at": "2026-04-15T15:49:02.955593Z",
+  "knot_id": "knots-0e61",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "claude",
+    "content": "Planning complete. Implementation plan attached as note. Three child knots created:\n- 4264: Domain logic + app methods (pure edit functions, App methods, events)\n- 5c47: CLI subcommands + write dispatch (kno plan wave/step commands, blocked_by 4264)\n- 18c0: Interactive cascade delete prompts (TTY detection, --force flag, blocked_by 5c47)\nDependency chain: 4264 -> 5c47 -> 18c0. Total estimated ~800 lines across ~6 new files. No schema changes needed - reuses existing ExecutionPlanData and KnotExecutionPlanDataSet event.",
+    "datetime": "2026-04-15T15:49:02.955593Z",
+    "entry_id": "019d91d4-e96b-7eb2-86db-3b35aeedd3f7",
+    "model": "opus-4-6",
+    "username": "unknown",
+    "version": "1m"
+  }
+}

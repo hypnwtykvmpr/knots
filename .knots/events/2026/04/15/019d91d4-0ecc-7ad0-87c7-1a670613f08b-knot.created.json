@@ -1,0 +1,17 @@
+{
+  "event_id": "019d91d4-0ecc-7ad0-87c7-1a670613f08b",
+  "occurred_at": "2026-04-15T15:48:06.988303Z",
+  "knot_id": "knots-5c47",
+  "type": "knot.created",
+  "data": {
+    "body": "Add kno plan top-level subcommand with wave/step sub-subcommands (add, remove, move). Map to WriteOperation variants and integrate with write_dispatch execution. Includes cli_plan.rs, operation_map updates, and execute_write_ops integration.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "CLI subcommands and write dispatch for plan editing",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
