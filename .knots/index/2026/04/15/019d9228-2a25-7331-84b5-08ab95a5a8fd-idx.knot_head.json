@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9228-2a25-7331-84b5-08ab95a5a8fd",
+  "occurred_at": "2026-04-15T17:19:59.013142Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-5c47",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "CLI subcommands and write dispatch for plan editing",
+    "type": "work",
+    "updated_at": "2026-04-15T17:19:59.013142Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9227-ffc7-78b0-bc02-b7b2f42ce199",
+  "occurred_at": "2026-04-15T17:19:48.157761Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-62ae",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Normalize knot ID references in execution_plan payloads",
+    "type": "work",
+    "updated_at": "2026-04-15T17:19:48.157761Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9228-2a30-7680-9d7d-d02e839d9c84",
+  "occurred_at": "2026-04-15T17:19:59.024141Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-0e61",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add incremental wave and step editing to execution_plan CLI",
+    "type": "work",
+    "updated_at": "2026-04-15T17:19:59.024141Z",
+    "workflow_id": "work_sdlc"
+  }
+}

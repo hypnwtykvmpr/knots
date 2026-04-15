@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9228-2a03-7513-a81c-b5f316e8d558",
+  "occurred_at": "2026-04-15T17:19:58.979428Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-18c0",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Interactive cascade delete prompts for plan editing",
+    "type": "work",
+    "updated_at": "2026-04-15T17:19:58.979428Z",
+    "workflow_id": "work_sdlc"
+  }
+}

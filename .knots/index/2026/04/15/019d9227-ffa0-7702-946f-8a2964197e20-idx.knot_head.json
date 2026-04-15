@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9227-ffa0-7702-946f-8a2964197e20",
+  "occurred_at": "2026-04-15T17:19:48.116495Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-4264",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Domain logic and app methods for execution plan editing",
+    "type": "work",
+    "updated_at": "2026-04-15T17:19:48.116495Z",
+    "workflow_id": "work_sdlc"
+  }
+}

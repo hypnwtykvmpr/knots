@@ -1,0 +1,15 @@
+{
+  "event_id": "019d91fe-eff2-7210-a4a6-5ab16dcd05dd",
+  "occurred_at": "2026-04-15T16:34:57.138046Z",
+  "knot_id": "knots-4264",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Implementation reviewed: execution-plan edit helpers and App methods are in place, preserve unrelated fields, normalize knot refs strictly on write, and targeted execution_plan_edit tests are green.",
+    "datetime": "2026-04-15T16:34:49Z",
+    "entry_id": "019d91fe-eff2-7210-a4a6-5aaaec1ec718",
+    "model": "gpt-5",
+    "username": "codex",
+    "version": "gpt-5"
+  }
+}
