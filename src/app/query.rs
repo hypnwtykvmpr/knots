@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::db::{self, UpsertKnotHot};
+use crate::db::{self, ColdCatalogRecord, UpsertKnotHot};
 use crate::domain::knot_type::parse_knot_type;
 use crate::domain::knot_type::KnotType;
 use crate::domain::step_history::StepActorInfo;
@@ -18,6 +18,8 @@ use super::App;
 
 impl App {
     pub fn list_knots(&self) -> Result<Vec<KnotView>, AppError> {
+        let sweep = crate::trace::measure("cold_sweep", || self.run_cold_sweep())?;
+        self.record_cold_sweep_report(sweep);
         let mut knots: Vec<KnotView> =
             crate::trace::measure("list_knot_hot", || db::list_knot_hot(&self.conn))?
                 .into_iter()
@@ -33,6 +35,8 @@ impl App {
         &self,
         params: &db::ListHotParams,
     ) -> Result<(Vec<KnotView>, i64), AppError> {
+        let sweep = crate::trace::measure("cold_sweep", || self.run_cold_sweep())?;
+        self.record_cold_sweep_report(sweep);
         let (records, total) = crate::trace::measure("list_knot_hot_paginated", || {
             db::list_knot_hot_paginated(&self.conn, params)
         })?;
@@ -72,6 +76,14 @@ impl App {
                 .collect();
             workflow_runtime::enrich_step_metadata(&mut view, &self.profile_registry)?;
             return Ok(Some(view));
+        }
+        // Hot miss → fall back to local cold catalog. This is intentionally
+        // a single SQLite SELECT: no rehydrate, no pull, no sync. Callers
+        // that want the full body must invoke `kno rehydrate <id>` first.
+        if let Some(record) =
+            crate::trace::measure("get_cold_catalog", || db::get_cold_catalog(&self.conn, &id))?
+        {
+            return Ok(Some(cold_view_from_record(record)));
         }
         Ok(None)
     }
@@ -238,13 +250,18 @@ impl App {
         let state = cold_record.state.clone();
         let updated_at = cold_record.updated_at.clone();
         let record = rehydrate_from_events(&self.store_paths.root, id, title, state, updated_at)?;
+        // Bump updated_at to now so the rehydrated knot gets a fresh 72h
+        // grace window before it becomes eligible for cold again. This is
+        // a local-only materialization timestamp; the event log still
+        // carries the original updated_at from the source events.
+        let rehydrated_at = now_utc_rfc3339();
         db::upsert_knot_hot(
             &self.conn,
             &UpsertKnotHot {
                 id,
                 title: &record.title,
                 state: &record.state,
-                updated_at: &record.updated_at,
+                updated_at: &rehydrated_at,
                 body: record.body.as_deref(),
                 description: record.description.as_deref(),
                 acceptance: record.acceptance.as_deref(),
@@ -267,8 +284,48 @@ impl App {
                 created_at: record.created_at.as_deref(),
             },
         )?;
+        db::delete_cold_catalog(&self.conn, id)?;
         let hot =
             db::get_knot_hot(&self.conn, id)?.ok_or_else(|| AppError::NotFound(id.to_string()))?;
         Ok(Some(self.apply_alias_and_enrich_knot(KnotView::from(hot))?))
+    }
+}
+
+/// Build a minimal `KnotView` from a `cold_catalog` row. Only id/title/state/
+/// updated_at are populated; callers needing full body must explicitly
+/// rehydrate the knot.
+fn cold_view_from_record(record: ColdCatalogRecord) -> KnotView {
+    KnotView {
+        id: record.id,
+        alias: None,
+        title: record.title,
+        state: record.state,
+        updated_at: record.updated_at,
+        body: None,
+        description: None,
+        acceptance: None,
+        priority: None,
+        knot_type: crate::domain::knot_type::KnotType::default(),
+        tags: Vec::new(),
+        notes: Vec::new(),
+        handoff_capsules: Vec::new(),
+        invariants: Vec::new(),
+        step_history: Vec::new(),
+        gate: None,
+        lease: None,
+        execution_plan: None,
+        lease_id: None,
+        lease_expiry_ts: 0,
+        lease_agent: None,
+        workflow_id: String::new(),
+        profile_id: String::new(),
+        profile_etag: None,
+        deferred_from_state: None,
+        blocked_from_state: None,
+        created_at: None,
+        step_metadata: None,
+        next_step_metadata: None,
+        edges: Vec::new(),
+        child_summaries: Vec::new(),
     }
 }

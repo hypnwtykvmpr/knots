@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::path::PathBuf;
 
 use rusqlite::Connection;
@@ -11,6 +12,7 @@ use crate::sync::SyncSummary;
 use crate::workflow::{ProfileDefinition, ProfileRegistry};
 
 mod alias;
+pub mod archival;
 mod edges;
 pub mod error;
 mod execution_plan_edit;
@@ -59,6 +61,7 @@ pub struct App {
     project_id: Option<String>,
     profile_registry: ProfileRegistry,
     home_override: Option<Option<PathBuf>>,
+    last_cold_sweep: RefCell<Option<archival::ColdSweepReport>>,
 }
 
 impl App {
@@ -109,6 +112,7 @@ impl App {
             project_id: context.project_id.clone(),
             profile_registry,
             home_override: None,
+            last_cold_sweep: RefCell::new(None),
         })
     }
 
@@ -234,6 +238,27 @@ impl App {
             AppError::InvalidArgument(format!("knot '{}' is missing profile_id", record.id))
         })?;
         Ok(self.profile_registry.require(&pid)?)
+    }
+
+    /// Take the most recent cold-sweep report (produced by `list_knots` /
+    /// `list_knots_paginated`). Returns `None` when the last listing made
+    /// no moves. Each call consumes the stored report so `kno ls` prints
+    /// the summary only once per invocation.
+    pub fn take_cold_sweep_report(&self) -> Option<archival::ColdSweepReport> {
+        self.last_cold_sweep.borrow_mut().take()
+    }
+
+    pub(crate) fn record_cold_sweep_report(&self, report: archival::ColdSweepReport) {
+        if report.is_empty() {
+            *self.last_cold_sweep.borrow_mut() = None;
+        } else {
+            *self.last_cold_sweep.borrow_mut() = Some(report);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn conn_for_test(&self) -> &Connection {
+        &self.conn
     }
 }
 
