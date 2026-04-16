@@ -255,15 +255,9 @@ fn sweep_moves_oldest_first() {
     let (app, root) = new_app();
     let now = OffsetDateTime::now_utc();
     let fresh = fmt(now - Duration::hours(1));
-    let mut items: Vec<(String, &str, String)> = Vec::new();
-    for i in 0..105 {
-        items.push((format!("k-hot-{i:04}"), "ready_for_planning", fresh.clone()));
-    }
-    // 20 stale terminals with staggered ages: index 0 newest-stale,
-    // 19 oldest-stale. Excess is (105 + 20) - 100 = 25, but only 20 are
-    // eligible, so all 20 should move. Instead let's raise hot fresh to
-    // keep excess < 20 so we can exercise limit-clipping.
-    let _ = items;
+    // 95 fresh non-terminal + 20 stale terminals → hot = 115, excess above
+    // target = 15. Terminal indices 5..19 (the 15 oldest) should sweep; the
+    // 5 newest-stale terminals should remain hot.
     let mut items: Vec<(String, &str, String)> = Vec::new();
     for i in 0..95 {
         items.push((format!("k-hot-{i:04}"), "ready_for_planning", fresh.clone()));
