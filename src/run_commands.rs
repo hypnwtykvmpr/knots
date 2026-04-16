@@ -25,6 +25,7 @@ fn run_ls_full(app: &app::App, args: crate::cli::ListArgs) -> Result<(), app::Ap
         query: args.query.clone(),
     };
     let mut knots = listing::apply_filters(app.list_knots()?, &filter);
+    print_cold_sweep_summary(app, args.json);
     if let Some(limit) = args.limit {
         knots.truncate(limit);
     }
@@ -40,6 +41,19 @@ fn run_ls_full(app: &app::App, args: crate::cli::ListArgs) -> Result<(), app::Ap
         });
         ui::print_knot_list(&rows, &filter);
         Ok(())
+    }
+}
+
+fn print_cold_sweep_summary(app: &app::App, json: bool) {
+    if let Some(report) = app.take_cold_sweep_report() {
+        if report.is_empty() {
+            return;
+        }
+        if json {
+            eprintln!("archived {} knots to cold storage", report.len());
+        } else {
+            println!("archived {} knots to cold storage", report.len());
+        }
     }
 }
 
@@ -62,6 +76,7 @@ fn run_ls_paginated(app: &app::App, args: crate::cli::ListArgs) -> Result<(), ap
         query: args.query.clone(),
     };
     let knots = listing::apply_filters(knots, &filter);
+    print_cold_sweep_summary(app, args.json);
     if args.json {
         let page = app::PaginatedList::new(knots, total, offset, limit);
         print_json(&page);

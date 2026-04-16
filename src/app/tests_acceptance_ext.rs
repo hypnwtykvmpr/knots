@@ -214,10 +214,24 @@ fn show_knot_does_not_implicitly_rehydrate_from_warm_or_events() {
     .expect("index event should be writable");
 
     let app = App::open(&db_path_str, root.clone()).expect("app should open");
-    let shown = app.show_knot("K-cache-miss").expect("show should succeed");
+    // show_knot transparently reads cold_catalog on a hot-miss (local SQLite
+    // only — no rehydrate, no event replay). The cold view only carries the
+    // minimal id/title/state/updated_at fields; full body is only available
+    // via an explicit `kno rehydrate`.
+    let shown = app
+        .show_knot("K-cache-miss")
+        .expect("show should succeed")
+        .expect("cold catalog fallback should resolve the knot");
+    assert_eq!(shown.id, "K-cache-miss");
+    assert_eq!(shown.title, "Warm only");
+    assert_eq!(shown.state, "ready_for_implementation");
     assert!(
-        shown.is_none(),
-        "show should stop at the local cache instead of rehydrating"
+        shown.body.is_none(),
+        "cold view must not populate body (requires explicit rehydrate)"
+    );
+    assert!(
+        shown.edges.is_empty(),
+        "cold view must not replay events for edges"
     );
 
     let rehydrated = app
