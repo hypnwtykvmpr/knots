@@ -1,5 +1,7 @@
 # Knots Style Guide
 
+Read [TAXONOMY.md](TAXONOMY.md) before writing code — it defines the shared vocabulary (knot, gate, lease, wave, step, etc.) and flags overloaded terms to avoid.
+
 ## Limits
 - Maximum file length: 500 lines.
 - Maximum line length: 100 characters.

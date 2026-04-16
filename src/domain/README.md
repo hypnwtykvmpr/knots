@@ -11,3 +11,5 @@ Pure value types shared across the codebase. No I/O, no side effects.
 - **`invariant.rs`** — `Invariant` struct for gate constraints
 - **`step_history.rs`** — `StepRecord` for audit trails
 - **`state.rs`** — state-related types and parsing
+- **`execution_plan.rs`** — `ExecutionPlan`, `PlanWave`, `PlanStep` structures
+- **`execution_plan_edit.rs`** — edit descriptors used by plan mutations

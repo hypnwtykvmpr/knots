@@ -1,14 +1,20 @@
 # sync
 
-Git-based event replication between local and remote.
+Git-based event replication between local and remote. `push` + `pull` live in the sibling `replication.rs` module; this module owns the pull/apply mechanics.
 
 ## Key Files
 
-- **`mod.rs`** — `pull()`, `push()`, `sync()` entry points
+- **`mod.rs`** — `SyncService::sync()` / `sync_with_progress()`, `SyncSummary`, `SyncError`
 - **`apply.rs`** — `IncrementalApplier`: applies index and full events to SQLite cache
 - **`apply_helpers.rs`** — helper functions for event application
-- **`git.rs`** — git operations (fetch, reset, commit, push)
+- **`git.rs`** — `GitAdapter`: fetch, reset, commit, push primitives
 - **`worktree.rs`** — `KnotsWorktree`: manages the `.knots/_worktree` git worktree
+
+## Key Types
+
+- `SyncService` — coordinates a pull pass
+- `SyncSummary` — counts of applied index/full events, drift info
+- `GitAdapter`, `KnotsWorktree` — re-exported from submodules
 
 ## Data Flow
 

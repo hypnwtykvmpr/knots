@@ -4,7 +4,7 @@ Find and claim the highest-priority ready knot for the current agent.
 
 ## Key Files
 
-- **`mod.rs`** — `run_poll()`, `run_claim()`: entry points
+- **`../poll_claim.rs`** — module root: `run_poll()`, `run_claim()`, `peek_knot()`, `claim_knot()`, `PollResult`
 - **`ready.rs`** — `run_ready()`, `list_queue_candidates()`: queue filtering
 
 ## Behavior

@@ -4,8 +4,15 @@ Event file I/O. Writes JSON event files to `.knots/events/` and `.knots/index/`.
 
 ## Key Files
 
-- **`mod.rs`** — `EventWriter`, `write_event()`, `write_index_event()`
+- **`mod.rs`** — `EventWriter::write()`, `relative_path_for_event()`, `new_event_id()`
 - **`error.rs`** — `EventWriteError` for I/O and serialization failures
+
+## Key Types
+
+- `EventRecord` — wraps either a `FullEvent` or `IndexEvent`
+- `FullEvent` / `FullEventKind` — complete knot change events
+- `IndexEvent` / `IndexEventKind` — lightweight head summaries used for fast sync
+- `WorkflowPrecondition` — ETag guard for optimistic writes
 
 ## Event Layout
 

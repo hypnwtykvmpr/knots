@@ -2,6 +2,8 @@
 
 Local-first, event-sourced workflow tracker backed by git and SQLite.
 
+See [TAXONOMY.md](TAXONOMY.md) for the shared vocabulary used throughout this document.
+
 ## Data/Control Flow
 
 ```
@@ -18,14 +20,16 @@ Events are the source of truth; SQLite is a materialized cache.
 | Path | Purpose |
 |------|---------|
 | [`src/app/`](src/app/README.md) | Core business logic: knot CRUD, state transitions, gates, edges |
-| [`src/domain/`](src/domain/README.md) | Value types: KnotType, GateData, LeaseData, Invariant, MetadataEntry |
+| [`src/domain/`](src/domain/README.md) | Value types: KnotType, GateData, LeaseData, ExecutionPlan, Invariant |
 | [`src/db/`](src/db/README.md) | SQLite cache: schema, migrations, warm/cold queries |
 | [`src/events/`](src/events/README.md) | Event file I/O: write JSON events to `.knots/events/` and `.knots/index/` |
-| [`src/sync/`](src/sync/README.md) | Git replication: pull, push, incremental event application |
+| [`src/sync/`](src/sync/README.md) | Git pull/apply: incremental event application to the SQLite cache |
 | [`src/installed_workflows/`](src/installed_workflows/README.md) | Workflow/profile loading, TOML/JSON parsing, validation |
 | [`src/write_dispatch/`](src/write_dispatch/README.md) | Write command routing and execution via queued operations |
 | [`src/poll_claim/`](src/poll_claim/README.md) | Poll/claim: find and claim highest-priority ready knots |
 | [`src/ui/`](src/ui/README.md) | Terminal output: colored knot display, doctor reports, progress |
+| [`loom/`](loom/README.md) | Source workflow bundles (work_sdlc, gate_sdlc, lease_sdlc, …) |
+| [`docs/`](docs/README.md) | User-facing docs: portfolio plans, execution plans, leases |
 | [`tests/`](tests/README.md) | Integration tests: CLI dispatch, workflows, hierarchy, skills |
 | [`scripts/`](scripts/README.md) | Build/release scripts and git hooks |
 
@@ -33,7 +37,7 @@ Events are the source of truth; SQLite is a materialized cache.
 
 - **Binary**: `main.rs` → `run()` — CLI bootstrap and command dispatch
 - **Write ops**: `write_dispatch/operation_map.rs` → `operation_from_command()` — maps CLI to operations
-- **Read ops**: `run_commands.rs` → `dispatch_read_command()` — handles ls, show, pull, push, etc.
+- **Read ops**: `main.rs` → `dispatch_read_command()` — delegates to `run_commands::run_*` (ls, show, pull, push, doctor, etc.)
 - **App layer**: `app.rs` → `App` struct — opens SQLite + event writer, delegates to submodules
 - **Sync**: `sync/mod.rs` → `pull()`, `push()` — git-based event replication
 

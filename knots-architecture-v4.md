@@ -262,14 +262,14 @@ Knots maintains a local SQLite DB (not in git):
   - `schema_version`
   - `hot_window_days` (default 7)
 
-**Hot knots (fully hydrated)**
+**Hot knots (fully rehydrated)**
 - `knot_hot(id TEXT PRIMARY KEY, title TEXT, state TEXT, updated_at TEXT, body TEXT, ... )`
 
 **Warm knots (headlines only)**
 - `knot_warm(id TEXT PRIMARY KEY, title TEXT)`  
   *(strictly id+title per requirement)*
 
-**Edges (only for hydrated knots unless you choose otherwise)**
+**Edges (only for rehydrated knots unless you choose otherwise)**
 - `edge(src TEXT, kind TEXT, dst TEXT, PRIMARY KEY (src, kind, dst))`
   - `kind ∈ {"blocks", "blocked_by", "parent_of"}`
 
@@ -299,7 +299,7 @@ Classification:
    - **Not synced** by default (no id/title stored in warm/hot tables)
    - Requires manual `cold sync` + `rehydrate`
 2. **Hot** if not terminal AND `updated_at >= now - N days`  
-   - Fully hydrated (full metadata imported into `knot_hot`)
+   - Fully rehydrated (full metadata imported into `knot_hot`)
 3. **Warm** otherwise (not terminal, older than window)  
    - Only `id + title` kept in `knot_warm`  
    - Metadata loaded only on-demand (“rehydrate”)
@@ -310,7 +310,7 @@ Classification:
 `knots sync` does:
 - Fetch and fast-forward `knots` branch
 - Apply **index events** to build/update warm/hot sets
-- Hydrate **hot** knots by replaying full events (for those knots only)
+- Rehydrate **hot** knots by replaying full events (for those knots only)
 - Enforce eviction/demotion rules
 
 ### 6.3 Cold Sync (manual)
@@ -319,7 +319,7 @@ Classification:
 - Populate/refresh `cold_catalog` table using:
   - `cold_catalog` snapshot if present, else
   - scanning index deltas for terminal states (slower)
-- Does **not** hydrate full metadata
+- Does **not** rehydrate full metadata
 
 Then user can:
 - `knots cold search <term>`
@@ -336,7 +336,7 @@ When user runs `knots show K-123` and it’s warm:
 
 **Cold rehydrate**:
 - Requires `cold sync` to discover candidates
-- Then hydrate same as above
+- Then rehydrate same as above
 
 ---
 
@@ -364,7 +364,7 @@ To keep syncs responsive (<1s under normal conditions), the implementation shoul
 - Optionally use **partial clone filters** to avoid downloading large “full event” blobs during normal sync:
   - Example: `git fetch --filter=blob:limit=4k ...` so index blobs arrive, large bodies stay lazy until rehydrate.
 - Avoid scanning the working tree; derive deltas via `git diff --name-status <old>..<new>`.
-- Apply index events incrementally and hydrate only the hot set (last N days).
+- Apply index events incrementally and rehydrate only the hot set (last N days).
 
 Because events are append-only, the fastest way to process updates is:
 
@@ -375,7 +375,7 @@ Because events are append-only, the fastest way to process updates is:
   - parse and apply only those
 
 Similarly for full events:
-- `git diff --name-status <old_full>..<new> -- .knots/events/` then only hydrate the knots we care about (hot list)
+- `git diff --name-status <old_full>..<new> -- .knots/events/` then only rehydrate the knots we care about (hot list)
 
 ### 7.2 Snapshot Optimizations (optional)
 To reduce “cold sync” cost and bootstrap time:
@@ -850,7 +850,7 @@ For each `idx.knot_head` delta:
 - Else:
   - compute `is_hot` from `updated_at`
   - if hot:
-    - ensure in “hot set” for hydration
+    - ensure in “hot set” for rehydration
   - else:
     - ensure `knot_warm(id,title)` exists and remove from `knot_hot` if present
 
@@ -940,7 +940,7 @@ These are optional optimizations; the hot/warm/cold cache tiering already yields
 - **Repo lock + cache lock** → safe multi-client host behavior
 - **Push retry loop** → no manual git required
 - **Hot/warm/cold**:
-  - hot: fully hydrated (updated in last N days)
+  - hot: fully rehydrated (updated in last N days)
   - warm: id+title only
   - cold: invisible until manual cold sync + rehydrate
 

@@ -4,7 +4,7 @@ Terminal output formatting for knot display, doctor reports, and progress.
 
 ## Key Files
 
-- **`mod.rs`** — `print_knot_list()`, `print_knot_show()`, `print_doctor_report()`
+- **`../ui.rs`** — module root: `print_knot_list()`, `print_knot_show()`, `print_doctor_report()`, `format_knot_row()`, `hidden_metadata_hint()`
 - **`palette.rs`** — `Palette`: ANSI color helpers, `ShowField` for key-value display
 - **`progress.rs`** — `StdoutProgressReporter`: sync progress bars
 

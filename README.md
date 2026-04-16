@@ -25,6 +25,8 @@ A knot is not just a unit of work. It is a unit of coordination and understandin
 
 ## Basic Concepts
 
+See [TAXONOMY.md](TAXONOMY.md) for the project's shared vocabulary — every term used below is defined there with citations into the code.
+
 ### Actions and Queues
 
 Each step of the workflow is either an action state or a queue state.
