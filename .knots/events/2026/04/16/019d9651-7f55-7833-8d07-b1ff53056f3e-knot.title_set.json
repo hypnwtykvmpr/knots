@@ -1,0 +1,10 @@
+{
+  "event_id": "019d9651-7f55-7833-8d07-b1ff53056f3e",
+  "occurred_at": "2026-04-16T12:43:36.661868Z",
+  "knot_id": "knots-8aba",
+  "type": "knot.title_set",
+  "data": {
+    "from": "Archive cold terminal knots with tombstone when hot exceeds 110",
+    "to": "Loosen cold-tier policy: require age>72h and hot>110 for terminal knots"
+  }
+}

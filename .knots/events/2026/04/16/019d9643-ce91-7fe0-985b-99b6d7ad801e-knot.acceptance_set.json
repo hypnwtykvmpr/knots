@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9643-ce91-7fe0-985b-99b6d7ad801e",
+  "occurred_at": "2026-04-16T12:28:39.434173Z",
+  "knot_id": "knots-8aba",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. When `kno ls` is invoked with hot count > 110 and at least one archive-eligible knot exists, the sweep archives oldest-first by `(updated_at ASC, id ASC)` until hot count == 100 or no eligible knot remains, then prints one line `archived N knots to cold storage` to stdout.\n2. Knots in BLOCKED or DEFERRED state never have `archived_at` set by the sweep, regardless of `updated_at` age.\n3. After `kno sync` or event replay, a previously archived knot retains `archived_at` — replay does not resurrect it to the hot set.\n4. `kno ls` excludes every knot where `archived_at IS NOT NULL` from its output.\n5. `kno show <id>` returns the full knot body for an archived knot in under 25ms on a dataset with at least 1000 archived knots.\n6. New command `kno thaw <id>` clears `archived_at` and sets `updated_at` to now; after thaw the knot appears in `kno ls`.\n7. Remote sync: local `archived_at` propagates to remote when local `archived_at` is newer than remote `updated_at` for that knot; when remote `updated_at` is newer (a remote thaw), the local replica accepts the remote state.\n8. Hot count == 111 with zero archive-eligible knots: `kno ls` runs normally, no archive occurs, no summary line, no error.\n9. Schema: `knot_hot` gains `archived_at TIMESTAMP NULL`; the corresponding event schema includes the same field so replay respects the tombstone."
+  }
+}

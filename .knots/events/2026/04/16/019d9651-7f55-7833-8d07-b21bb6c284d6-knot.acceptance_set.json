@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9651-7f55-7833-8d07-b21bb6c284d6",
+  "occurred_at": "2026-04-16T12:43:36.661868Z",
+  "knot_id": "knots-8aba",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `classify_knot_tier` (or its replacement) classifies a terminal knot as Cold only when age > 72h; terminal knots updated within the last 72h remain Hot.\n2. `kno ls` invokes a sweep: when hot count > 110 and at least one eligible knot exists, it archives oldest-first by `(updated_at ASC, id ASC)` until hot count == 100 or no eligible knot remains, then prints one line `archived N knots to cold storage` to stdout.\n3. Knots in BLOCKED or DEFERRED state never get moved to cold by the sweep, regardless of age.\n4. `kno ls` does not show cold knots (uses existing hot-only query path).\n5. `kno show <id>` on a cold knot returns title, state, and updated_at from `cold_catalog` in under 25ms against a dataset with at least 1000 cold knots, with no rehydrate, pull, or sync performed.\n6. `kno rehydrate <id>` on a cold knot restores it to hot and sets `updated_at` to the current time; the knot then appears in `kno ls`.\n7. After `kno sync` round-trip (push then pull with a fresh local cache), a knot previously moved to cold remains classified as cold, not resurrected to hot.\n8. Hot count 111 with zero eligible knots: `kno ls` runs normally, no archive, no summary line, no error.\n9. No `archived_at` column is added to `knot_hot`; no `kno thaw` command is added; reuses `cold_catalog`, `classify_knot_tier`, and `rehydrate_from_events`."
+  }
+}

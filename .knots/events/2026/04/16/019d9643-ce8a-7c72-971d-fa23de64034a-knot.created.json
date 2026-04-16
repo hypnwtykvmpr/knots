@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9643-ce8a-7c72-971d-fa23de64034a",
+  "occurred_at": "2026-04-16T12:28:39.434173Z",
+  "knot_id": "knots-8aba",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nWhen the hot knot count exceeds 110, archive the oldest SHIPPED or CANCELLED knots that were last updated more than 72 hours ago via an `archived_at` tombstone, sweeping the hot set back down to 100. Archived knots remain readable via `kno show` and can be restored via a new `kno thaw` command. The `archived_at` flag survives event replay and syncs to the remote correctly. Goal is to keep `kno ls` fast while preserving recently-terminated knots in view.\n\nVerification:\n1. Seed a test DB with 150 knots: 100 non-terminal, 50 in SHIPPED with `updated_at = now - 96h`. Run `kno ls`. Expect 100 rows shown, and stdout to include the line `archived 50 knots to cold storage`.\n2. Seed 111 knots where all SHIPPED/CANCELLED knots have `updated_at < 72h` ago. Run `kno ls`. Expect 111 rows shown, no archive summary line printed.\n3. Seed 150 knots with a mix (30 SHIPPED >72h, 20 CANCELLED >72h, 100 non-terminal). Run `kno ls`. Expect hot count = 100 after sweep; 50 knots with non-null `archived_at`; summary line printed.\n4. After step 3, run `kno sync` to push to a test remote, then clear the local materialized cache and replay events. Query `SELECT archived_at FROM knot_hot WHERE id = <archived-id>`. Expect non-null.\n5. Seed DB with 1000 archived knots. Time `kno show <archived-id>`. Expect full knot output and wall time <25ms.\n6. Take an archived knot, run `kno thaw <id>`. Expect `archived_at IS NULL` and `updated_at` within 1s of now. Run `kno ls` and expect the knot to appear.\n7. Unit-test the eligibility predicate across the matrix of all knot states × ages (0h, 71h, 73h) × archived_at (NULL, set). Only `(state ∈ {SHIPPED, CANCELLED}) ∧ (age > 72h) ∧ (archived_at IS NULL)` returns true.\n\nConstraints:\n- BLOCKED and DEFERRED are passive-waiting states, NOT terminal. They must never be archived, regardless of age.\n- Tombstone only (`archived_at` column). Never physically move or delete knot data.\n- Sweep runs inline on `kno ls` invocation.\n- If hot count > 100 but no knot is archive-eligible, accept the bloat — no error, no spam. A follow-up knot will address this edge case later.\n- Summary line to stdout; per-knot archive details (id, title, updated_at) go to the file log only.\n- Parent/child invariant is already enforced upstream: a parent cannot enter a terminal state until all children are terminal. No special family-cohesion logic needed in this knot.\n- Remote sync: local `archived_at` wins when local `archived_at` is newer than remote `updated_at`. Remote wins when remote `updated_at` is newer (a remote thaw).",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Archive cold terminal knots with tombstone when hot exceeds 110",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
