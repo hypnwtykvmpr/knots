@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9769-81f3-7312-a6f1-93fda78c674d",
+  "occurred_at": "2026-04-16T17:49:27.411453Z",
+  "knot_id": "knots-347f",
+  "type": "knot.created",
+  "data": {
+    "body": "User feedback from /taxonomize review (2026-04-16): The CLI currently has both 'kno skill' (prints the skill prompt for a knot's next action state) and 'kno skills' (install/update managed skill bundles for Claude/Codex/OpenCode). The two nouns are easily confused. Rename 'skill' to 'prompt' so the commands read:\n\n- kno prompt <knot-id>  -> print the action-state prompt for a knot (what 'kno skill' does today)\n- kno skills install/uninstall/update -> unchanged (managed skills installation into external tools)\n\nScope of change:\n- src/cli.rs: rename Commands::Skill variant and its args struct; keep an alias 'skill' for backward compat (one release cycle).\n- src/run_commands.rs: rename run_skill -> run_prompt (and update dispatch).\n- src/cli_skills.rs: review whether it should split into cli_prompt.rs + cli_skills.rs.\n- docs/ and skills/*.md that describe the command.\n- TAXONOMY.md: remove the 'skill vs skills' ambiguity flag.\n\nAcceptance: 'kno prompt <id>' prints the prompt; 'kno skill <id>' is either removed or prints a deprecation notice. 'kno skills install' continues to work unchanged.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Rename CLI command 'skill' to 'prompt'",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

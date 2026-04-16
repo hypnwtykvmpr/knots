@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9727-5f9b-75a0-beeb-021fd8c09448",
+  "occurred_at": "2026-04-16T16:37:13.243523Z",
+  "knot_id": "knots-61d7",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipped to branch `feature/knots-61d7-doctor-cold-tier-imbalance` (head 2db62b0, pushed).\n\n**What changed:**\n- `src/doctor_cold_tier.rs` (new, 106 LoC): `check_cold_tier_imbalance` + `fix_cold_tier_imbalance` + `COLD_TIER_HOT_TARGET = 100`.\n- `src/doctor_cold_tier_tests.rs` (new, 38 LoC test): unit tests for the check and the fix.\n- `src/doctor.rs`: extended `DoctorCheck` with optional `data: Option<serde_json::Value>` for structured JSON output; added `DoctorCheck::simple(name, status, detail)` helper to collapse existing literals; registered the new check.\n- `src/doctor_fix.rs`: match arm routing the check name to `fix_cold_tier_imbalance`.\n- `src/db/catalog.rs`: added `count_cold_catalog()` and `count_knot_hot()` helpers.\n- `tests/cli_doctor_cold_tier_imbalance.rs`: CLI integration tests for warn → fix → pass flow and cap scenarios.\n\n**Deviations:**\n1. Check extracted to `src/doctor_cold_tier.rs` instead of inline in `doctor.rs`. Reason: adding `data: None` to 26 existing DoctorCheck literals pushed `doctor.rs` over the 500-line limit. Mitigated by also adding `DoctorCheck::simple` constructor so `doctor.rs` went 477 → 468.\n2. Explore agent had claimed rehydrate doesn't delete from cold_catalog. Verified false: `src/app/query.rs:287` already deletes. No 8aba fixup needed.\n3. Integration test seeds cold via direct SQLite writes (`demote_to_cold`), matching the existing pattern in `tests_acceptance_ext.rs`.\n\n**Review target:** branch `feature/knots-61d7-doctor-cold-tier-imbalance`, 3 commits. `make sanity` green: fmt, clippy, file-size, 1051 tests, coverage 95.21%.\n\n**For the reviewer:** hot spots are (a) `DoctorCheck` struct change + `simple` helper (did all existing call sites migrate correctly?), (b) `check_cold_tier_imbalance` logic (does it handle edge cases: hot=0 / cold=0 / hot>>target?), (c) fix loop: does it stop after cap? does each rehydrate succeed independently?",
+    "datetime": "2026-04-16T16:37:13.243523Z",
+    "entry_id": "019d9727-5f9b-75a0-beeb-020af9224d07",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

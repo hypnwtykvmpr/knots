@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9769-1e4b-7f43-b5d1-93c88ba8df12",
+  "occurred_at": "2026-04-16T17:49:01.899464Z",
+  "knot_id": "knots-1b08",
+  "type": "knot.created",
+  "data": {
+    "body": "User feedback from /taxonomize review (2026-04-16): 'apply' is overloaded across 7+ subjects (events, git, plan edits, listing filters, doctor fixes, snapshot restore, step transitions) and does not add meaning in any of them. Replace each call site with a verb that names the subject. Candidates from TAXONOMY.md:\n\n- apply_filters -> filter_list (src/listing.rs:15)\n- apply_fixes -> run_doctor_fixes (src/doctor_fix.rs:32)\n- apply_latest_snapshots -> restore_from_snapshots (src/snapshots.rs:141)\n- apply_rehydrate_event -> fold_rehydrate_event or rehydrate_with_event (src/app/rehydrate/apply_event.rs:12)\n- apply_state_transition_locked -> perform_state_transition_locked (src/app/state_ops.rs:113)\n- apply_step_transition -> record_step_transition (src/app/helpers.rs:380)\n- apply_to_head -> integrate_worktree_to_head or similar (src/sync/apply.rs:57)\n\nAcceptance: no pub fn or pub(crate) fn in src/ (excluding tests) named apply_* unless the project decides a specific remaining use of 'apply' is semantically correct. Update ARCHITECTURE.md and TAXONOMY.md accordingly.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Rename all uses of 'apply' to subject-specific verbs",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

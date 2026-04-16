@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9769-4827-7563-9c0a-d845dbf8e3c7",
+  "occurred_at": "2026-04-16T17:49:12.61564Z",
+  "knot_id": "knots-db35",
+  "type": "knot.created",
+  "data": {
+    "body": "User feedback from /taxonomize review (2026-04-16): States are authored in loom workflow bundles under loom/*/. KnotState at src/domain/state.rs:6 is currently hand-maintained and must stay in lockstep with every loom workflow. That is a drift risk — any state we reference in code should be generated from loom, not hand-written.\n\nProposal:\n- Treat loom/*/dist/bundle.json as the source of truth for state vocabulary.\n- Add a build step (probably invoked via make loom-bundle or a new make target) that emits the canonical KnotState enum (and possibly state-owner/queue/action classification) from the union of all bundles.\n- Remove hand-edited variants from src/domain/state.rs; make it a generated file with a clear generation header.\n- Ensure any renames or additions in loom/*/workflow.loom propagate automatically.\n\nAcceptance:\n- KnotState is generated, not hand-edited.\n- make sanity verifies that src/domain/state.rs is in sync with loom bundles (fail-on-drift).\n- Any new state added in loom appears in KnotState after a single build step.\n\nRisk: multiple workflows use overlapping state names (e.g. ready_for_planning appears in 4 bundles). The generator must deduplicate by name.\n",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Generate KnotState (and all state vocabulary) from loom bundles",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

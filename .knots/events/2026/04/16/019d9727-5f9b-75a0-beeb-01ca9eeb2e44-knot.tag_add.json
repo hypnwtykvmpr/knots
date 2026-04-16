@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9727-5f9b-75a0-beeb-01ca9eeb2e44",
+  "occurred_at": "2026-04-16T16:37:13.243523Z",
+  "knot_id": "knots-61d7",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/knots-61d7-doctor-cold-tier-imbalance"
+  }
+}

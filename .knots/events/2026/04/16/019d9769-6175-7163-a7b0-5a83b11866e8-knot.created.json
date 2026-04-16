@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9769-6175-7163-a7b0-5a83b11866e8",
+  "occurred_at": "2026-04-16T17:49:19.093517Z",
+  "knot_id": "knots-1b0d",
+  "type": "knot.created",
+  "data": {
+    "body": "User feedback from /taxonomize review (2026-04-16): knots-architecture-v4.md is the canonical architecture deep-dive (964 lines, referenced from docs/README.md) but contains legacy state names that no longer exist in code: 'idea', 'work_item', 'implementing', 'implemented', 'reviewing', 'rejected', 'refining', 'approved'. Current canonical states are in TAXONOMY.md and src/domain/state.rs.\n\nProposal:\n- Author knots-architecture-v5.md capturing the current architecture and state vocabulary (reference TAXONOMY.md rather than re-duplicating).\n- Cross-reference from docs/README.md and ARCHITECTURE.md.\n- Once v5 lands, mark v4 as historical (prepend a banner pointing readers at v5) or delete it — whichever the team prefers at ship time.\n\nAcceptance:\n- knots-architecture-v5.md exists at repo root.\n- Every state name mentioned in v5 exists in src/domain/state.rs (or is generated from loom; see sibling knot on loom-generated state vocabulary).\n- docs/README.md and ARCHITECTURE.md point at v5.\n",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Write knots-architecture-v5.md replacing v4 with current design",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
