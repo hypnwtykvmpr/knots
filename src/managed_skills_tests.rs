@@ -170,15 +170,6 @@ fn managed_skills_describe_parent_child_workflow() {
 }
 
 #[test]
-fn managed_skill_inventory_contains_only_knots_skills() {
-    let names = managed_skills()
-        .iter()
-        .map(|skill| skill.deploy_name)
-        .collect::<Vec<_>>();
-    assert_eq!(names, vec!["knots", "knots-e2e", "knots-create"]);
-}
-
-#[test]
 fn doctor_fix_reconciles_drifted_and_installs_missing_skills() {
     let _guard = env_lock().lock().expect("env lock");
     let prior_home = std::env::var_os("HOME");

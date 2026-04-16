@@ -174,8 +174,12 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
     assert!(stdout.contains(".agents/skills/knots/SKILL.md"));
     assert!(stdout.contains(".agents/skills/knots-e2e/SKILL.md"));
     assert!(stdout.contains(".agents/skills/knots-create/SKILL.md"));
+    assert!(stdout.contains(".agents/skills/knots-plan-orchestrator/SKILL.md"));
     assert!(root.join(".agents/skills/knots/SKILL.md").exists());
     assert!(root.join(".agents/skills/knots-create/SKILL.md").exists());
+    assert!(root
+        .join(".agents/skills/knots-plan-orchestrator/SKILL.md")
+        .exists());
 
     let uninstall = run_knots(&root, &db, &home, &["skills", "uninstall", "codex"]);
     assert_success(&uninstall);
@@ -183,8 +187,12 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
     assert!(stdout.contains(".agents/skills/knots/SKILL.md"));
     assert!(stdout.contains(".agents/skills/knots-e2e/SKILL.md"));
     assert!(stdout.contains(".agents/skills/knots-create/SKILL.md"));
+    assert!(stdout.contains(".agents/skills/knots-plan-orchestrator/SKILL.md"));
     assert!(!root.join(".agents/skills/knots/SKILL.md").exists());
     assert!(!root.join(".agents/skills/knots-create/SKILL.md").exists());
+    assert!(!root
+        .join(".agents/skills/knots-plan-orchestrator/SKILL.md")
+        .exists());
 }
 
 #[test]
