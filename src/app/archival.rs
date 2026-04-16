@@ -73,10 +73,8 @@ impl App {
         if hot_count <= HOT_HIGH_WATER as i64 {
             return Ok(ColdSweepReport::default());
         }
+        // hot_count > HOT_HIGH_WATER > HOT_TARGET guarantees limit >= 1.
         let limit = (hot_count as usize).saturating_sub(HOT_TARGET);
-        if limit == 0 {
-            return Ok(ColdSweepReport::default());
-        }
         self.run_cold_sweep_locked(limit)
     }
 

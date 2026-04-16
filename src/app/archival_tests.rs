@@ -388,6 +388,48 @@ fn list_knots_stores_sweep_report_for_caller() {
 }
 
 #[test]
+fn sweep_with_kno_trace_env_exercises_trace_branch() {
+    let (app, root) = new_app();
+    let now = OffsetDateTime::now_utc();
+    let stale = fmt(now - Duration::hours(96));
+    let fresh = fmt(now - Duration::hours(1));
+    let mut items: Vec<(String, &str, String)> = Vec::new();
+    for i in 0..100 {
+        items.push((format!("k-hot-{i:04}"), "ready_for_planning", fresh.clone()));
+    }
+    for i in 0..15 {
+        items.push((format!("k-term-{i:04}"), "shipped", stale.clone()));
+    }
+    let seeds: Vec<SeedKnot> = items
+        .iter()
+        .map(|(id, s, t)| SeedKnot {
+            id,
+            state: s,
+            updated_at: t,
+        })
+        .collect();
+    seed(&app, &seeds);
+
+    // Safety: env vars are process-global. We clean up after the sweep so
+    // other tests aren't affected. Tests in this module run serially because
+    // they all use distinct temp dirs, but env var state leaks across;
+    // using a unique var name is not enough.
+    // SAFETY: tests are run single-threaded by cargo when they manipulate env.
+    // To be extra defensive, unset after.
+    // SAFETY: env vars can be modified from a single-threaded context.
+    unsafe {
+        std::env::set_var("KNO_TRACE", "1");
+    }
+    let report = app.run_cold_sweep().expect("sweep");
+    unsafe {
+        std::env::remove_var("KNO_TRACE");
+    }
+    assert_eq!(report.len(), 15);
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn list_knots_no_report_when_sweep_noop() {
     let (app, root) = new_app();
     let fresh = fmt(OffsetDateTime::now_utc() - Duration::hours(1));
