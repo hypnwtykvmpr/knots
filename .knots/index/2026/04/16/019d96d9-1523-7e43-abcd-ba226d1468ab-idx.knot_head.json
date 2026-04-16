@@ -1,0 +1,21 @@
+{
+  "event_id": "019d96d9-1523-7e43-abcd-ba226d1468ab",
+  "occurred_at": "2026-04-16T15:11:42.371983Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-8aba",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Loosen cold-tier policy: require age>72h and hot>110 for terminal knots",
+    "type": "work",
+    "updated_at": "2026-04-16T15:11:42.371983Z",
+    "workflow_id": "work_sdlc"
+  }
+}

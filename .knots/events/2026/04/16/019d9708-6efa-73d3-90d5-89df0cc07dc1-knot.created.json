@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9708-6efa-73d3-90d5-89df0cc07dc1",
+  "occurred_at": "2026-04-16T16:03:25.562501Z",
+  "knot_id": "knots-61d7",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nAdd a new `kno doctor` check named `cold_tier_imbalance` that detects repos where the cold_catalog has entries while hot count is below the target (100). `kno doctor --fix` rehydrates cold knots back to hot, newest-first by `updated_at`, capped at `100 - hot_count` (so we refill toward the target without over-stuffing). Scope: current repo only; cross-project doctor iteration is tracked in a separate knot.\n\nMotivation: the 8aba cold-tier policy loosening means sometimes historical over-archival leaves a repo with 50 cold / 10 hot. We want a one-liner (`kno doctor --fix`) to rebalance.\n\nReuse: `db::list_cold_catalog`, existing `app.rehydrate(id)` (which already bumps `updated_at` and deletes the cold entry per 8aba). No new DB tables or columns.\n\nVerification:\n1. Seed a test DB with 10 hot + 50 cold_catalog entries. Run `kno doctor`. Expect one warning line: `cold_tier_imbalance: ⚠ 10 hot / 50 cold; run doctor --fix to rehydrate up to 90`.\n2. Seed 10 hot + 50 cold. Run `kno doctor --fix`. Expect: 50 rehydrated (cap is 100-10=90, but cold is 50, so all 50 move). After, `SELECT COUNT(*) FROM knot_hot` == 60; `SELECT COUNT(*) FROM cold_catalog` == 0.\n3. Seed 10 hot + 200 cold. Run `kno doctor --fix`. Expect: 90 rehydrated (capped at 100-10). After: 100 hot, 110 cold.\n4. Rehydrated knots are the 90 newest-by-`updated_at` from cold_catalog.\n5. Seed 100 hot + 5 cold. Run `kno doctor`. Expect: no warning (hot_count not below target — nothing to do).\n6. Seed 120 hot + 0 cold. Run `kno doctor`. Expect: no warning (no cold to worry about).\n7. Seed 10 hot + 50 cold. Run `kno doctor --json`. Expect a `cold_tier_imbalance` key with status and counts.\n8. Each rehydrated knot has `updated_at` within 1s of now.\n\nConstraints:\n- Scope: current repo only. Cross-project iteration is a separate knot.\n- Do NOT rehydrate when `hot_count >= 100` regardless of cold count — the target is 100 and only bloat-reducing flows apply above it.\n- Reuse `app.rehydrate`; do not reimplement.\n- Integrate with the existing doctor check registration pattern.\n- Use `kno rehydrate` events where they make sense; do not bypass the event stream.\n- Maintain the file size limit (<500 lines) and 95% coverage.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add cold_tier_imbalance check to kno doctor with --fix rehydration",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

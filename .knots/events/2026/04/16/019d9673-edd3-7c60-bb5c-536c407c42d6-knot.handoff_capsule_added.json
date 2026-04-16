@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9673-edd3-7c60-bb5c-536c407c42d6",
+  "occurred_at": "2026-04-16T13:21:13.171546Z",
+  "knot_id": "knots-8aba",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation shipped to branch `feature/knots-8aba-loosen-cold-tier` (head 7a11117, pushed to origin).\n\n**What changed:**\n- `src/tiering.rs`: `classify_knot_tier` now requires terminal + age>72h for Cold (was: any terminal → Cold). New `ARCHIVE_AGE_HOURS` constant.\n- `src/app/archival.rs` (new): `run_cold_sweep` — when hot count > 110, move oldest-first terminal-and-aged knots into `cold_catalog` until hot drops toward 100. Profile-aware terminal check via `workflow_runtime::is_terminal_state`. Transactional.\n- `src/app.rs`: `last_cold_sweep` RefCell stashes the sweep report; `app.take_cold_sweep_report()` drains it for ls.\n- `src/run_commands.rs`: `run_ls_full`/`run_ls_paginated` print `archived N knots to cold storage` summary line when sweep moved anything.\n- `src/app/query.rs`: `show_knot` on hot miss now queries `cold_catalog` locally (no rehydrate, no pull, no sync); `rehydrate_from_warm_cold` sets `updated_at = now` so a rehydrated knot gets a fresh 72h grace period and deletes the cold_catalog entry.\n- Tests: unit tests on tiering + `src/app/archival_tests.rs`; 5 CLI integration tests in `tests/cli_archival_sweep.rs` (sweep summary, recent-skip, blocked/deferred-skip, cold-show fallback, rehydrate bump).\n\n**Deviations from plan (all defensible):**\n1. No `archival_consts.rs` — constants inlined on the modules that use them. Simpler, fewer files.\n2. `list_knots` signature unchanged; sweep report stashed on `App` via `RefCell`. This was the plan's listed alternative (risk #2).\n3. Rehydrate bumps `updated_at` locally only (no `KnotHead` event emitted). Emitting would tell peers to keep the knot hot forever because it would carry `updated_at=now`. Local-only bump satisfies the acceptance criterion (\"appears in `kno ls` after rehydrate\") without contaminating peer tiering.\n4. Per-knot archive detail goes to `KNO_TRACE=1` trace output (no separate file-log infra in this codebase).\n\n**Review target:** branch `feature/knots-8aba-loosen-cold-tier` (3 commits). `make sanity` passes: fmt + clippy + file-size + 1043+5 tests, 95.14% coverage.\n\n**For the reviewer:** key hot spots are (a) `src/tiering.rs` rule change (did we handle un-parseable terminal states correctly? — yes, falls through to warm/hot age logic), (b) `src/app/archival.rs` sweep (is the transactional boundary sound?), (c) `src/app/query.rs::show_knot` cold fallback (does it skip any enrichment that would trigger network/event IO? — yes, returns a `ColdKnotView`-backed view with edges/step-metadata unset).",
+    "datetime": "2026-04-16T13:21:13.171546Z",
+    "entry_id": "019d9673-edd3-7c60-bb5c-535d5ca3fb46",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

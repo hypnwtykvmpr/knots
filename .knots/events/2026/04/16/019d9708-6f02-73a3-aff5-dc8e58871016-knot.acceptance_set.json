@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9708-6f02-73a3-aff5-dc8e58871016",
+  "occurred_at": "2026-04-16T16:03:25.562501Z",
+  "knot_id": "knots-61d7",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno doctor` output includes a check labeled `cold_tier_imbalance`.\n2. Check status is pass (✓) when `hot_count >= 100` OR `cold_catalog_count == 0`.\n3. Check status is warn (⚠) when `hot_count < 100` AND `cold_catalog_count > 0`; warning line reports both counts and names the `--fix` action.\n4. `kno doctor --fix` rehydrates `min(cold_count, 100 - hot_count)` cold knots, selected newest-first by `updated_at DESC`.\n5. After a successful `--fix` that doesn't hit the cap, `cold_catalog` is empty and those knots are in `knot_hot` with `updated_at` near now.\n6. After a `--fix` that hits the cap, exactly `100 - initial_hot_count` knots are rehydrated and the remainder stay in cold.\n7. `kno doctor --json` emits a `cold_tier_imbalance` entry with `status`, `hot_count`, and `cold_count`.\n8. Re-running `kno doctor` after `--fix` shows pass (or still-warn if cold exceeded the cap)."
+  }
+}

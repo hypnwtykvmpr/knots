@@ -1,0 +1,37 @@
+{
+  "event_id": "019d96d8-fbff-75e2-b6f0-d72b8e36fd01",
+  "occurred_at": "2026-04-16T15:11:35.935363Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-8aba",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Loosen cold-tier policy: require age>72h and hot>110 for terminal knots",
+    "type": "work",
+    "updated_at": "2026-04-16T15:11:35.935363Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019d96d8-e8d8-7683-9665-36797817c6fa"
+  }
+}

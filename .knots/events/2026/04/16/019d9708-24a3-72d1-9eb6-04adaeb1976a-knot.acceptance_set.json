@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9708-24a3-72d1-9eb6-04adaeb1976a",
+  "occurred_at": "2026-04-16T16:03:06.519233Z",
+  "knot_id": "knots-6d17",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno doctor` run from any directory iterates over every registered project whose path exists and is openable, running all applicable checks against each.\n2. Unreachable projects (missing path or unopenable state) produce a single `unreachable:` line, not a hard failure.\n3. Output is grouped per-project with the project name as a section header.\n4. `--json` output has one top-level key per project, with each project containing the check results.\n5. `kno doctor --fix` applies each check's fix in every project where the check failed.\n6. Existing single-repo checks (lock_health, worktree, remote, hooks, workflow_registry, schema_version, stuck_leases, terminal_parents, skills_*, cold_tier_imbalance) all work cross-project.\n7. Version check runs once per invocation, not per-project.\n8. Doctor on 20 accessible projects completes in under 5 seconds on a warm machine."
+  }
+}

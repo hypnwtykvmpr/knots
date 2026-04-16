@@ -1,0 +1,17 @@
+{
+  "event_id": "019d966b-57b1-7b21-9d2e-bc58ef5241b9",
+  "occurred_at": "2026-04-16T13:11:50.449388Z",
+  "knot_id": "knots-9530",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "kno ls and similar commands correctly uses hierarchical aliases, but incorrectly includes project prefix in front of the alias.  for display the prefix should be stripped from the alias as well.",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

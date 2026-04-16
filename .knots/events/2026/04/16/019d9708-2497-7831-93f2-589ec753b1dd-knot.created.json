@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9708-2497-7831-93f2-589ec753b1dd",
+  "occurred_at": "2026-04-16T16:03:06.519233Z",
+  "knot_id": "knots-6d17",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nRefactor `kno doctor` so that by default it iterates over every accessible registered project (from `kno project list`) and runs all applicable checks against each, with per-project output grouping. `--fix` applies per-project fixes. Skip projects whose paths don't exist; warn (don't fail) on ones that can't be opened.\n\nMotivation: today doctor only checks the cwd repo. When a user has N registered projects that all need the same fix (e.g., skills updated, hooks reinstalled, schema migrated), they currently have to `cd` into each one. That scales badly.\n\nVerification:\n1. With 3 registered projects on disk, `kno doctor` prints sections for each, one line per check per project.\n2. With a registered project whose path was deleted, doctor silently skips it (or lists it as \"unreachable\" without failing).\n3. `kno doctor --fix` applied to a missing-skills failure in 3 projects installs skills in all 3 in one run.\n4. Performance: doctor on 20 projects completes in under 5 seconds on a warm machine.\n5. Output format is readable both in tty mode and `--json` mode.\n\nConstraints:\n- Do NOT change the semantics of individual checks — just run them against each project.\n- Checks that are inherently global (e.g., binary version) run once, not N times.\n- `kno project list` currently contains ~200 stale e2e/test fixtures; this knot assumes the user has pruned them or a separate cleanup knot runs first. Pair with a follow-up knot: \"Prune stale project registrations in kno project list.\"\n- Related knot 8aba shipped a cold-tier rebalance check; when this refactor lands, ensure that check also runs cross-project.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Make kno doctor check all registered projects by default",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
