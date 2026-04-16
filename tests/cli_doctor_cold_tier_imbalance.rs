@@ -206,10 +206,8 @@ fn doctor_warns_when_cold_catalog_present_below_hot_target() {
 
     let doctor = run_knots(&root, &db, &["doctor", "--json"]);
     assert_success(&doctor);
-    let report: Value =
-        serde_json::from_slice(&doctor.stdout).expect("doctor json should parse");
+    let report: Value = serde_json::from_slice(&doctor.stdout).expect("doctor json should parse");
     let check = find_check(&report, "cold_tier_imbalance");
-    eprintln!("cold_tier_imbalance check = {check}");
     assert_eq!(check["status"], "warn");
     let data = check
         .get("data")
@@ -218,7 +216,10 @@ fn doctor_warns_when_cold_catalog_present_below_hot_target() {
     let cold_count = data["cold_count"]
         .as_i64()
         .expect("cold_count should be int");
-    assert!(hot_count >= 1, "hot should include at least the seeded knot");
+    assert!(
+        hot_count >= 1,
+        "hot should include at least the seeded knot"
+    );
     assert_eq!(cold_count, 2, "both archived knots should be in cold");
     let detail = check["detail"].as_str().expect("detail should be a string");
     assert!(
@@ -250,7 +251,11 @@ fn doctor_fix_rehydrates_cold_catalog_back_to_hot() {
     let fix = run_knots(&root, &db, &["doctor", "--fix"]);
     assert_success(&fix);
 
-    assert_eq!(count_knot_hot(&db), 3, "all cold knots should be rehydrated");
+    assert_eq!(
+        count_knot_hot(&db),
+        3,
+        "all cold knots should be rehydrated"
+    );
     assert_eq!(count_cold_catalog(&db), 0, "cold catalog should be drained");
 
     let after = run_knots(&root, &db, &["doctor", "--json"]);
