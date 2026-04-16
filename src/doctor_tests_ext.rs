@@ -345,6 +345,7 @@ fn fix_stuck_leases_terminates_active() {
         name: "stuck_leases".to_string(),
         status: DoctorStatus::Warn,
         detail: "1 active lease(s) may be stuck".to_string(),
+        data: None,
     }];
     crate::doctor_fix::apply_fixes(&root, &checks);
 

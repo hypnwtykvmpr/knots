@@ -15,6 +15,7 @@ mod completions;
 mod db;
 mod dispatch;
 mod doctor;
+mod doctor_cold_tier;
 mod doctor_fix;
 mod doctor_workflows;
 mod domain;

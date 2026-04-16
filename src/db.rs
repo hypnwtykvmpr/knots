@@ -21,11 +21,11 @@ mod catalog;
 mod migrations;
 
 pub use catalog::{
-    count_active_leases, delete_cold_catalog, delete_edge, delete_knot_warm, get_cold_catalog,
-    get_hot_window_days, get_knot_warm, get_pull_drift_warn_threshold,
-    get_sync_fetch_blob_limit_kb, insert_edge, list_cold_catalog, list_edges, list_edges_by_kind,
-    list_knot_warm, search_cold_catalog, update_lease_expiry_ts, upsert_cold_catalog,
-    upsert_knot_warm, EdgeDirection, EdgeRecord,
+    count_active_leases, count_cold_catalog, count_knot_hot, delete_cold_catalog, delete_edge,
+    delete_knot_warm, get_cold_catalog, get_hot_window_days, get_knot_warm,
+    get_pull_drift_warn_threshold, get_sync_fetch_blob_limit_kb, insert_edge, list_cold_catalog,
+    list_edges, list_edges_by_kind, list_knot_warm, search_cold_catalog, update_lease_expiry_ts,
+    upsert_cold_catalog, upsert_knot_warm, EdgeDirection, EdgeRecord,
 };
 
 const SQLITE_LOCK_RETRY_LIMIT: usize = 2;

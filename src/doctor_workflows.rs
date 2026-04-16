@@ -18,12 +18,14 @@ pub fn check_registered_workflows(repo_root: &Path) -> DoctorCheck {
                 name: "workflow_registry".to_string(),
                 status: DoctorStatus::Pass,
                 detail,
+                data: None,
             }
         }
         Err(err) => DoctorCheck {
             name: "workflow_registry".to_string(),
             status: DoctorStatus::Fail,
             detail: err.to_string(),
+            data: None,
         },
     }
 }

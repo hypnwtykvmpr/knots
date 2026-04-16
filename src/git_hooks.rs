@@ -124,6 +124,7 @@ pub fn check_hooks(repo_root: &Path) -> DoctorCheck {
             name: "hooks".to_string(),
             status: DoctorStatus::Warn,
             detail: "not a git repository; skipping hook check".to_string(),
+            data: None,
         };
     }
     let hooks_dir = resolve_hooks_dir(repo_root);
@@ -164,12 +165,14 @@ pub fn check_hooks(repo_root: &Path) -> DoctorCheck {
             name: "hooks".to_string(),
             status: DoctorStatus::Pass,
             detail: "sync hooks installed".to_string(),
+            data: None,
         }
     } else {
         DoctorCheck {
             name: "hooks".to_string(),
             status: DoctorStatus::Warn,
             detail: format!("{} (run `kno doctor --fix`)", problems.join("; ")),
+            data: None,
         }
     }
 }
