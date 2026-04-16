@@ -71,6 +71,7 @@ fn sample_check(name: &str, status: DoctorStatus) -> DoctorCheck {
         name: name.to_string(),
         status,
         detail: "detail".to_string(),
+        data: None,
     }
 }
 

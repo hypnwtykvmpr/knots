@@ -168,6 +168,7 @@ fn doctor_pass_renders_green_checkmark() {
         name: "lock_health".to_string(),
         status: DoctorStatus::Pass,
         detail: "all good".to_string(),
+        data: None,
     };
     let palette = Palette { enabled: true };
     let line = format_doctor_line(&check, &palette);
@@ -183,6 +184,7 @@ fn doctor_warn_renders_yellow_warning() {
         name: "lock_health".to_string(),
         status: DoctorStatus::Warn,
         detail: "locks busy".to_string(),
+        data: None,
     };
     let palette = Palette { enabled: true };
     let line = format_doctor_line(&check, &palette);
@@ -196,6 +198,7 @@ fn doctor_fail_renders_red_x() {
         name: "worktree".to_string(),
         status: DoctorStatus::Fail,
         detail: "not a git repo".to_string(),
+        data: None,
     };
     let palette = Palette { enabled: true };
     let line = format_doctor_line(&check, &palette);
@@ -209,6 +212,7 @@ fn doctor_no_color_omits_ansi_codes() {
         name: "remote".to_string(),
         status: DoctorStatus::Pass,
         detail: "origin reachable".to_string(),
+        data: None,
     };
     let palette = Palette { enabled: false };
     let line = format_doctor_line(&check, &palette);
@@ -224,6 +228,7 @@ fn doctor_lines_align_titles_when_label_width_is_provided() {
         name: "remote".to_string(),
         status: DoctorStatus::Warn,
         detail: "origin unreachable".to_string(),
+        data: None,
     };
     let palette = Palette { enabled: false };
     let line = format_doctor_line_with_width(&check, &palette, 12);
@@ -239,16 +244,19 @@ fn print_doctor_report_covers_all_statuses() {
                 name: "a".to_string(),
                 status: DoctorStatus::Pass,
                 detail: "ok".to_string(),
+                data: None,
             },
             DoctorCheck {
                 name: "b".to_string(),
                 status: DoctorStatus::Warn,
                 detail: "meh".to_string(),
+                data: None,
             },
             DoctorCheck {
                 name: "c".to_string(),
                 status: DoctorStatus::Fail,
                 detail: "bad".to_string(),
+                data: None,
             },
         ],
     };

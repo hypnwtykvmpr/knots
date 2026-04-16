@@ -46,6 +46,7 @@ pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) {
             "schema_version" => fix_schema_version(repo_root),
             "stuck_leases" => fix_stuck_leases(repo_root),
             "terminal_parents" => fix_terminal_parents(repo_root),
+            "cold_tier_imbalance" => crate::doctor_cold_tier::fix_cold_tier_imbalance(repo_root),
             name if name.starts_with("skills_") => {
                 crate::managed_skills::fix_doctor_check(repo_root, name)
             }

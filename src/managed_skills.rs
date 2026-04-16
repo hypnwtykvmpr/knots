@@ -192,6 +192,7 @@ fn doctor_check(repo_root: &Path, home: Option<&Path>, tool: SkillTool) -> Docto
         name: tool.doctor_check_name(),
         status,
         detail,
+        data: None,
     }
 }
 

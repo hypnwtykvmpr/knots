@@ -24,6 +24,23 @@ pub struct DoctorCheck {
     pub name: String,
     pub status: DoctorStatus,
     pub detail: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub data: Option<serde_json::Value>,
+}
+
+impl DoctorCheck {
+    pub fn simple(
+        name: impl Into<String>,
+        status: DoctorStatus,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            status,
+            detail: detail.into(),
+            data: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -99,6 +116,7 @@ pub fn run_doctor_at(
         check_schema_version(&store_paths)?,
         check_stuck_leases(&store_paths)?,
         check_terminal_parents(repo_root, &store_paths)?,
+        crate::doctor_cold_tier::check_cold_tier_imbalance_at(&store_paths)?,
     ];
     checks.extend(crate::managed_skills::doctor_checks(repo_root));
     Ok(DoctorReport { checks })
@@ -152,11 +170,7 @@ fn check_locks(store_paths: &StorePaths) -> Result<DoctorCheck, DoctorError> {
     drop(repo_guard);
     drop(cache_guard);
 
-    Ok(DoctorCheck {
-        name: "lock_health".to_string(),
-        status,
-        detail,
-    })
+    Ok(DoctorCheck::simple("lock_health", status, detail))
 }
 
 fn check_worktree(
@@ -165,18 +179,14 @@ fn check_worktree(
     distribution: DistributionMode,
 ) -> DoctorCheck {
     if distribution != DistributionMode::Git {
-        return DoctorCheck {
-            name: "worktree".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "local-only mode; git worktree check skipped".to_string(),
-        };
+        return DoctorCheck::simple(
+            "worktree",
+            DoctorStatus::Pass,
+            "local-only mode; git worktree check skipped",
+        );
     }
     if !repo_root.join(".git").exists() {
-        return DoctorCheck {
-            name: "worktree".to_string(),
-            status: DoctorStatus::Fail,
-            detail: "not a git repository".to_string(),
-        };
+        return DoctorCheck::simple("worktree", DoctorStatus::Fail, "not a git repository");
     }
 
     let git = GitAdapter::new();
@@ -186,21 +196,17 @@ fn check_worktree(
         .and_then(|()| worktree.ensure_clean(&git));
 
     match result {
-        Ok(()) => DoctorCheck {
-            name: "worktree".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "knots worktree is clean".to_string(),
-        },
-        Err(SyncError::DirtyWorktree(path)) => DoctorCheck {
-            name: "worktree".to_string(),
-            status: DoctorStatus::Fail,
-            detail: format!("worktree is dirty: {}", path.display()),
-        },
-        Err(err) => DoctorCheck {
-            name: "worktree".to_string(),
-            status: DoctorStatus::Fail,
-            detail: format!("worktree check failed: {}", err),
-        },
+        Ok(()) => DoctorCheck::simple("worktree", DoctorStatus::Pass, "knots worktree is clean"),
+        Err(SyncError::DirtyWorktree(path)) => DoctorCheck::simple(
+            "worktree",
+            DoctorStatus::Fail,
+            format!("worktree is dirty: {}", path.display()),
+        ),
+        Err(err) => DoctorCheck::simple(
+            "worktree",
+            DoctorStatus::Fail,
+            format!("worktree check failed: {}", err),
+        ),
     }
 }
 
@@ -213,18 +219,18 @@ fn check_remote(
     distribution: DistributionMode,
 ) -> Result<DoctorCheck, DoctorError> {
     if distribution != DistributionMode::Git {
-        return Ok(DoctorCheck {
-            name: "remote".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "local-only mode; remote check skipped".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "remote",
+            DoctorStatus::Pass,
+            "local-only mode; remote check skipped",
+        ));
     }
     if !repo_root.join(".git").exists() {
-        return Ok(DoctorCheck {
-            name: "remote".to_string(),
-            status: DoctorStatus::Fail,
-            detail: "not a git repository".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "remote",
+            DoctorStatus::Fail,
+            "not a git repository",
+        ));
     }
 
     let remote_url = Command::new("git")
@@ -234,11 +240,11 @@ fn check_remote(
         .output()?;
 
     if !remote_url.status.success() {
-        return Ok(DoctorCheck {
-            name: "remote".to_string(),
-            status: DoctorStatus::Fail,
-            detail: "remote 'origin' is not configured".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "remote",
+            DoctorStatus::Fail,
+            "remote 'origin' is not configured",
+        ));
     }
 
     let ls_remote = Command::new("git")
@@ -248,14 +254,14 @@ fn check_remote(
         .output()?;
 
     if !ls_remote.status.success() {
-        return Ok(DoctorCheck {
-            name: "remote".to_string(),
-            status: DoctorStatus::Fail,
-            detail: format!(
+        return Ok(DoctorCheck::simple(
+            "remote",
+            DoctorStatus::Fail,
+            format!(
                 "origin is not reachable: {}",
                 String::from_utf8_lossy(&ls_remote.stderr).trim()
             ),
-        });
+        ));
     }
 
     let knots_exists = String::from_utf8_lossy(&ls_remote.stdout)
@@ -263,31 +269,24 @@ fn check_remote(
         .any(|line| line.contains("refs/heads/knots"));
 
     let (status, detail) = if knots_exists {
-        (
-            DoctorStatus::Pass,
-            "origin reachable; knots branch exists".to_string(),
-        )
+        (DoctorStatus::Pass, "origin reachable; knots branch exists")
     } else {
         (
             DoctorStatus::Warn,
-            "origin reachable; knots branch missing (run `kno init`)".to_string(),
+            "origin reachable; knots branch missing (run `kno init`)",
         )
     };
 
-    Ok(DoctorCheck {
-        name: "remote".to_string(),
-        status,
-        detail,
-    })
+    Ok(DoctorCheck::simple("remote", status, detail))
 }
 
 fn check_hooks(repo_root: &Path, distribution: DistributionMode) -> DoctorCheck {
     if distribution != DistributionMode::Git {
-        return DoctorCheck {
-            name: "hooks".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "local-only mode; git hook check skipped".to_string(),
-        };
+        return DoctorCheck::simple(
+            "hooks",
+            DoctorStatus::Pass,
+            "local-only mode; git hook check skipped",
+        );
     }
     crate::git_hooks::check_hooks(repo_root)
 }
@@ -296,11 +295,11 @@ const VERSION_CHECK_TIMEOUT_SECS: u32 = 5;
 
 pub(crate) fn check_version() -> DoctorCheck {
     if crate::doctor_fix::version_fix_applied() {
-        return DoctorCheck {
-            name: "version".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "upgrade applied in this run; restart and rerun `kno doctor`".to_string(),
-        };
+        return DoctorCheck::simple(
+            "version",
+            DoctorStatus::Pass,
+            "upgrade applied in this run; restart and rerun `kno doctor`",
+        );
     }
     let current = env!("CARGO_PKG_VERSION");
     let tag = fetch_latest_tag(RELEASES_LATEST_URL, VERSION_CHECK_TIMEOUT_SECS);
@@ -312,42 +311,39 @@ fn build_version_check(current: &str, tag: Option<String>) -> DoctorCheck {
         Some(tag) => {
             let latest = strip_v_prefix(&tag);
             match is_outdated(current, latest) {
-                Some(true) => DoctorCheck {
-                    name: "version".to_string(),
-                    status: DoctorStatus::Warn,
-                    detail: format!(
-                        "update available: v{current} -> v{latest} \
-                         (run `kno upgrade`)"
-                    ),
-                },
-                Some(false) => DoctorCheck {
-                    name: "version".to_string(),
-                    status: DoctorStatus::Pass,
-                    detail: format!("v{current} is up to date"),
-                },
-                None => DoctorCheck {
-                    name: "version".to_string(),
-                    status: DoctorStatus::Warn,
-                    detail: format!("unable to compare v{current} with remote {tag}"),
-                },
+                Some(true) => DoctorCheck::simple(
+                    "version",
+                    DoctorStatus::Warn,
+                    format!("update available: v{current} -> v{latest} (run `kno upgrade`)"),
+                ),
+                Some(false) => DoctorCheck::simple(
+                    "version",
+                    DoctorStatus::Pass,
+                    format!("v{current} is up to date"),
+                ),
+                None => DoctorCheck::simple(
+                    "version",
+                    DoctorStatus::Warn,
+                    format!("unable to compare v{current} with remote {tag}"),
+                ),
             }
         }
-        None => DoctorCheck {
-            name: "version".to_string(),
-            status: DoctorStatus::Warn,
-            detail: format!("v{current} (unable to check for updates)"),
-        },
+        None => DoctorCheck::simple(
+            "version",
+            DoctorStatus::Warn,
+            format!("v{current} (unable to check for updates)"),
+        ),
     }
 }
 
 fn check_schema_version(store_paths: &StorePaths) -> Result<DoctorCheck, DoctorError> {
     let db_path = store_paths.db_path();
     if !db_path.exists() {
-        return Ok(DoctorCheck {
-            name: "schema_version".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "no cache database found".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "schema_version",
+            DoctorStatus::Pass,
+            "no cache database found",
+        ));
     }
     let conn = crate::db::open_connection_raw(db_path.to_str().unwrap_or("cache/state.sqlite"))
         .map_err(|e| DoctorError::Io(std::io::Error::other(e.to_string())))?;
@@ -362,31 +358,30 @@ fn check_schema_version(store_paths: &StorePaths) -> Result<DoctorCheck, DoctorE
 
     let expected = crate::db::CURRENT_SCHEMA_VERSION;
     if applied >= expected {
-        Ok(DoctorCheck {
-            name: "schema_version".to_string(),
-            status: DoctorStatus::Pass,
-            detail: format!("schema version {applied} is current"),
-        })
+        Ok(DoctorCheck::simple(
+            "schema_version",
+            DoctorStatus::Pass,
+            format!("schema version {applied} is current"),
+        ))
     } else {
-        Ok(DoctorCheck {
-            name: "schema_version".to_string(),
-            status: DoctorStatus::Warn,
-            detail: format!(
-                "schema version {applied} is behind expected \
-                 {expected} (run `kno doctor --fix`)"
+        Ok(DoctorCheck::simple(
+            "schema_version",
+            DoctorStatus::Warn,
+            format!(
+                "schema version {applied} is behind expected {expected} (run `kno doctor --fix`)"
             ),
-        })
+        ))
     }
 }
 
 fn check_stuck_leases(store_paths: &StorePaths) -> Result<DoctorCheck, DoctorError> {
     let db_path = store_paths.db_path();
     if !db_path.exists() {
-        return Ok(DoctorCheck {
-            name: "stuck_leases".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "no cache database found".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "stuck_leases",
+            DoctorStatus::Pass,
+            "no cache database found",
+        ));
     }
     let conn = crate::db::open_connection(db_path.to_str().unwrap_or("cache/state.sqlite"))
         .map_err(|e| DoctorError::Io(std::io::Error::other(e.to_string())))?;
@@ -395,17 +390,17 @@ fn check_stuck_leases(store_paths: &StorePaths) -> Result<DoctorCheck, DoctorErr
         .map_err(|e| DoctorError::Io(std::io::Error::other(e.to_string())))?;
 
     if count > 0 {
-        Ok(DoctorCheck {
-            name: "stuck_leases".to_string(),
-            status: DoctorStatus::Warn,
-            detail: format!("{} active lease(s) may be stuck", count),
-        })
+        Ok(DoctorCheck::simple(
+            "stuck_leases",
+            DoctorStatus::Warn,
+            format!("{} active lease(s) may be stuck", count),
+        ))
     } else {
-        Ok(DoctorCheck {
-            name: "stuck_leases".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "no stuck leases".to_string(),
-        })
+        Ok(DoctorCheck::simple(
+            "stuck_leases",
+            DoctorStatus::Pass,
+            "no stuck leases",
+        ))
     }
 }
 
@@ -415,11 +410,11 @@ fn check_terminal_parents(
 ) -> Result<DoctorCheck, DoctorError> {
     let db_path = store_paths.db_path();
     if !db_path.exists() {
-        return Ok(DoctorCheck {
-            name: "terminal_parents".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "no cache database found".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "terminal_parents",
+            DoctorStatus::Pass,
+            "no cache database found",
+        ));
     }
 
     let conn = crate::db::open_connection(db_path.to_str().unwrap_or("cache/state.sqlite"))
@@ -428,11 +423,11 @@ fn check_terminal_parents(
         .map_err(|err| DoctorError::Io(std::io::Error::other(err.to_string())))?;
 
     if resolutions.is_empty() {
-        return Ok(DoctorCheck {
-            name: "terminal_parents".to_string(),
-            status: DoctorStatus::Pass,
-            detail: "no parent knots require terminal reconciliation".to_string(),
-        });
+        return Ok(DoctorCheck::simple(
+            "terminal_parents",
+            DoctorStatus::Pass,
+            "no parent knots require terminal reconciliation",
+        ));
     }
 
     let summary = resolutions
@@ -440,15 +435,15 @@ fn check_terminal_parents(
         .map(|resolution| format!("{} -> {}", resolution.parent.id, resolution.target_state))
         .collect::<Vec<_>>()
         .join(", ");
-    Ok(DoctorCheck {
-        name: "terminal_parents".to_string(),
-        status: DoctorStatus::Warn,
-        detail: format!(
+    Ok(DoctorCheck::simple(
+        "terminal_parents",
+        DoctorStatus::Warn,
+        format!(
             "{} parent knot(s) have only terminal children: {} (run `kno doctor --fix`)",
             resolutions.len(),
             summary
         ),
-    })
+    ))
 }
 
 #[cfg(test)]

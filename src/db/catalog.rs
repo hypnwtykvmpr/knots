@@ -188,6 +188,14 @@ pub fn get_pull_drift_warn_threshold(conn: &Connection) -> Result<u64> {
     Ok(parsed)
 }
 
+pub fn count_cold_catalog(conn: &Connection) -> Result<i64> {
+    conn.query_row("SELECT COUNT(*) FROM cold_catalog", [], |row| row.get(0))
+}
+
+pub fn count_knot_hot(conn: &Connection) -> Result<i64> {
+    conn.query_row("SELECT COUNT(*) FROM knot_hot", [], |row| row.get(0))
+}
+
 pub fn count_active_leases(conn: &Connection) -> Result<i64> {
     conn.query_row(
         r#"
