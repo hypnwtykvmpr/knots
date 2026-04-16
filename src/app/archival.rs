@@ -113,6 +113,25 @@ impl App {
     }
 
     fn move_candidates(&self, candidates: Vec<Candidate>) -> Result<ColdSweepReport, AppError> {
+        if candidates.is_empty() {
+            return Ok(ColdSweepReport::default());
+        }
+        self.conn.execute_batch("BEGIN IMMEDIATE")?;
+        let result = self.move_candidates_in_tx(candidates);
+        match &result {
+            Ok(_) => self.conn.execute_batch("COMMIT")?,
+            Err(_) => {
+                // Best-effort rollback; if it fails, surface the original error.
+                let _ = self.conn.execute_batch("ROLLBACK");
+            }
+        }
+        result
+    }
+
+    fn move_candidates_in_tx(
+        &self,
+        candidates: Vec<Candidate>,
+    ) -> Result<ColdSweepReport, AppError> {
         let mut moved = Vec::with_capacity(candidates.len());
         for cand in candidates {
             db::upsert_cold_catalog(
@@ -170,3 +189,7 @@ fn select_candidates(conn: &Connection, cutoff: &str) -> Result<Vec<Candidate>, 
 #[cfg(test)]
 #[path = "archival_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "archival_tests_tx.rs"]
+mod tests_tx;
