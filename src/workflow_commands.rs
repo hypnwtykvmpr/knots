@@ -15,23 +15,53 @@ fn parse_bool_flag(raw: &str) -> Result<bool, app::AppError> {
     }
 }
 
-fn prompt_install_default(workflow_id: &str) -> Result<bool, app::AppError> {
-    if !io::stdin().is_terminal() {
+trait PromptEnv {
+    fn stdin_is_terminal(&self) -> bool;
+    fn write_prompt(&mut self, text: &str) -> io::Result<()>;
+    fn read_line(&mut self, buf: &mut String) -> io::Result<usize>;
+}
+
+#[cfg(not(tarpaulin_include))]
+struct StdPromptEnv;
+
+#[cfg(not(tarpaulin_include))]
+impl PromptEnv for StdPromptEnv {
+    fn stdin_is_terminal(&self) -> bool {
+        io::stdin().is_terminal()
+    }
+    fn write_prompt(&mut self, text: &str) -> io::Result<()> {
+        let mut out = io::stdout();
+        write!(out, "{text}")?;
+        out.flush()
+    }
+    fn read_line(&mut self, buf: &mut String) -> io::Result<usize> {
+        io::stdin().lock().read_line(buf)
+    }
+}
+
+fn prompt_install_default_with<E: PromptEnv>(
+    env: &mut E,
+    workflow_id: &str,
+) -> Result<bool, app::AppError> {
+    if !env.stdin_is_terminal() {
         return Ok(false);
     }
-    print!("set '{workflow_id}' as the default workflow? [y/N]: ");
-    io::stdout()
-        .flush()
-        .map_err(|err| app::AppError::InvalidArgument(err.to_string()))?;
+    env.write_prompt(&format!(
+        "set '{workflow_id}' as the default workflow? [y/N]: "
+    ))
+    .map_err(|err| app::AppError::InvalidArgument(err.to_string()))?;
     let mut input = String::new();
-    io::stdin()
-        .lock()
-        .read_line(&mut input)
+    env.read_line(&mut input)
         .map_err(|err| app::AppError::InvalidArgument(err.to_string()))?;
     Ok(matches!(
         input.trim().to_ascii_lowercase().as_str(),
         "y" | "yes"
     ))
+}
+
+fn prompt_install_default(workflow_id: &str) -> Result<bool, app::AppError> {
+    let mut env = StdPromptEnv;
+    prompt_install_default_with(&mut env, workflow_id)
 }
 
 fn parse_knot_type(raw: Option<&str>) -> Result<KnotType, app::AppError> {
@@ -283,45 +313,45 @@ fn run_workflow_show(
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_bool_flag, prompt_install_default};
-    use portable_pty::{native_pty_system, CommandBuilder, PtySize};
-    use std::io::Write;
+    use super::{parse_bool_flag, prompt_install_default_with, PromptEnv};
+    use std::io;
 
-    const PROMPT_HELPER_ENV: &str = "KNOTS_WORKFLOW_PROMPT_HELPER";
-    const PROMPT_EXPECT_ENV: &str = "KNOTS_WORKFLOW_PROMPT_EXPECT";
+    struct MockEnv {
+        is_tty: bool,
+        input: String,
+        prompt_written: Option<String>,
+    }
 
-    fn run_prompt_helper(input: &str, expected: bool) {
-        let pty_system = native_pty_system();
-        let pair = pty_system
-            .openpty(PtySize {
-                rows: 24,
-                cols: 80,
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .expect("pty should open");
-        let mut cmd = CommandBuilder::new(
-            std::env::current_exe().expect("current test binary should resolve"),
-        );
-        cmd.arg("--exact");
-        cmd.arg("workflow_commands::tests::prompt_install_default_tty_helper");
-        cmd.arg("--nocapture");
-        cmd.env(PROMPT_HELPER_ENV, "1");
-        cmd.env(PROMPT_EXPECT_ENV, if expected { "true" } else { "false" });
-        let mut child = pair
-            .slave
-            .spawn_command(cmd)
-            .expect("helper process should spawn");
-        drop(pair.slave);
+    impl MockEnv {
+        fn tty(input: &str) -> Self {
+            Self {
+                is_tty: true,
+                input: input.to_string(),
+                prompt_written: None,
+            }
+        }
 
-        let mut writer = pair.master.take_writer().expect("writer should open");
-        writer
-            .write_all(input.as_bytes())
-            .expect("helper input should write");
-        drop(writer);
+        fn no_tty() -> Self {
+            Self {
+                is_tty: false,
+                input: String::new(),
+                prompt_written: None,
+            }
+        }
+    }
 
-        let status = child.wait().expect("helper should exit cleanly");
-        assert!(status.success(), "helper process should succeed");
+    impl PromptEnv for MockEnv {
+        fn stdin_is_terminal(&self) -> bool {
+            self.is_tty
+        }
+        fn write_prompt(&mut self, text: &str) -> io::Result<()> {
+            self.prompt_written = Some(text.to_string());
+            Ok(())
+        }
+        fn read_line(&mut self, buf: &mut String) -> io::Result<usize> {
+            buf.push_str(&self.input);
+            Ok(self.input.len())
+        }
     }
 
     #[test]
@@ -342,27 +372,47 @@ mod tests {
 
     #[test]
     fn prompt_install_default_is_disabled_without_tty() {
-        assert!(!prompt_install_default("custom_flow").expect("non-interactive prompt should skip"));
+        let mut env = MockEnv::no_tty();
+        let result = prompt_install_default_with(&mut env, "custom_flow")
+            .expect("non-interactive prompt should skip");
+        assert!(!result);
+        assert!(env.prompt_written.is_none(), "no prompt when not a tty");
     }
 
     #[test]
     fn prompt_install_default_accepts_yes_from_tty() {
-        run_prompt_helper("yes\n", true);
+        let mut env = MockEnv::tty("yes\n");
+        assert!(
+            prompt_install_default_with(&mut env, "custom_flow").expect("prompt should succeed")
+        );
+        assert!(env
+            .prompt_written
+            .as_deref()
+            .unwrap()
+            .contains("custom_flow"));
+    }
+
+    #[test]
+    fn prompt_install_default_accepts_y_short_from_tty() {
+        let mut env = MockEnv::tty("y\n");
+        assert!(prompt_install_default_with(&mut env, "flow").expect("prompt should succeed"));
     }
 
     #[test]
     fn prompt_install_default_rejects_non_yes_from_tty() {
-        run_prompt_helper("no\n", false);
+        let mut env = MockEnv::tty("no\n");
+        assert!(!prompt_install_default_with(&mut env, "flow").expect("prompt should succeed"));
     }
 
     #[test]
-    fn prompt_install_default_tty_helper() {
-        if std::env::var_os(PROMPT_HELPER_ENV).is_none() {
-            return;
-        }
-        let expected =
-            std::env::var(PROMPT_EXPECT_ENV).expect("helper expectation should be set") == "true";
-        let result = prompt_install_default("custom_flow").expect("prompt should succeed");
-        assert_eq!(result, expected);
+    fn prompt_install_default_rejects_empty_from_tty() {
+        let mut env = MockEnv::tty("\n");
+        assert!(!prompt_install_default_with(&mut env, "flow").expect("prompt should succeed"));
+    }
+
+    #[test]
+    fn prompt_install_default_is_case_insensitive() {
+        let mut env = MockEnv::tty("YES\n");
+        assert!(prompt_install_default_with(&mut env, "flow").expect("prompt should succeed"));
     }
 }
