@@ -296,6 +296,9 @@ mod tests_hierarchy_ext;
 #[path = "app/tests_legacy_workflow_ids.rs"]
 mod tests_legacy_workflow_ids;
 #[cfg(test)]
+#[path = "app/tests_planned_by_edge.rs"]
+mod tests_planned_by_edge;
+#[cfg(test)]
 #[path = "app/tests_show_lease.rs"]
 mod tests_show_lease;
 #[cfg(test)]
