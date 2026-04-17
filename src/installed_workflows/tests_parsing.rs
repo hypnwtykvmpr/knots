@@ -288,6 +288,51 @@ fn builtin_non_work_workflows_expose_expected_profiles_and_prompts() {
 }
 
 #[test]
+fn execution_plan_sdlc_profiles_encode_review_ownership_and_outputs() {
+    let workflow = builtin::execution_plan_sdlc_workflow_for_test()
+        .expect("execution plan workflow should build");
+
+    let autopilot = workflow
+        .require_profile("autopilot")
+        .expect("autopilot profile should exist");
+    assert_eq!(
+        autopilot.owners.owner_kind_for_state("review"),
+        Some(&OwnerKind::Agent),
+        "autopilot keeps execution_plan review agent-owned",
+    );
+    assert_eq!(
+        autopilot
+            .outputs
+            .get("design")
+            .map(|output| output.artifact_type.as_str()),
+        Some("note"),
+        "design step must emit a note artifact",
+    );
+    assert_eq!(
+        autopilot
+            .outputs
+            .get("review")
+            .map(|output| output.artifact_type.as_str()),
+        Some("approval"),
+        "review step must emit an approval artifact",
+    );
+
+    let semiauto = workflow
+        .require_profile("semiauto")
+        .expect("semiauto profile should exist");
+    assert_eq!(
+        semiauto.owners.owner_kind_for_state("review"),
+        Some(&OwnerKind::Human),
+        "semiauto routes execution_plan review to a human reviewer",
+    );
+    assert_eq!(
+        semiauto.owners.owner_kind_for_state("design"),
+        Some(&OwnerKind::Agent),
+        "semiauto still authors the design with an agent",
+    );
+}
+
+#[test]
 fn parse_bundle_dispatches_both_formats() {
     let json_bundle = render_json_bundle_from_toml(SAMPLE_BUNDLE).expect("json render");
     let from_toml = parse_bundle(SAMPLE_BUNDLE, BundleFormat::Toml).expect("toml parse");
