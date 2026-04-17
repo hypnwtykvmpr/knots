@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9b08-2cab-7802-a0c0-3034a4f4f5c9",
+  "occurred_at": "2026-04-17T10:41:37.451513Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-2a30",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno doctor --fix not handling cold_tier_imbalance edge case",
+    "type": "work",
+    "updated_at": "2026-04-17T10:41:37.451513Z",
+    "workflow_id": "work_sdlc"
+  }
+}

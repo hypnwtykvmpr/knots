@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9b02-dd37-77e1-ace2-d71922ebce26",
+  "occurred_at": "2026-04-17T10:35:49.430966Z",
+  "knot_id": "knots-2a30",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Branch feature/knots-2a30-cold-tier-edge (commit 2823f69) pushed to origin. Fixes the chronic cold_tier_imbalance warn: when a knot's id appears in both knot_hot and cold_catalog, doctor --fix now prunes the shadowed cold row instead of returning early from rehydrate. Added unit + CLI tests and verified against /Users/cartine/compactor where the repro now reports pass. make sanity clean (95.26% coverage).",
+    "datetime": "2026-04-17T10:35:49.430966Z",
+    "entry_id": "019d9b02-dd37-77e1-ace2-d703a72022b9",
+    "model": "claude-opus-4-7",
+    "username": "unknown",
+    "version": "1"
+  }
+}

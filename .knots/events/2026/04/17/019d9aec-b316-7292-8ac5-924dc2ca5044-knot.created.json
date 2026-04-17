@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9aec-b316-7292-8ac5-924dc2ca5044",
+  "occurred_at": "2026-04-17T10:11:36.854524Z",
+  "knot_id": "knots-2a30",
+  "type": "knot.created",
+  "data": {
+    "body": "➜ compactor git:(main) ✗ kno doctor --fix\nDoctor\n        lock_health:  ✓ repo/cache locks are acquirable\n           worktree:  ✓ knots worktree is clean\n             remote:  ✓ origin reachable; knots branch exists\n            version:  ✓ v0.14.0 is up to date\n              hooks:  ✓ sync hooks installed\n  workflow_registry:  ✓ work=work_sdlc, gate=gate_sdlc, lease=lease_sdlc, explore=explore_sdlc, execution_plan=execution_plan_sdlc\n     schema_version:  ✓ schema version 17 is current\n       stuck_leases:  ✓ no stuck leases\n   terminal_parents:  ✓ no parent knots require terminal reconciliation\ncold_tier_imbalance:  ⚠ 30 hot / 1 cold; run doctor --fix to rehydrate up to 1\n       skills_codex:  ✓ Codex managed skills installed at /Users/cartine/compactor/.agents/skills\n      skills_claude:  ✓ Claude managed skills installed at /Users/cartine/compactor/.claude/skills\n    skills_opencode:  ✓ OpenCode managed skills installed at /Users/cartine/.config/opencode/skills\n➜ compactor git:(main) ✗",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "kno doctor --fix not handling cold_tier_imbalance edge case",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

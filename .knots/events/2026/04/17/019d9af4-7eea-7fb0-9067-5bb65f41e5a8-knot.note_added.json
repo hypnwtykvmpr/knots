@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9af4-7eea-7fb0-9067-5bb65f41e5a8",
+  "occurred_at": "2026-04-17T10:20:07.786832Z",
+  "knot_id": "knots-2a30",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Implementation plan for knots-2a30\n\n## Problem\n`kno doctor --fix` leaves the `cold_tier_imbalance` warning chronic when the cold catalog contains records that cannot be promoted to hot. Reproduced in /Users/cartine/compactor: 30 hot / 1 cold (compactor-d321, state=shipped). Each doctor --fix reports warn; cold row is never drained.\n\n## Root cause hypothesis\n`fix_cold_tier_imbalance` (src/doctor_cold_tier.rs:70) calls `app.rehydrate(&record.id)` and swallows the result. If rehydrate errors for any reason (missing workflow_id, unparseable event JSON, alias resolution, etc.) the cold row stays, the loop exits, and the warning persists. The \"next run will retry\" comment is false when the underlying cause is permanent.\n\nSecond related issue: terminal knots (shipped/abandoned/deferred/lease_terminated) don't need hot residency. Even if rehydrate succeeds, the archival sweep re-demotes them, creating churn rather than progress.\n\n## Implementation steps\n1. Diagnose the concrete rehydrate error — add a temporary eprintln! in fix_cold_tier_imbalance, run against /Users/cartine/compactor, capture the error, remove the temporary log.\n2. Surface fix failures — replace `let _ = app.rehydrate(...)` with match: on Err, eprintln!(`warning: cold_tier rehydrate failed for '{id}': {err}`). Matches existing warning style in src/app/rehydrate.rs:221.\n3. Exclude terminal knots from both the imbalance check and the fix sweep. Add `list_non_terminal_cold_catalog` / `count_non_terminal_cold_catalog` helpers in src/db/catalog.rs. Terminal states list: shipped, abandoned, deferred, lease_terminated.\n4. Unrehydratable fallback — if rehydrate returns InvalidArgument/NotFound for a non-terminal cold record, evict from cold_catalog with a warning so the warn can clear.\n\n## File changes\n- src/doctor_cold_tier.rs\n- src/db/catalog.rs\n- src/doctor_cold_tier_tests.rs (new tests: terminal-only -> pass; mixed -> warn with non-terminal cap; fix evicts unrehydratable; fix logs on failure)\n- tests/cli_doctor_cold_tier_imbalance.rs (e2e: single shipped cold -> pass after doctor --fix)\n\n## Risks\n- `list_cold_catalog` contract may have other callers — add new helpers rather than changing existing behavior.\n- Terminal-state list drift — hard-code as shared const; revisit if new terminal states land.\n\n## Test strategy\n- Unit tests for new helpers and fix paths.\n- CLI test reproducing the exact bug scenario.\n- `make sanity` must pass; coverage must not regress.\n\n## Handoff\nImplementation should: (a) instrument briefly to confirm the concrete error, (b) implement terminal-exclusion + surface-failures + evict-orphan, (c) add tests, (d) verify `doctor --fix` on /Users/cartine/compactor clears the warn.",
+    "datetime": "2026-04-17T10:20:07.786832Z",
+    "entry_id": "019d9af4-7eea-7fb0-9067-5baa46535392",
+    "model": "claude-opus-4-7",
+    "username": "unknown",
+    "version": "1"
+  }
+}
