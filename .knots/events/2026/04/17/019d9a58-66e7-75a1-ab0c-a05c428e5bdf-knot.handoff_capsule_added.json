@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9a58-66e7-75a1-ab0c-a05c428e5bdf",
+  "occurred_at": "2026-04-17T07:29:38.023313Z",
+  "knot_id": "knots-9f61",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Implemented execution_plan_sdlc orchestration workflow update. Branch: knots-9f61-orchestration. Commit: a07cdd67b38d. Added ready_for_orchestration and orchestration states, orchestration_phase, orchestration prompt, rebuilt bundle.json, and verified with make sanity (95.39% coverage).",
+    "datetime": "2026-04-17T07:28:22Z",
+    "entry_id": "019d9a58-66e7-75a1-ab0c-a0474391d335",
+    "model": "gpt-5",
+    "username": "cartine",
+    "version": "2026-04-17"
+  }
+}

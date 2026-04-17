@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9a50-0251-75f3-8edf-9faec96dc78b",
+  "occurred_at": "2026-04-17T07:20:27.985275Z",
+  "knot_id": "knots-9f61",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Plan: add an `orchestration` action plus `orchestration_phase`, add an\n`orchestration` prompt, extend execution-plan profiles to include the new\nphase, rebuild `loom/execution_plan_sdlc/dist/bundle.json`, then run\n`make sanity`. Key watchpoint: keep `semiauto` human review intact while\nleaving orchestration agent-owned.",
+    "datetime": "2026-04-17T07:20:27.985275Z",
+    "entry_id": "019d9a50-0251-75f3-8edf-9f9b517e74f2",
+    "model": "gpt",
+    "username": "Codex",
+    "version": "5.4"
+  }
+}

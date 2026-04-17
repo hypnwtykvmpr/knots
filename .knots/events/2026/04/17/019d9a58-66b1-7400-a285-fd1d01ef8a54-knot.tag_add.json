@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9a58-66b1-7400-a285-fd1d01ef8a54",
+  "occurred_at": "2026-04-17T07:29:37.96921Z",
+  "knot_id": "knots-9f61",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:knots-9f61-orchestration"
+  }
+}

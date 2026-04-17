@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9a50-0251-75f3-8edf-9f8353188b3b",
+  "occurred_at": "2026-04-17T07:20:27.985275Z",
+  "knot_id": "knots-9f61",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Implementation plan for adding `ready_for_orchestration` and `orchestration` to `execution_plan_sdlc`:\n\n1. Update `loom/execution_plan_sdlc/workflow.loom` to introduce an `orchestration`\n   action with `produce agent` and `output note`, which will compile into the\n   new queue/action pair `ready_for_orchestration -> orchestration` between\n   `review` and `shipped`.\n2. Keep the existing authoring lane intact for `design` and `review`, then add\n   a dedicated `orchestration_phase { produce orchestration }`. This matches the\n   bundle model, where phases may contain a produce step without a gate step,\n   and makes the new executor assignment explicit in profiles.\n3. Add `loom/execution_plan_sdlc/prompts/orchestration.md` and wire it through\n   the workflow by naming the action `orchestration`. The prompt should frame\n   the step as the agent-driven execution-plan follow-through after approval,\n   with success advancing to `shipped` and failure at least supporting\n   `blocked_by_dependency -> blocked`.\n4. Update execution-plan profiles so both `autopilot` and `semiauto` include\n   `orchestration_phase` in addition to `authoring_phase`. `autopilot` should\n   remain fully agent-owned; `semiauto` should keep `review` overridden to\n   `human` while leaving `orchestration` as the default agent executor.\n5. Rebuild the bundle with a targeted Loom compile command:\n   `loom build loom/execution_plan_sdlc --emit knots-bundle > loom/execution_plan_sdlc/dist/bundle.json`\n   Then verify the generated JSON contains:\n   - states `ready_for_orchestration` (queue) and `orchestration` (action)\n   - an `orchestration_step`\n   - an `orchestration_phase` with only `produce_step`\n   - updated profile phase lists and prompt metadata.\n6. Run `make sanity` to satisfy the acceptance gate after the bundle change.\n\nComplexity: low-to-medium. The main risk is choosing the wrong phase shape; the\ncompiled bundle format already supports `produce_step` without `gate_step`, so a\nseparate `orchestration_phase` is the cleanest fit. Another validation point is\nensuring wildcard escape transitions still cover the new states after compile.\n\nScope note: no child knots are needed for planning. Rust changes remain out of\nscope for this beat, and there is already Rust test coverage that references\n`ready_for_orchestration`, which supports keeping this as a Loom-only change.",
+    "datetime": "2026-04-17T07:20:27.985275Z",
+    "entry_id": "019d9a50-0251-75f3-8edf-9f77bb5c06a7",
+    "model": "gpt",
+    "username": "Codex",
+    "version": "5.4"
+  }
+}

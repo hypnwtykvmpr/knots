@@ -1,0 +1,37 @@
+{
+  "event_id": "019d9a63-4bcf-7f83-a737-c73f9fdf5d21",
+  "occurred_at": "2026-04-17T07:41:31.983876Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-9f61",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Add ready_for_orchestration and orchestration states to execution_plan_sdlc workflow",
+    "type": "work",
+    "updated_at": "2026-04-17T07:41:31.983876Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019d9a63-1bd3-7ae1-b8ed-ad7208c056f2"
+  }
+}

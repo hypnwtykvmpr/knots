@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9a65-cbb7-7c11-b6dd-13eef58651f9",
+  "occurred_at": "2026-04-17T07:44:15.799445Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-9f61",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add ready_for_orchestration and orchestration states to execution_plan_sdlc workflow",
+    "type": "work",
+    "updated_at": "2026-04-17T07:44:15.799445Z",
+    "workflow_id": "work_sdlc"
+  }
+}

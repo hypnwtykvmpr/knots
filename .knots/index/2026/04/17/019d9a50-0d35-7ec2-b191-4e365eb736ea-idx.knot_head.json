@@ -1,0 +1,47 @@
+{
+  "event_id": "019d9a50-0d35-7ec2-b191-4e365eb736ea",
+  "occurred_at": "2026-04-17T07:20:30.773859Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-9f61",
+    "next_step_metadata": {
+      "action_kind": "gate",
+      "action_state": "plan_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_plan_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "plan_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Add ready_for_orchestration and orchestration states to execution_plan_sdlc workflow",
+    "type": "work",
+    "updated_at": "2026-04-17T07:20:30.773859Z",
+    "workflow_id": "work_sdlc"
+  }
+}
