@@ -1,4 +1,4 @@
 profile autopilot "Autopilot" {
     description "Agent-owned design and review flow for execution plan authoring"
-    phases [authoring_phase]
+    phases [authoring_phase, orchestration_phase]
 }

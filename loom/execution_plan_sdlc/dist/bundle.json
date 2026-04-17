@@ -8,67 +8,157 @@
   },
   "states": [
     {
-      "id": "ready_for_design",
-      "kind": "queue",
-      "prompt": null
-    },
-    {
       "id": "design",
+      "display_name": "Design",
       "kind": "action",
-      "prompt": "design",
+      "action_kind": "produce",
+      "gate_kind": null,
       "executor": "agent",
-      "output": "note"
-    },
-    {
-      "id": "ready_for_review",
-      "kind": "queue",
-      "prompt": null
+      "constraints": [],
+      "prompt": "design",
+      "output": "note",
+      "output_hint": null
     },
     {
       "id": "review",
+      "display_name": "Review",
       "kind": "action",
-      "prompt": "review",
+      "action_kind": "gate",
+      "gate_kind": "review",
       "executor": "agent",
-      "output": "approval"
+      "constraints": [
+        "read_only",
+        "no_git_write",
+        "metadata_only"
+      ],
+      "prompt": "review",
+      "output": "approval",
+      "output_hint": null
+    },
+    {
+      "id": "orchestration",
+      "display_name": "Orchestration",
+      "kind": "action",
+      "action_kind": "produce",
+      "gate_kind": null,
+      "executor": "agent",
+      "constraints": [],
+      "prompt": "orchestration",
+      "output": "note",
+      "output_hint": null
     },
     {
       "id": "shipped",
+      "display_name": "Shipped",
       "kind": "terminal",
-      "prompt": null
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
     },
     {
       "id": "abandoned",
+      "display_name": "Abandoned",
       "kind": "terminal",
-      "prompt": null
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
     },
     {
       "id": "blocked",
+      "display_name": "Blocked",
       "kind": "escape",
-      "prompt": null
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
     },
     {
       "id": "deferred",
+      "display_name": "Deferred",
       "kind": "escape",
-      "prompt": null
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
+    },
+    {
+      "id": "ready_for_design",
+      "display_name": "Ready for Design",
+      "kind": "queue",
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
+    },
+    {
+      "id": "ready_for_review",
+      "display_name": "Ready for Review",
+      "kind": "queue",
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
+    },
+    {
+      "id": "ready_for_orchestration",
+      "display_name": "Ready for Orchestration",
+      "kind": "queue",
+      "action_kind": null,
+      "gate_kind": null,
+      "executor": null,
+      "constraints": [],
+      "prompt": null,
+      "output": null,
+      "output_hint": null
     }
   ],
   "steps": [
     {
-      "id": "design_step",
+      "id": "design",
       "queue": "ready_for_design",
       "action": "design"
     },
     {
-      "id": "review_step",
+      "id": "review",
       "queue": "ready_for_review",
       "action": "review"
+    },
+    {
+      "id": "orchestration",
+      "queue": "ready_for_orchestration",
+      "action": "orchestration"
     }
   ],
   "phases": [
     {
       "id": "authoring_phase",
-      "produce_step": "design_step",
-      "gate_step": "review_step"
+      "produce_step": "design",
+      "gate_step": "review"
+    },
+    {
+      "id": "orchestration_phase",
+      "produce_step": "orchestration",
+      "gate_step": null
     }
   ],
   "profiles": [
@@ -77,21 +167,55 @@
       "display_name": "Autopilot",
       "description": "Agent-owned design and review flow for execution plan authoring",
       "phases": [
-        "authoring_phase"
+        "authoring_phase",
+        "orchestration_phase"
       ],
-      "outputs": {},
-      "executors": {}
+      "outputs": {
+        "design": {
+          "artifact_type": "note",
+          "access_hint": null
+        },
+        "review": {
+          "artifact_type": "approval",
+          "access_hint": null
+        },
+        "orchestration": {
+          "artifact_type": "note",
+          "access_hint": null
+        }
+      },
+      "executors": {
+        "design": "agent",
+        "review": "agent",
+        "orchestration": "agent"
+      }
     },
     {
       "id": "semiauto",
       "display_name": "Semi-automatic",
       "description": "Human-reviewed execution plan authoring flow",
       "phases": [
-        "authoring_phase"
+        "authoring_phase",
+        "orchestration_phase"
       ],
-      "outputs": {},
+      "outputs": {
+        "design": {
+          "artifact_type": "note",
+          "access_hint": null
+        },
+        "review": {
+          "artifact_type": "approval",
+          "access_hint": null
+        },
+        "orchestration": {
+          "artifact_type": "note",
+          "access_hint": null
+        }
+      },
       "executors": {
-        "review": "human"
+        "design": "agent",
+        "review": "human",
+        "orchestration": "agent"
       }
     }
   ],
@@ -103,7 +227,6 @@
         "Waves and dependencies are coherent",
         "The plan records clear next actions for downstream execution"
       ],
-      "body": "# Design\n\nAuthor the execution plan artifact for this knot.\n\n## Step Boundary\n\n- This session is authorized only for `design`.\n- Complete exactly one design action, then stop.\n- Allowed resting states after this session: `ready_for_review`,\n  `ready_for_design`, or `blocked`.\n- Record the design in the plan artifact output before advancing.\n\n## Actions\n\n1. Review the knot goal, description, and existing context.\n2. Draft a coherent execution plan structure with waves, dependencies, and\n   handoff-ready details.\n3. Ensure the authored plan is suitable for a later review pass.\n4. Advance to `ready_for_review` when the design is ready.\n",
       "params": [],
       "outcomes": [
         {
@@ -121,7 +244,9 @@
           "target": "blocked",
           "is_success": false
         }
-      ]
+      ],
+      "body": "# Design\n\nAuthor the execution plan artifact for this knot.\n\n## Step Boundary\n\n- This session is authorized only for `design`.\n- Complete exactly one design action, then stop.\n- Allowed resting states after this session: `ready_for_review`,\n  `ready_for_design`, or `blocked`.\n- Record the design in the plan artifact output before advancing.\n\n## Actions\n\n1. Review the knot goal, description, and existing context.\n2. Draft a coherent execution plan structure with waves, dependencies, and\n   handoff-ready details.\n3. Ensure the authored plan is suitable for a later review pass.\n4. Advance to `ready_for_review` when the design is ready.",
+      "body_params": []
     },
     {
       "name": "review",
@@ -130,7 +255,6 @@
         "The proposed waves and dependencies are reviewable and actionable",
         "The artifact is ready to serve as the source plan for execution"
       ],
-      "body": "# Review\n\nReview the authored execution plan before it is considered shipped.\n\n## Step Boundary\n\n- This session is authorized only for `review`.\n- Complete exactly one review action, then stop.\n- Allowed resting states after this session: `shipped`, `ready_for_design`,\n  or `blocked`.\n- Review work is metadata-only and should not modify repository code.\n\n## Actions\n\n1. Inspect the authored plan artifact and its supporting knot context.\n2. Confirm the design is complete, coherent, and actionable.\n3. Approve the plan to move it to `shipped`, or send it back for revision.\n",
       "params": [],
       "outcomes": [
         {
@@ -148,7 +272,89 @@
           "target": "blocked",
           "is_success": false
         }
-      ]
+      ],
+      "body": "# Review\n\nReview the authored execution plan before it is considered shipped.\n\n## Step Boundary\n\n- This session is authorized only for `review`.\n- Complete exactly one review action, then stop.\n- Allowed resting states after this session: `shipped`, `ready_for_design`,\n  or `blocked`.\n- Review work is metadata-only and should not modify repository code.\n\n## Actions\n\n1. Inspect the authored plan artifact and its supporting knot context.\n2. Confirm the design is complete, coherent, and actionable.\n3. Approve the plan to move it to `shipped`, or send it back for revision.",
+      "body_params": []
+    },
+    {
+      "name": "orchestration",
+      "accept": [
+        "The execution plan has been driven forward according to its next queued work",
+        "The orchestration outcome is recorded in a handoff-ready note",
+        "Downstream progress or blockers are clear from the orchestration output"
+      ],
+      "params": [],
+      "outcomes": [
+        {
+          "name": "orchestration_complete",
+          "target": "shipped",
+          "is_success": true
+        },
+        {
+          "name": "blocked_by_dependency",
+          "target": "blocked",
+          "is_success": false
+        }
+      ],
+      "body": "# Orchestration\n\nDrive the approved execution plan forward after review has passed.\n\n## Step Boundary\n\n- This session is authorized only for `orchestration`.\n- Complete exactly one orchestration action, then stop.\n- Allowed resting states after this session: `shipped` or `blocked`.\n- Record the orchestration outcome in the note output before advancing.\n\n## Actions\n\n1. Review the approved execution plan and the current status of its waves and\n   steps.\n2. Advance the next ready work in the plan according to the documented\n   sequencing constraints.\n3. Record the orchestration outcome, including any blockers or handoffs needed\n   for downstream follow-through.\n4. Advance to `shipped` when orchestration is complete.",
+      "body_params": []
     }
-  ]
+  ],
+  "transitions": {
+    "wildcard_targets": [
+      "abandoned",
+      "deferred"
+    ],
+    "queue_to_action": [
+      {
+        "id": "design",
+        "queue": "ready_for_design",
+        "action": "design"
+      },
+      {
+        "id": "review",
+        "queue": "ready_for_review",
+        "action": "review"
+      },
+      {
+        "id": "orchestration",
+        "queue": "ready_for_orchestration",
+        "action": "orchestration"
+      }
+    ],
+    "outcome_tables": [
+      {
+        "action": "design",
+        "prompt": "design",
+        "success": {
+          "design_complete": "ready_for_review"
+        },
+        "failure": {
+          "insufficient_context": "ready_for_design",
+          "blocked_by_dependency": "blocked"
+        }
+      },
+      {
+        "action": "review",
+        "prompt": "review",
+        "success": {
+          "approved": "shipped"
+        },
+        "failure": {
+          "changes_requested": "ready_for_design",
+          "blocked_by_dependency": "blocked"
+        }
+      },
+      {
+        "action": "orchestration",
+        "prompt": "orchestration",
+        "success": {
+          "orchestration_complete": "shipped"
+        },
+        "failure": {
+          "blocked_by_dependency": "blocked"
+        }
+      }
+    ]
+  }
 }

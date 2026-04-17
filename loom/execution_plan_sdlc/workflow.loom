@@ -13,6 +13,11 @@ workflow execution_plan_sdlc v1 {
         constraint metadata_only
     }
 
+    action orchestration {
+        produce agent
+        output note
+    }
+
     terminal shipped
     terminal abandoned
     escape blocked
@@ -24,6 +29,10 @@ workflow execution_plan_sdlc v1 {
     phase authoring_phase {
         produce design
         gate review
+    }
+
+    phase orchestration_phase {
+        produce orchestration
     }
 
     include "profiles/autopilot.loom"
