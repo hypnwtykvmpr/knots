@@ -347,6 +347,95 @@ fn fix_rehydrates_newest_first_by_updated_at() {
 }
 
 #[test]
+fn check_warns_and_reports_shadowed_when_all_cold_already_hot() {
+    // Regression for the "edge case": the only cold row is also in hot. It
+    // is not a rehydrate candidate — but counting it as plain cold produced
+    // a permanent warn the fix could never clear. Now the warn detail
+    // surfaces the shadowed count and prompts the user to prune.
+    let root = unique_workspace();
+    let (_, conn) = open_db(&root);
+    for i in 0..30 {
+        insert_hot(&conn, &format!("H-{i:03}"), "hot");
+    }
+    insert_hot(&conn, "SHADOW", "shared");
+    insert_cold(&conn, "SHADOW", "shared", "2026-04-09T00:00:00Z");
+
+    let check = check_cold_tier_imbalance(&conn).expect("check should run");
+    assert_eq!(check.status, DoctorStatus::Warn);
+    assert!(
+        check.detail.contains("shadowed"),
+        "detail should mention shadowed rows: {}",
+        check.detail
+    );
+    let data = check.data.as_ref().expect("data should be present");
+    assert_eq!(data["hot_count"], 31);
+    assert_eq!(data["cold_count"], 1);
+    assert_eq!(data["shadowed"], 1);
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn check_warn_cap_excludes_shadowed_cold_rows() {
+    // Mixed scenario: one genuine cold record + one shadowed. The rehydrate
+    // cap should cover the genuine one only; the detail should still call
+    // out the shadowed row so the user sees both effects of --fix.
+    let root = unique_workspace();
+    let (_, conn) = open_db(&root);
+    for i in 0..30 {
+        insert_hot(&conn, &format!("H-{i:03}"), "hot");
+    }
+    insert_hot(&conn, "SHADOW", "shared");
+    insert_cold(&conn, "SHADOW", "shared", "2026-04-09T00:00:00Z");
+    insert_cold(&conn, "GENUINE", "genuine", "2026-04-10T00:00:00Z");
+
+    let check = check_cold_tier_imbalance(&conn).expect("check should run");
+    assert_eq!(check.status, DoctorStatus::Warn);
+    assert!(
+        check.detail.contains("rehydrate up to 1"),
+        "cap should exclude shadowed row: {}",
+        check.detail
+    );
+    assert!(
+        check.detail.contains("1 shadowed by hot will be pruned"),
+        "detail should surface shadowed prune: {}",
+        check.detail
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn fix_prunes_cold_rows_shadowed_by_hot_and_clears_warn() {
+    // End-to-end repro of the bug: a single cold row shadowed by hot must
+    // be pruned by --fix so the next doctor run reports pass.
+    let root = unique_workspace();
+    {
+        let (_, conn) = open_db(&root);
+        for i in 0..30 {
+            insert_hot(&conn, &format!("H-{i:03}"), "hot");
+        }
+        insert_hot(&conn, "SHADOW", "shared");
+        insert_cold(&conn, "SHADOW", "shared", "2026-04-09T00:00:00Z");
+    }
+
+    fix_cold_tier_imbalance(&root);
+
+    let (_, conn) = open_db(&root);
+    let cold = db::count_cold_catalog(&conn).expect("count cold should run");
+    assert_eq!(cold, 0, "shadowed cold row should be pruned by --fix");
+    let hot = db::count_knot_hot(&conn).expect("count hot should run");
+    assert_eq!(
+        hot, 31,
+        "hot rows are unaffected by pruning cold duplicates"
+    );
+    let check = check_cold_tier_imbalance(&conn).expect("check should run");
+    assert_eq!(check.status, DoctorStatus::Pass);
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn fix_rehydrated_knot_has_fresh_updated_at() {
     let root = unique_workspace();
     {
