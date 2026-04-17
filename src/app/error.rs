@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt;
 
 use crate::doctor::DoctorError;
-use crate::domain::state::{InvalidStateTransition, ParseKnotStateError};
 use crate::events::EventWriteError;
 use crate::fsck::FsckError;
 use crate::locks::LockError;
@@ -26,8 +25,6 @@ pub enum AppError {
     Snapshot(SnapshotError),
     Perf(PerfError),
     Workflow(ProfileError),
-    ParseState(ParseKnotStateError),
-    InvalidTransition(InvalidStateTransition),
     StaleWorkflowHead {
         expected: String,
         current: String,
@@ -67,10 +64,6 @@ impl fmt::Display for AppError {
             AppError::Snapshot(err) => write!(f, "snapshot error: {}", err),
             AppError::Perf(err) => write!(f, "perf error: {}", err),
             AppError::Workflow(err) => write!(f, "workflow error: {}", err),
-            AppError::ParseState(err) => {
-                write!(f, "state parse error: {}", err)
-            }
-            AppError::InvalidTransition(err) => write!(f, "{}", err),
             AppError::StaleWorkflowHead { expected, current } => write!(
                 f,
                 "stale profile_etag: expected '{}', current '{}'",
@@ -135,8 +128,6 @@ impl Error for AppError {
             AppError::Snapshot(err) => Some(err),
             AppError::Perf(err) => Some(err),
             AppError::Workflow(err) => Some(err),
-            AppError::ParseState(err) => Some(err),
-            AppError::InvalidTransition(err) => Some(err),
             AppError::StaleWorkflowHead { .. }
             | AppError::HierarchyProgressBlocked { .. }
             | AppError::TerminalCascadeApprovalRequired { .. }
@@ -211,17 +202,5 @@ impl From<PerfError> for AppError {
 impl From<ProfileError> for AppError {
     fn from(value: ProfileError) -> Self {
         AppError::Workflow(value)
-    }
-}
-
-impl From<ParseKnotStateError> for AppError {
-    fn from(value: ParseKnotStateError) -> Self {
-        AppError::ParseState(value)
-    }
-}
-
-impl From<InvalidStateTransition> for AppError {
-    fn from(value: InvalidStateTransition) -> Self {
-        AppError::InvalidTransition(value)
     }
 }

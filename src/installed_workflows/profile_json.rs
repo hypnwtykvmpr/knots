@@ -109,6 +109,7 @@ fn assemble_json_profile(
         action_prompts: ctx.prompt_bodies,
         prompt_acceptance: ctx.prompt_acceptance,
         review_hints: ctx.review_hints,
+        state_aliases: BTreeMap::new(),
     };
     Ok((built, action_prompts))
 }

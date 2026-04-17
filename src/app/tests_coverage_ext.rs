@@ -7,7 +7,6 @@ use uuid::Uuid;
 use super::{App, AppError, StateActorMetadata, UpdateKnotPatch};
 use crate::db::{self, EdgeDirection};
 use crate::doctor::DoctorError;
-use crate::domain::state::{InvalidStateTransition, KnotState};
 use crate::fsck::FsckError;
 use crate::locks::LockError;
 use crate::perf::PerfError;
@@ -286,15 +285,17 @@ fn app_error_source_covers_wrapped_error_variants() {
         AppError::Snapshot(SnapshotError::Io(std::io::Error::other("snapshot"))),
         AppError::Perf(PerfError::Other("perf".to_string())),
         AppError::Workflow(WorkflowError::MissingProfileReference),
-        AppError::ParseState(
-            "bad-state"
-                .parse::<KnotState>()
-                .expect_err("invalid state should fail"),
-        ),
-        AppError::InvalidTransition(InvalidStateTransition {
-            from: KnotState::ReadyForPlanning,
-            to: KnotState::Shipped,
+        AppError::Workflow(WorkflowError::UnknownState {
+            profile_id: "autopilot".to_string(),
+            state: "bad-state".to_string(),
         }),
+        AppError::Workflow(WorkflowError::InvalidTransition(
+            crate::profile::InvalidWorkflowTransition {
+                profile_id: "autopilot".to_string(),
+                from: "ready_for_planning".to_string(),
+                to: "shipped".to_string(),
+            },
+        )),
     ];
 
     let with_sources = variants

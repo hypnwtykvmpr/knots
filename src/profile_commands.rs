@@ -419,10 +419,13 @@ fn prompt_for_profile_state(
 }
 
 fn normalize_cli_state(raw: &str) -> Result<String, app::AppError> {
-    use std::str::FromStr;
-
-    let parsed = crate::domain::state::KnotState::from_str(raw)?;
-    Ok(parsed.as_str().to_string())
+    // CLI input is normalized to its canonical profile-independent form.
+    // Profile-aware alias resolution happens inside
+    // `resolve_profile_state_selection` via `ProfileDefinition::require_state`,
+    // which consults the profile's `state_aliases` map.
+    Ok(crate::write_dispatch::helpers::normalize_expected_state(
+        raw,
+    ))
 }
 
 #[cfg(test)]

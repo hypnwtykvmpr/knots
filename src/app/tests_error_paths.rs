@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use serde_json::json;
 
@@ -12,7 +11,6 @@ use crate::db::{EdgeDirection, KnotCacheRecord};
 use crate::doctor::DoctorError;
 use crate::domain::knot_type::KnotType;
 use crate::domain::metadata::MetadataEntryInput;
-use crate::domain::state::{InvalidStateTransition, KnotState};
 use crate::events::{EventWriteError, FullEvent, FullEventKind, IndexEvent, IndexEventKind};
 use crate::fsck::FsckError;
 use crate::locks::LockError;
@@ -330,15 +328,20 @@ fn app_error_display_source_and_from_conversions_cover_variants() {
     let workflow: AppError = WorkflowError::InvalidDefinition("bad workflow".to_string()).into();
     assert!(workflow.to_string().contains("workflow error"));
 
-    let parse_state: AppError = KnotState::from_str("invalid-state")
-        .expect_err("parse should fail")
-        .into();
-    assert!(parse_state.to_string().contains("state parse error"));
-
-    let invalid_transition: AppError = InvalidStateTransition {
-        from: KnotState::ReadyForPlanning,
-        to: KnotState::Shipped,
+    let parse_state: AppError = crate::workflow::ProfileError::UnknownState {
+        profile_id: "autopilot".to_string(),
+        state: "invalid-state".to_string(),
     }
+    .into();
+    assert!(parse_state.to_string().contains("unknown state"));
+
+    let invalid_transition: AppError = crate::workflow::ProfileError::InvalidTransition(
+        crate::profile::InvalidWorkflowTransition {
+            profile_id: "autopilot".to_string(),
+            from: "ready_for_planning".to_string(),
+            to: "shipped".to_string(),
+        },
+    )
     .into();
     assert!(invalid_transition
         .to_string()
