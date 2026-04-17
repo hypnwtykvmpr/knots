@@ -97,6 +97,8 @@ pub struct ProfileDefinition {
     pub prompt_acceptance: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub review_hints: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub state_aliases: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone)]

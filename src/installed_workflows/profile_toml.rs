@@ -133,6 +133,7 @@ fn assemble_profile(
         action_prompts,
         prompt_acceptance,
         review_hints,
+        state_aliases: std::collections::BTreeMap::new(),
     })
 }
 

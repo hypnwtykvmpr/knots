@@ -113,6 +113,7 @@ fn build_builtin_workflow(
 
     for profile in workflow.profiles.values_mut() {
         profile.workflow_id = workflow.id.clone();
+        populate_builtin_state_aliases(profile);
     }
 
     for prompt in workflow.prompts.values_mut() {
@@ -142,6 +143,30 @@ fn build_builtin_workflow(
     }
 
     Ok(workflow)
+}
+
+fn populate_builtin_state_aliases(profile: &mut crate::profile::ProfileDefinition) {
+    const CANDIDATES: &[(&str, &str)] = &[
+        ("idea", "ready_for_planning"),
+        ("evaluate", "evaluating"),
+        ("exploring", "exploration"),
+        ("work_item", "ready_for_implementation"),
+        ("rejected", "ready_for_implementation"),
+        ("refining", "ready_for_implementation"),
+        ("implementing", "implementation"),
+        ("implemented", "ready_for_implementation_review"),
+        ("reviewing", "implementation_review"),
+        ("approved", "ready_for_shipment"),
+        ("shipping", "shipment"),
+    ];
+    for (alias, target) in CANDIDATES {
+        if profile.states.iter().any(|s| s == *target) {
+            profile
+                .state_aliases
+                .entry((*alias).to_string())
+                .or_insert_with(|| (*target).to_string());
+        }
+    }
 }
 
 #[cfg(test)]
