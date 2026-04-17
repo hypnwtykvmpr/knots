@@ -270,3 +270,74 @@ fn doctor_fix_rehydrates_cold_catalog_back_to_hot() {
         assert_success(&show);
     }
 }
+
+fn insert_shadow_cold(db: &Path, id: &str, title: &str, updated_at: &str) {
+    // Leaves the hot row intact while inserting a cold_catalog row with the
+    // same id — the data-consistency leftover that kept the imbalance
+    // warning lit indefinitely before the fix.
+    let conn = Connection::open(db).expect("db should open");
+    conn.execute(
+        "INSERT OR REPLACE INTO knot_warm (id, title) VALUES (?1, ?2)",
+        rusqlite::params![id, title],
+    )
+    .expect("insert warm should succeed");
+    conn.execute(
+        "INSERT OR REPLACE INTO cold_catalog (id, title, state, updated_at) \
+         VALUES (?1, ?2, 'implementation', ?3)",
+        rusqlite::params![id, title, updated_at],
+    )
+    .expect("insert cold should succeed");
+}
+
+#[test]
+fn doctor_fix_prunes_cold_row_shadowed_by_hot() {
+    let root = unique_workspace("knots-cli-cold-tier-shadow");
+    setup_repo_with_remote(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_workflows(&root, &db);
+
+    let hot_id = create_knot(&root, &db, "Hot one");
+    // The hot row still exists — simulate the data-consistency glitch where
+    // a prior bug left a cold_catalog entry for the same id.
+    insert_shadow_cold(&db, &hot_id, "Hot one", "2026-04-09T00:00:00Z");
+
+    assert_eq!(count_knot_hot(&db), 1);
+    assert_eq!(count_cold_catalog(&db), 1);
+
+    let before = run_knots(&root, &db, &["doctor", "--json"]);
+    assert_success(&before);
+    let before_report: Value =
+        serde_json::from_slice(&before.stdout).expect("doctor json should parse");
+    let before_check = find_check(&before_report, "cold_tier_imbalance");
+    assert_eq!(before_check["status"], "warn");
+    let before_detail = before_check["detail"]
+        .as_str()
+        .expect("detail should be a string");
+    assert!(
+        before_detail.contains("shadowed"),
+        "pre-fix detail should mention shadowed rows: {before_detail}"
+    );
+
+    let fix = run_knots(&root, &db, &["doctor", "--fix"]);
+    assert_success(&fix);
+
+    assert_eq!(
+        count_knot_hot(&db),
+        1,
+        "pruning cold shadows must not touch hot rows"
+    );
+    assert_eq!(
+        count_cold_catalog(&db),
+        0,
+        "shadowed cold row should be pruned"
+    );
+
+    let after = run_knots(&root, &db, &["doctor", "--json"]);
+    assert_success(&after);
+    let report: Value = serde_json::from_slice(&after.stdout).expect("doctor json should parse");
+    let check = find_check(&report, "cold_tier_imbalance");
+    assert_eq!(
+        check["status"], "pass",
+        "cold_tier_imbalance should clear after --fix"
+    );
+}

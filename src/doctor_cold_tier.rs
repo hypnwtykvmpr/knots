@@ -37,18 +37,42 @@ pub fn check_cold_tier_imbalance(conn: &Connection) -> Result<DoctorCheck, Docto
         .map_err(|err| DoctorError::Io(std::io::Error::other(err.to_string())))?;
     let cold = db::count_cold_catalog(conn)
         .map_err(|err| DoctorError::Io(std::io::Error::other(err.to_string())))?;
-    let data = Some(serde_json::json!({ "hot_count": hot, "cold_count": cold }));
-    if hot >= COLD_TIER_HOT_TARGET || cold == 0 {
+    let shadowed = db::count_cold_catalog_shadowed_by_hot(conn)
+        .map_err(|err| DoctorError::Io(std::io::Error::other(err.to_string())))?;
+    // Cold rows whose id is already present in hot cannot be rehydrated into
+    // hot — they are stale duplicates, and counting them here produced a
+    // permanent warn that `doctor --fix` could never clear.
+    let effective_cold = (cold - shadowed).max(0);
+    let data =
+        Some(serde_json::json!({ "hot_count": hot, "cold_count": cold, "shadowed": shadowed }));
+    if hot >= COLD_TIER_HOT_TARGET || effective_cold == 0 {
+        if shadowed > 0 {
+            return Ok(with_data(
+                DoctorStatus::Warn,
+                format!(
+                    "{hot} hot / {cold} cold ({shadowed} shadowed by hot); \
+                     run doctor --fix to prune shadowed rows",
+                ),
+                data,
+            ));
+        }
         return Ok(with_data(
             DoctorStatus::Pass,
             format!("{hot} hot / {cold} cold"),
             data,
         ));
     }
-    let cap = (COLD_TIER_HOT_TARGET - hot).min(cold);
+    let cap = (COLD_TIER_HOT_TARGET - hot).min(effective_cold);
+    let shadowed_suffix = if shadowed > 0 {
+        format!(" ({shadowed} shadowed by hot will be pruned)")
+    } else {
+        String::new()
+    };
     Ok(with_data(
         DoctorStatus::Warn,
-        format!("{hot} hot / {cold} cold; run doctor --fix to rehydrate up to {cap}"),
+        format!(
+            "{hot} hot / {cold} cold; run doctor --fix to rehydrate up to {cap}{shadowed_suffix}",
+        ),
         data,
     ))
 }
@@ -81,6 +105,10 @@ pub fn fix_cold_tier_imbalance(repo_root: &Path) {
     let Ok(conn) = crate::db::open_connection(db_str) else {
         return;
     };
+    // Prune cold rows whose id is already in hot first — these are stale
+    // duplicates that would otherwise keep the imbalance warning lit on
+    // every subsequent run.
+    let _ = db::prune_cold_catalog_shadowed_by_hot(&conn);
     let Ok(hot) = db::count_knot_hot(&conn) else {
         return;
     };
@@ -88,7 +116,7 @@ pub fn fix_cold_tier_imbalance(repo_root: &Path) {
         return;
     }
     let cap = (COLD_TIER_HOT_TARGET - hot) as usize;
-    let Ok(cold_records) = db::list_cold_catalog(&conn) else {
+    let Ok(cold_records) = db::list_cold_catalog_not_in_hot(&conn) else {
         return;
     };
     drop(conn);

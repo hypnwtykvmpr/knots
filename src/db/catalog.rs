@@ -136,6 +136,61 @@ ORDER BY updated_at DESC, id ASC
     Ok(result)
 }
 
+/// Returns cold-catalog records whose id is not already present in `knot_hot`.
+/// Used by the `cold_tier_imbalance` doctor check / fix so stale duplicate
+/// rows (knots that live in both tiers at once) do not produce a permanent
+/// warning the fix can never clear.
+pub fn list_cold_catalog_not_in_hot(conn: &Connection) -> Result<Vec<ColdCatalogRecord>> {
+    let mut stmt = conn.prepare(
+        r#"
+SELECT c.id, c.title, c.state, c.updated_at
+FROM cold_catalog c
+WHERE NOT EXISTS (SELECT 1 FROM knot_hot h WHERE h.id = c.id)
+ORDER BY c.updated_at DESC, c.id ASC
+"#,
+    )?;
+    let mut rows = stmt.query([])?;
+    let mut result = Vec::new();
+    while let Some(row) = rows.next()? {
+        result.push(ColdCatalogRecord {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            state: row.get(2)?,
+            updated_at: row.get(3)?,
+        });
+    }
+    Ok(result)
+}
+
+/// Count of cold-catalog rows whose id is also present in `knot_hot`. These
+/// are data-consistency leftovers that should be evicted from cold.
+pub fn count_cold_catalog_shadowed_by_hot(conn: &Connection) -> Result<i64> {
+    conn.query_row(
+        r#"
+SELECT COUNT(*) FROM cold_catalog c
+WHERE EXISTS (SELECT 1 FROM knot_hot h WHERE h.id = c.id)
+"#,
+        [],
+        |row| row.get(0),
+    )
+}
+
+/// Delete every cold_catalog row whose id is already present in knot_hot.
+/// Returns the number of rows removed.
+pub fn prune_cold_catalog_shadowed_by_hot(conn: &Connection) -> Result<usize> {
+    let removed = with_write_retry(|| {
+        let n = conn.execute(
+            r#"
+DELETE FROM cold_catalog
+WHERE id IN (SELECT h.id FROM knot_hot h WHERE h.id = cold_catalog.id)
+"#,
+            [],
+        )?;
+        Ok(n)
+    })?;
+    Ok(removed)
+}
+
 pub fn delete_cold_catalog(conn: &Connection, id: &str) -> Result<()> {
     with_write_retry(|| {
         conn.execute("DELETE FROM cold_catalog WHERE id = ?1", params![id])?;
