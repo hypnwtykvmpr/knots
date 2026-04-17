@@ -259,7 +259,7 @@
       "outcomes": [
         {
           "name": "approved",
-          "target": "shipped",
+          "target": "ready_for_orchestration",
           "is_success": true
         },
         {
@@ -273,7 +273,7 @@
           "is_success": false
         }
       ],
-      "body": "# Review\n\nReview the authored execution plan before it is considered shipped.\n\n## Step Boundary\n\n- This session is authorized only for `review`.\n- Complete exactly one review action, then stop.\n- Allowed resting states after this session: `shipped`, `ready_for_design`,\n  or `blocked`.\n- Review work is metadata-only and should not modify repository code.\n\n## Actions\n\n1. Inspect the authored plan artifact and its supporting knot context.\n2. Confirm the design is complete, coherent, and actionable.\n3. Approve the plan to move it to `shipped`, or send it back for revision.",
+      "body": "# Review\n\nReview the authored execution plan before it advances to orchestration.\n\n## Step Boundary\n\n- This session is authorized only for `review`.\n- Complete exactly one review action, then stop.\n- Allowed resting states after this session: `ready_for_orchestration`,\n  `ready_for_design`, or `blocked`.\n- Review work is metadata-only and should not modify repository code.\n\n## Actions\n\n1. Inspect the authored plan artifact and its supporting knot context.\n2. Confirm the design is complete, coherent, and actionable.\n3. Approve the plan to advance to orchestration, or send it back for revision.",
       "body_params": []
     },
     {
@@ -338,7 +338,7 @@
         "action": "review",
         "prompt": "review",
         "success": {
-          "approved": "shipped"
+          "approved": "ready_for_orchestration"
         },
         "failure": {
           "changes_requested": "ready_for_design",
