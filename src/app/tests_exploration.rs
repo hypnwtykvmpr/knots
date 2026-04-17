@@ -179,7 +179,7 @@ fn exploration_invalid_transition_rejected() {
         .expect_err("invalid transition should be rejected");
     // Should fail as an invalid profile transition
     assert!(
-        matches!(err, AppError::Workflow(_) | AppError::InvalidTransition(_)),
+        matches!(err, AppError::Workflow(_)),
         "expected workflow/transition error, got: {err:?}"
     );
     let _ = std::fs::remove_dir_all(&root);
