@@ -1,8 +1,13 @@
-use std::str::FromStr;
 use time::format_description::well_known::Rfc3339;
 use time::{Duration, OffsetDateTime};
 
-use crate::domain::state::KnotState;
+use crate::domain::state::normalize_state_input;
+
+/// Well-known terminal states that the tier classifier must treat as archival
+/// regardless of which profile a knot belongs to. These are the terminal
+/// markers emitted by every built-in workflow today; per-profile
+/// terminal-state questions go through `ProfileDefinition::is_terminal_state`.
+const TERMINAL_STATES: &[&str] = &["shipped", "abandoned", "lease_terminated"];
 
 /// Terminal knots are held in hot tier for this many hours after the most recent
 /// `updated_at` before they are eligible to be swept to cold storage. This gives
@@ -22,8 +27,8 @@ pub fn classify_knot_tier(
     hot_window_days: i64,
     now: OffsetDateTime,
 ) -> CacheTier {
-    let parsed = KnotState::from_str(state);
-    let is_terminal = parsed.map(|value| value.is_terminal()).unwrap_or(false);
+    let normalized = normalize_state_input(state);
+    let is_terminal = TERMINAL_STATES.iter().any(|s| *s == normalized);
     let parsed_updated_at = OffsetDateTime::parse(updated_at, &Rfc3339).ok();
 
     if is_terminal {

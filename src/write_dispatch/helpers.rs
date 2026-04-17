@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::{io, io::BufRead, io::IsTerminal, io::Write};
 
 use crate::app::{App, AppError, GateDecision};
@@ -6,7 +5,7 @@ use crate::dispatch::knot_ref;
 use crate::domain::execution_plan_edit::CascadeInfo;
 use crate::domain::gate::{parse_failure_mode_spec, GateData, GateOwnerKind};
 use crate::domain::knot_type::KnotType;
-use crate::domain::state::KnotState;
+use crate::domain::state::normalize_state_input;
 use crate::ui;
 
 const CLAIM_ONLY_LEASE_BINDING: &str = "lease binding is only allowed during claim operations";
@@ -217,10 +216,24 @@ pub(crate) fn parse_gate_data_args(
 }
 
 pub(crate) fn normalize_expected_state(raw: &str) -> String {
-    let trimmed = raw.trim();
-    KnotState::from_str(trimmed)
-        .map(|state| state.as_str().to_string())
-        .unwrap_or_else(|_| trimmed.to_ascii_lowercase().replace('-', "_"))
+    // Normalize formatting (trim, lowercase, dash→underscore). Legacy alias
+    // resolution (e.g. `implemented` → `ready_for_implementation_review`)
+    // happens at the profile boundary via `domain::state::resolve_state`.
+    // Callers here compare against a raw knot state string and do not have a
+    // profile in scope, so we only canonicalize the formatting.
+    let normalized = normalize_state_input(raw);
+    match normalized.as_str() {
+        "idea" => "ready_for_planning".to_string(),
+        "work_item" | "rejected" | "refining" => "ready_for_implementation".to_string(),
+        "implementing" => "implementation".to_string(),
+        "implemented" => "ready_for_implementation_review".to_string(),
+        "reviewing" => "implementation_review".to_string(),
+        "evaluate" => "evaluating".to_string(),
+        "exploring" => "exploration".to_string(),
+        "approved" => "ready_for_shipment".to_string(),
+        "shipping" => "shipment".to_string(),
+        _ => normalized,
+    }
 }
 
 pub(crate) fn format_next_output(

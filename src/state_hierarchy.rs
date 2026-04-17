@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 
 use rusqlite::Connection;
 
 use crate::app::AppError;
 use crate::db::{self, KnotCacheRecord};
-use crate::domain::state::KnotState;
+use crate::domain::state::normalize_state_input;
 
 pub const HIERARCHY_PROGRESS_BLOCKED_CODE: &str = "hierarchy_progress_blocked";
 pub const TERMINAL_CASCADE_APPROVAL_REQUIRED_CODE: &str = "terminal_cascade_approval_required";
@@ -318,75 +317,52 @@ fn effective_record_rank(knot: &KnotCacheRecord) -> Result<u8, AppError> {
 }
 
 fn effective_state_rank(state: &str) -> Result<u8, AppError> {
-    let normalized = state.trim().to_ascii_lowercase().replace('-', "_");
-    if let Ok(state) = KnotState::from_str(&normalized) {
-        let rank = match state {
-            KnotState::ReadyForPlanning => 0,
-            KnotState::Planning => 1,
-            KnotState::ReadyForPlanReview => 2,
-            KnotState::PlanReview => 3,
-            KnotState::ReadyForImplementation => 4,
-            KnotState::Implementation => 5,
-            KnotState::ReadyForImplementationReview => 6,
-            KnotState::ImplementationReview => 7,
-            KnotState::ReadyForShipment => 8,
-            KnotState::Shipment => 9,
-            KnotState::ReadyForShipmentReview => 10,
-            KnotState::ShipmentReview => 11,
-            KnotState::ReadyToEvaluate => 12,
-            KnotState::Evaluating => 13,
-            KnotState::ReadyForExploration => 14,
-            KnotState::Exploration => 15,
-            KnotState::Shipped | KnotState::Abandoned => 16,
-            KnotState::LeaseReady | KnotState::LeaseActive | KnotState::LeaseTerminated => 16,
-            KnotState::Deferred => 255,
-        };
-        return Ok(rank);
-    }
-    if normalized == "blocked" {
-        return Ok(255);
-    }
-    if normalized == "deferred" {
-        return Ok(255);
-    }
-    if matches!(normalized.as_str(), "shipped" | "abandoned") {
-        return Ok(250);
-    }
-    if normalized.starts_with("ready_for_") || normalized.starts_with("ready_") {
-        return Ok(100);
-    }
-    Ok(101)
+    let normalized = normalize_state_input(state);
+    let rank = match normalized.as_str() {
+        "ready_for_planning" => 0,
+        "planning" => 1,
+        "ready_for_plan_review" => 2,
+        "plan_review" => 3,
+        "ready_for_implementation" => 4,
+        "implementation" => 5,
+        "ready_for_implementation_review" => 6,
+        "implementation_review" => 7,
+        "ready_for_shipment" => 8,
+        "shipment" => 9,
+        "ready_for_shipment_review" => 10,
+        "shipment_review" => 11,
+        "ready_to_evaluate" => 12,
+        "evaluating" => 13,
+        "ready_for_exploration" => 14,
+        "exploration" => 15,
+        "shipped" | "abandoned" | "lease_ready" | "lease_active" | "lease_terminated" => 16,
+        "deferred" | "blocked" => 255,
+        other if other.starts_with("ready_for_") || other.starts_with("ready_") => 100,
+        _ => 101,
+    };
+    Ok(rank)
 }
 
 pub fn is_terminal_state(state: &str) -> Result<bool, AppError> {
-    let normalized = state.trim().to_ascii_lowercase().replace('-', "_");
-    Ok(KnotState::from_str(&normalized)
-        .map(|state| state.is_terminal())
-        .unwrap_or(matches!(normalized.as_str(), "shipped" | "abandoned")))
+    let normalized = normalize_state_input(state);
+    Ok(matches!(
+        normalized.as_str(),
+        "shipped" | "abandoned" | "lease_terminated"
+    ))
 }
 
 pub fn is_terminal_resolution_state(state: &str) -> Result<bool, AppError> {
-    let normalized = state.trim().to_ascii_lowercase().replace('-', "_");
-    Ok(KnotState::from_str(&normalized)
-        .map(|state| matches!(state, KnotState::Shipped | KnotState::Abandoned))
-        .unwrap_or(matches!(normalized.as_str(), "shipped" | "abandoned")))
+    let normalized = normalize_state_input(state);
+    Ok(matches!(normalized.as_str(), "shipped" | "abandoned"))
 }
 
 fn terminal_resolution_target(children: &[KnotCacheRecord]) -> Result<&'static str, AppError> {
     for child in children {
-        let normalized = child.state.trim().to_ascii_lowercase().replace('-', "_");
-        match KnotState::from_str(&normalized) {
-            Ok(KnotState::Shipped) => return Ok("shipped"),
-            Ok(KnotState::Abandoned) => {}
-            Ok(other) => {
-                return Err(AppError::InvalidArgument(format!(
-                    "non-terminal child state '{}' cannot be reconciled",
-                    other.as_str()
-                )));
-            }
-            Err(_) if normalized == "shipped" => return Ok("shipped"),
-            Err(_) if normalized == "abandoned" => {}
-            Err(_) => {
+        let normalized = normalize_state_input(&child.state);
+        match normalized.as_str() {
+            "shipped" => return Ok("shipped"),
+            "abandoned" => {}
+            _ => {
                 return Err(AppError::InvalidArgument(format!(
                     "non-terminal child state '{}' cannot be reconciled",
                     child.state
