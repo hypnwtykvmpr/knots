@@ -1,0 +1,17 @@
+{
+  "event_id": "019d99eb-058f-7a43-af87-478650d3fee8",
+  "occurred_at": "2026-04-17T05:30:09.679649Z",
+  "knot_id": "knots-9f61",
+  "type": "knot.created",
+  "data": {
+    "body": "Insert two new states between review and shipped in loom/execution_plan_sdlc/workflow.loom:\n\n  * ready_for_orchestration (queue) — knot has passed review and is waiting to be orchestrated.\n  * orchestration (action) — agent-produced step that drives the execution plan forward (output: note, or a new output kind if needed).\n\nFlow becomes: ready_for_design -> design -> ready_for_review -> review -> ready_for_orchestration -> orchestration -> shipped.\n\nScope:\n  * Edit loom/execution_plan_sdlc/workflow.loom to add an orchestrate action and an orchestration_phase (or extend authoring_phase) so the new queue/action pair is wired in.\n  * Rebuild the bundle so loom/execution_plan_sdlc/dist/bundle.json reflects the new states, steps, and phase.\n  * Update profiles (autopilot, semiauto) to include the new phase/executor assignment as appropriate (autopilot: agent orchestrates; semiauto: agent orchestrates, human still reviews).\n  * Any prompts needed for the new action go under prompts/ and are referenced from the workflow.\n\nOut of scope:\n  * Changes to Rust (those are covered by db35 which removes the hardcoded KnotState enum).",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add ready_for_orchestration and orchestration states to execution_plan_sdlc workflow",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019d99e1-c097-7ef2-8250-4a73bec105c2",
+  "occurred_at": "2026-04-17T05:20:02.199204Z",
+  "knot_id": "knots-db35",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "* src/domain/state.rs no longer defines a KnotState enum or any hardcoded state list, alias map, terminal set, or transition table.\n  * State is represented as a string newtype validated against the knot's installed Workflow at read/parse time.\n  * is_terminal, rank/ordering, and transition validity are answered by querying the Workflow (bundle), not by matching Rust variants.\n  * Legacy aliases (idea, work_item, implemented, approved, refining, rejected, etc.) are declared in bundle/migration data, not in Rust source.\n  * Installing a loom workflow with a new state name Just Works — no Rust edit required — and make sanity still passes.\n  * All existing tests updated; coverage stays at or above the ratchet threshold."
+  }
+}

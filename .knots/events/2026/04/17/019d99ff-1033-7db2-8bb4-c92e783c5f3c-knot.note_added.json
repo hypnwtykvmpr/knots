@@ -1,0 +1,15 @@
+{
+  "event_id": "019d99ff-1033-7db2-8bb4-c92e783c5f3c",
+  "occurred_at": "2026-04-17T05:52:03.123963Z",
+  "knot_id": "knots-db35",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "claude-code",
+    "content": "# Implementation handoff\n\n**Branch**: `feature/knots-db35-delete-knotstate` (pushed to origin)\n\n**Commits**:\n- `9730baf` — Add state_aliases to ProfileDefinition and populate builtin profiles\n- `0272771` — Replace KnotState enum with workflow-driven helpers\n- `1d8b823` — Migrate state consumers off KnotState to string-based checks\n- `9380ab1` — Drop AppError::ParseState and InvalidTransition variants\n\n**Verification**: `make sanity` passes. Coverage 95.25% (≥ 95% threshold), +0.00% change. `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, and full `cargo test` all green.\n\n**Files changed**:\n- `src/profile.rs` — new `state_aliases: BTreeMap<String, String>` field on `ProfileDefinition`\n- `src/installed_workflows/builtin.rs` — populates aliases per builtin profile (only when target state is in that profile's `states`)\n- `src/installed_workflows/profile_json.rs`, `profile_toml.rs` — default-empty `state_aliases` on construction\n- `src/domain/state.rs` — enum deleted; replaced with `normalize_state_input`, `resolve_state`, `is_terminal`, `can_transition`, `rank` as workflow-driven free functions\n- `src/tiering.rs`, `src/state_hierarchy.rs`, `src/write_dispatch/helpers.rs`, `src/profile_commands.rs` — migrated off `KnotState::from_str` to profile-driven / string-based checks\n- `src/app/error.rs` — removed `ParseState` and `InvalidTransition` variants (now covered by `ProfileError`)\n- `src/app/tests_error_paths.rs`, `tests_coverage_ext.rs`, `tests_exploration.rs` — updated to assert `ProfileError` paths\n\n**Acceptance check**:\n- ✅ `src/domain/state.rs` no longer defines enum or hardcoded state list / alias map / terminal set / transition table\n- ✅ State validation, terminality, rank, and transitions query the installed `ProfileDefinition`\n- ✅ Legacy aliases (idea, work_item, implemented, approved, refining, rejected, etc.) live in `state_aliases`, not Rust match arms\n- ✅ Installing a workflow with a new state name requires no Rust edit — new-state parity test asserts this\n- ✅ `make sanity` passes; coverage holds at 95.25%\n\nReady for implementation review.",
+    "datetime": "2026-04-17T05:52:03.123963Z",
+    "entry_id": "019d99ff-1033-7db2-8bb4-c9168eb83b1d",
+    "model": "claude-opus-4-7",
+    "username": "unknown",
+    "version": "1m"
+  }
+}

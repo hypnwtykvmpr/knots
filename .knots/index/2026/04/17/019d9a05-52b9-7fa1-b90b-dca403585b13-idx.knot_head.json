@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9a05-52b9-7fa1-b90b-dca403585b13",
+  "occurred_at": "2026-04-17T05:58:53.369427Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-db35",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Delete KnotState enum; make state a workflow-driven string",
+    "type": "work",
+    "updated_at": "2026-04-17T05:58:53.369427Z",
+    "workflow_id": "work_sdlc"
+  }
+}

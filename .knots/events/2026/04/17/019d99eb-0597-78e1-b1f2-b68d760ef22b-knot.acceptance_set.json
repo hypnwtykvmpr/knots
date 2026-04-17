@@ -1,0 +1,9 @@
+{
+  "event_id": "019d99eb-0597-78e1-b1f2-b68d760ef22b",
+  "occurred_at": "2026-04-17T05:30:09.679649Z",
+  "knot_id": "knots-9f61",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "* workflow.loom declares an orchestrate action and a ready_for_orchestration queue, wired so review -> ready_for_orchestration -> orchestration -> shipped.\n  * dist/bundle.json regenerated and contains both new states with correct kinds (queue, action) and both new steps/phases.\n  * Escape edges (* -> abandoned, * -> deferred) still apply to the new states.\n  * make sanity passes."
+  }
+}

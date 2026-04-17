@@ -1,0 +1,15 @@
+{
+  "event_id": "019d99ff-b195-70a3-9b3c-601af8bd7515",
+  "occurred_at": "2026-04-17T05:52:44.437651Z",
+  "knot_id": "knots-db35",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "claude-code",
+    "content": "# Implementation review\n\n**Verdict: Approved.**\n\n## Verified against acceptance criteria\n\n- ✅ **Enum deleted**: grep for `enum KnotState` or `KnotState::` across `src/` returns zero matches. `src/domain/state.rs` now contains only workflow-driven free functions (`normalize_state_input`, `resolve_state`, `is_terminal`, `can_transition`, `rank`).\n- ✅ **Workflow-driven validation**: `resolve_state(profile, raw)` consults `profile.states` first, then `profile.state_aliases`. Terminality/rank/transition queries read `profile.terminal_states`, `profile.states.position`, `profile.transitions`.\n- ✅ **Aliases in registry data, not Rust source**: `ProfileDefinition` gains `state_aliases: BTreeMap<String, String>` (src/profile.rs:101). Builtin loader populates it per profile only when the target state exists in that profile's `states` (src/installed_workflows/builtin.rs:148).\n- ✅ **No Rust edit for new workflow states**: the new helpers take any `&ProfileDefinition`; a bundle with a new state name flows through without touching Rust.\n- ✅ **Sanity gate**: `make sanity` passes. Coverage 95.25% (≥ 95% threshold, +0.00%).\n\n## Diff scope\n\n13 files, +306 / −486. Net deletion, as expected — the enum machinery and hardcoded tables were the bulk.\n\n## Consumer migrations verified\n\n- `src/tiering.rs` — terminal check no longer goes through the enum\n- `src/state_hierarchy.rs` — hardcoded 0–16 rank table replaced with string/profile-driven checks (98 lines changed)\n- `src/write_dispatch/helpers.rs`, `src/profile_commands.rs` — use `normalize_state_input` + alias folding\n- `src/app/error.rs` — `ParseState` and `InvalidTransition` variants removed (covered by `ProfileError`)\n\n## No concerns\n\n- No invariants on this knot; none to check.\n- No new unsafe or external surface.\n- Coverage held, so test migration is sound.\n\nApproved for shipment.",
+    "datetime": "2026-04-17T05:52:44.437651Z",
+    "entry_id": "019d99ff-b195-70a3-9b3c-6001687603b2",
+    "model": "claude-opus-4-7",
+    "username": "unknown",
+    "version": "1m"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019d99ed-9a99-7f13-8dd9-67f701363e37",
+  "occurred_at": "2026-04-17T05:32:58.905867Z",
+  "knot_id": "knots-db35",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "claude-code",
+    "content": "# Plan review\n\n## Verdict\n\n**Approved.** Plan is complete, feasible, and grounded in existing code. `ProfileDefinition` already holds every piece of data the enum duplicates (`states`, `terminal_states`, `transitions`, `escape_states`), so the implementation is substitution + deletion rather than new design.\n\n## Verifications performed\n\n- `src/profile.rs::ProfileDefinition` confirmed to expose `states`, `terminal_states`, `escape_states`, `transitions`, `queue_actions`, `action_kinds` — sufficient to replace every enum method (`as_str`, `is_terminal`, `can_transition_to`, `FromStr` validation) with profile-driven queries.\n- `src/db.rs::KnotCacheRecord` carries `workflow_id` and `profile_id` on every record — so any rank/terminality query in `state_hierarchy.rs` can access the knot's profile at call time. No global registry plumbing needed.\n- `ProfileError::UnknownState { profile_id, state }` already exists — drop-in replacement for `ParseKnotStateError`.\n- `InvalidWorkflowTransition` already exists — drop-in replacement for `InvalidStateTransition`.\n\n## Addendum to the plan\n\nOne implementation note worth pinning down before coding:\n\n`state_hierarchy.rs::effective_state_rank(state: &str)` has a workflow-agnostic signature today and is called from sort paths (`effective_record_rank` / `effective_target_rank`) with records whose profile differs. Two acceptable shapes:\n\n1. Change the signature to `effective_state_rank(profile: &ProfileDefinition, state: &str)` and load the profile per record. Sort key becomes `(profile_id, position_in_profile.states, kind_bucket)`.\n2. Keep it workflow-agnostic by deriving rank from the state's *kind* (queue < action < escape < terminal) plus lexicographic name — only valid if call sites truly don't need intra-workflow ordering precision.\n\nPrefer option (1); it preserves today's semantics and is a mechanical refactor since the caller already has `KnotCacheRecord.profile_id`.\n\n## Gaps: none blocking\n\n- Alias handling via a new `state_aliases` field on `ProfileDefinition` is a small additive schema change; bundle regeneration is a known step, not a risk.\n- No security or performance concerns. Workflow lookup is already cached in the registry.\n- No invariants on this knot; nothing to cross-check.\n\n## Ready for implementation.",
+    "datetime": "2026-04-17T05:32:58.905867Z",
+    "entry_id": "019d99ed-9a99-7f13-8dd9-67e12403d04b",
+    "model": "claude-opus-4-7",
+    "username": "unknown",
+    "version": "1m"
+  }
+}

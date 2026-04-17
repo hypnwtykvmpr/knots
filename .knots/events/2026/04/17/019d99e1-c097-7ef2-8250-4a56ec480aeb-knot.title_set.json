@@ -1,0 +1,10 @@
+{
+  "event_id": "019d99e1-c097-7ef2-8250-4a56ec480aeb",
+  "occurred_at": "2026-04-17T05:20:02.199204Z",
+  "knot_id": "knots-db35",
+  "type": "knot.title_set",
+  "data": {
+    "from": "Generate KnotState (and all state vocabulary) from loom bundles",
+    "to": "Delete KnotState enum; make state a workflow-driven string"
+  }
+}
