@@ -182,6 +182,17 @@ fn managed_hook_blocks_push_when_sanity_fails() {
 }
 
 #[test]
+fn managed_pre_push_script_runs_coverage_only() {
+    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let script = source_root.join("scripts/repo/pre-push-sanity.sh");
+    let contents = std::fs::read_to_string(script).expect("pre-push script should read");
+
+    assert!(contents.contains("Running make coverage before push..."));
+    assert!(contents.contains("make coverage"));
+    assert!(!contents.contains("make sanity"));
+}
+
+#[test]
 fn threshold_regression_script_fails_on_lower_value() {
     let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let checker = source_root.join("scripts/repo/check-coverage-threshold.sh");

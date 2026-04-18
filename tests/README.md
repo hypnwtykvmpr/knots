@@ -18,13 +18,15 @@ Integration tests exercising the CLI and full application stack.
 - **`cli_named_projects.rs`** — project-scoped state and cross-project isolation
 - **`cli_loom_profile_output.rs`** / **`cli_loom_prompt_resolution.rs`** — loom bundle integration
 - **`cli_upgrade_notice.rs`** / **`cli_archival_sweep.rs`** / **`next_optimistic.rs`** — misc CLI behaviors
-- **`repo_guardrails.rs`** — CLAUDE.md/AGENTS.md consistency, hook installation
+- **`repo_guardrails.rs`** — CLAUDE.md/AGENTS.md consistency, hook installation,
+  pre-push guardrails
 
 ## Running
 
 ```sh
 cargo test --all-targets --all-features
 make sanity  # fmt + lint + test + coverage
+make coverage  # coverage-only pass used by the managed pre-push hook
 ```
 
 All tests use ephemeral temp directories. No external services required.

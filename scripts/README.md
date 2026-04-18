@@ -4,7 +4,7 @@ Build automation, release tooling, and git hooks.
 
 ## scripts/repo/
 
-- **`pre-push-sanity.sh`** — runs `make sanity` before every push
+- **`pre-push-sanity.sh`** — runs `make coverage` before every push
 - **`install-hooks.sh`** — installs the managed pre-push hook
 - **`check-file-sizes.sh`** — enforces < 500 lines per .rs file
 - **`check-coverage-threshold.sh`** — prevents coverage regressions
