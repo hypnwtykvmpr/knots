@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9f6a-1882-73a1-bc7c-cac30d10377b",
+  "occurred_at": "2026-04-18T07:07:03.675893Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "initiative:execution-plan"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9f6a-1886-7580-bd7c-4f1b70f00a23",
+  "occurred_at": "2026-04-18T07:07:03.675893Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "taxonomy:beat-to-knot-id"
+  }
+}

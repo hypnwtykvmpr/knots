@@ -1,0 +1,17 @@
+{
+  "event_id": "019d9f6a-187c-7050-9d50-73889e688a8e",
+  "occurred_at": "2026-04-18T07:07:03.675893Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nRename the beat_ids field to knot_ids on ExecutionPlanStep, ExecutionPlanWave, and the top-level ExecutionPlanData struct in src/domain/execution_plan.rs. The term \"beat\" is a Foolery-only abstraction and should not appear in the Knots domain model. Foolery must translate beat_id to knot_id at the payload boundary when writing to Knots.\n\nVerification:\n1. grep -r beat_id src/ returns zero hits.\n2. kno show --json on an execution_plan knot emits knot_ids (not beat_ids) in the execution_plan payload.\n3. Existing tests pass after the rename — update test fixtures that use \"beat-1\" literals.\n4. Snapshot, sync, and rehydrate round-trips preserve the renamed field.\n\nConstraints:\n- Add a migration/compat path if the on-disk event log already contains beat_ids keys (deserialize both, serialize only knot_ids).\n- Do not rename anything in the Foolery codebase — that repo owns the beat abstraction and translates at the boundary.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Rename beat_ids to knot_ids in ExecutionPlanData domain types",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
