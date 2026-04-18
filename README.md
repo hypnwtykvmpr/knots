@@ -335,10 +335,11 @@ kno skills install claude
 kno skills install opencode
 ```
 
-Claude support is project-level only at `./.claude/skills`. OpenCode installs
-to the project root when `./.opencode/` exists; otherwise it falls back to the
-supported user-level root. `kno doctor` checks whether those expected skills
-are present and reports missing setup with the exact `SKILL.md` paths.
+Claude support is project-level only at `./.claude/skills`. Codex and OpenCode
+both use `./.agents/skills`. `kno doctor` only checks those shared managed
+skills when `./.agents/` exists, while `kno skills install codex|opencode`
+bootstraps `.agents/skills`, normalizes `.gitignore`, and removes legacy
+OpenCode installs from older locations.
 
 **CI/CD**:
 ```yaml

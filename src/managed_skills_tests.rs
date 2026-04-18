@@ -170,7 +170,7 @@ fn managed_skills_describe_parent_child_workflow() {
 }
 
 #[test]
-fn doctor_fix_reconciles_drifted_and_installs_missing_skills() {
+fn doctor_fix_reconciles_drifted_skills_and_skips_unconfigured_agents_root() {
     let _guard = env_lock().lock().expect("env lock");
     let prior_home = std::env::var_os("HOME");
 
@@ -190,12 +190,12 @@ fn doctor_fix_reconciles_drifted_and_installs_missing_skills() {
     assert_eq!(c.status, DoctorStatus::Pass);
     assert!(fs::read_to_string(&knots).expect("read").contains("---"));
 
-    // Install missing skills when project root is absent
+    // Skip Codex/OpenCode when .agents is absent
     let repo2 = unique_root("managed-skills-fix-missing-root");
     let home2 = unique_root("managed-skills-home");
     std::env::set_var("HOME", &home2);
     let c = doctor_check(&repo2, Some(&home2), SkillTool::Codex);
-    assert_eq!(c.status, DoctorStatus::Warn);
+    assert_eq!(c.status, DoctorStatus::Pass);
     assert!(!repo2.join(".agents/skills/knots/SKILL.md").exists());
     fix_doctor_check(&repo2, "skills_codex");
     let c = doctor_check(&repo2, Some(&home2), SkillTool::Codex);
@@ -214,10 +214,7 @@ fn skill_tool_helpers_cover_display_and_lookup_paths() {
     assert_eq!(SkillTool::OpenCode.doctor_check_name(), "skills_opencode");
     assert_eq!(expected_root_hint(SkillTool::Codex), ".agents");
     assert_eq!(expected_root_hint(SkillTool::Claude), "./.claude");
-    assert_eq!(
-        expected_root_hint(SkillTool::OpenCode),
-        ".opencode or ~/.config/opencode"
-    );
+    assert_eq!(expected_root_hint(SkillTool::OpenCode), ".agents");
     assert_eq!(tool_for_check_name("skills_codex"), Some(SkillTool::Codex));
     assert_eq!(tool_for_check_name("unknown"), None);
 }
@@ -236,10 +233,17 @@ fn locations_detect_supported_roots_for_all_tools() {
         SkillTool::Claude.locations(&repo_root, Some(&home)).len(),
         1
     );
-    assert_eq!(
-        SkillTool::OpenCode.locations(&repo_root, Some(&home)).len(),
-        2
-    );
+    let opencode = SkillTool::OpenCode.locations(&repo_root, Some(&home));
+    assert_eq!(opencode.len(), 3);
+    assert!(opencode
+        .iter()
+        .any(|location| location.tool_root == repo_root.join(".agents")));
+    assert!(opencode
+        .iter()
+        .any(|location| location.tool_root == repo_root.join(".opencode")));
+    assert!(opencode
+        .iter()
+        .any(|location| location.tool_root == home.join(".config/opencode")));
 }
 
 #[test]
@@ -248,10 +252,15 @@ fn doctor_checks_warn_when_roots_are_missing() {
     let checks = doctor_checks_with_home(&repo_root, None);
 
     assert_eq!(checks.len(), 3);
-    assert!(checks
-        .iter()
-        .all(|check| check.status == DoctorStatus::Warn));
-    assert!(checks[0].detail.contains(".agents/skills"));
+    assert_eq!(checks[0].name, "skills_codex");
+    assert_eq!(checks[0].status, DoctorStatus::Pass);
+    assert!(checks[0].detail.contains(".agents root absent"));
+    assert_eq!(checks[1].name, "skills_claude");
+    assert_eq!(checks[1].status, DoctorStatus::Warn);
+    assert!(checks[1].detail.contains(".claude"));
+    assert_eq!(checks[2].name, "skills_opencode");
+    assert_eq!(checks[2].status, DoctorStatus::Pass);
+    assert!(checks[2].detail.contains(".agents root absent"));
 }
 
 #[test]

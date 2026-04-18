@@ -1,4 +1,22 @@
-use super::{managed_skills, render_skill};
+use std::fs;
+use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
+
+use super::{
+    doctor_check, fix_doctor_check, install_missing, managed_skills, render_skill, DoctorStatus,
+    SkillTool,
+};
+
+fn env_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
+
+fn unique_root(label: &str) -> PathBuf {
+    let root = std::env::temp_dir().join(format!("{label}-{}", uuid::Uuid::now_v7()));
+    fs::create_dir_all(&root).expect("temp root should be creatable");
+    root
+}
 
 #[test]
 fn managed_skill_inventory_includes_knots_create() {
@@ -66,4 +84,62 @@ fn knots_plan_orchestrator_skill_describes_plan_execution_protocol() {
     assert!(rendered.contains("BLOCKED"));
     assert!(rendered.contains("DEFERRED"));
     assert!(rendered.contains("your own protocol for launching and managing coding"));
+}
+
+#[test]
+fn opencode_install_bootstraps_agents_gitignore_and_cleans_legacy_locations() {
+    let repo = unique_root("managed-skills-opencode-install");
+    let home = unique_root("managed-skills-home");
+    fs::create_dir_all(repo.join(".opencode/skills/knots")).expect("legacy opencode project root");
+    fs::write(repo.join(".opencode/skills/knots/SKILL.md"), "legacy").expect("legacy project");
+    fs::create_dir_all(home.join(".config/opencode/skills/knots")).expect("legacy user root");
+    fs::write(
+        home.join(".config/opencode/skills/knots/SKILL.md"),
+        "legacy",
+    )
+    .expect("legacy user");
+
+    let output = install_missing(&repo, Some(&home), SkillTool::OpenCode).expect("install");
+    assert!(output.contains(".agents/skills/knots/SKILL.md"));
+    assert!(repo.join(".agents/skills/knots/SKILL.md").exists());
+    assert!(!repo.join(".opencode/skills/knots/SKILL.md").exists());
+    assert!(!home.join(".config/opencode/skills/knots/SKILL.md").exists());
+
+    let gitignore = fs::read_to_string(repo.join(".gitignore")).expect("gitignore should exist");
+    assert!(gitignore.lines().any(|line| line.trim() == "/.agents/*"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.agents/skills/"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.agents/skills/**"));
+}
+
+#[test]
+fn doctor_skips_codex_and_opencode_when_agents_root_is_absent() {
+    let _guard = env_lock().lock().expect("env lock");
+    let repo = unique_root("managed-skills-doctor-skip");
+    let home = unique_root("managed-skills-home");
+    let prior_home = std::env::var_os("HOME");
+    std::env::set_var("HOME", &home);
+    fs::create_dir_all(home.join(".config/opencode/skills/knots")).expect("legacy user root");
+    fs::write(
+        home.join(".config/opencode/skills/knots/SKILL.md"),
+        "legacy",
+    )
+    .expect("legacy");
+
+    let codex = doctor_check(&repo, Some(&home), SkillTool::Codex);
+    assert_eq!(codex.status, DoctorStatus::Pass);
+    let opencode = doctor_check(&repo, Some(&home), SkillTool::OpenCode);
+    assert_eq!(opencode.status, DoctorStatus::Pass);
+
+    fix_doctor_check(&repo, "skills_opencode");
+    assert!(!home.join(".config/opencode/skills/knots/SKILL.md").exists());
+    assert!(!repo.join(".agents/skills/knots/SKILL.md").exists());
+
+    match prior_home {
+        Some(value) => std::env::set_var("HOME", value),
+        None => std::env::remove_var("HOME"),
+    }
 }

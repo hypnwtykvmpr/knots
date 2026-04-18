@@ -180,6 +180,15 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
     assert!(root
         .join(".agents/skills/knots-plan-orchestrator/SKILL.md")
         .exists());
+    let gitignore = std::fs::read_to_string(root.join(".gitignore"))
+        .expect(".gitignore should exist after managed install");
+    assert!(gitignore.lines().any(|line| line.trim() == "/.agents/*"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.agents/skills/"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.agents/skills/**"));
 
     let uninstall = run_knots(&root, &db, &home, &["skills", "uninstall", "codex"]);
     assert_success(&uninstall);
@@ -193,6 +202,29 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
     assert!(!root
         .join(".agents/skills/knots-plan-orchestrator/SKILL.md")
         .exists());
+}
+
+#[test]
+fn skills_install_for_opencode_uses_agents_root_and_cleans_legacy_locations() {
+    let root = unique_workspace("knots-cli-skills-opencode");
+    let home = unique_workspace("knots-cli-skills-home");
+    std::fs::create_dir_all(root.join(".opencode/skills/knots")).expect("legacy project root");
+    std::fs::write(root.join(".opencode/skills/knots/SKILL.md"), "legacy")
+        .expect("legacy project skill");
+    std::fs::create_dir_all(home.join(".config/opencode/skills/knots")).expect("legacy user root");
+    std::fs::write(
+        home.join(".config/opencode/skills/knots/SKILL.md"),
+        "legacy",
+    )
+    .expect("legacy user skill");
+    let db = root.join(".knots/cache/state.sqlite");
+
+    let install = run_knots(&root, &db, &home, &["skills", "install", "opencode"]);
+    assert_success(&install);
+
+    assert!(root.join(".agents/skills/knots/SKILL.md").exists());
+    assert!(!root.join(".opencode/skills/knots/SKILL.md").exists());
+    assert!(!home.join(".config/opencode/skills/knots/SKILL.md").exists());
 }
 
 #[test]
@@ -213,7 +245,6 @@ fn skills_install_prefers_project_root_for_claude() {
 fn skills_update_fails_non_interactively_when_install_is_required() {
     let root = unique_workspace("knots-cli-skills-update");
     let home = unique_workspace("knots-cli-skills-home");
-    std::fs::create_dir_all(home.join(".config/opencode")).expect("opencode root should exist");
     let db = root.join(".knots/cache/state.sqlite");
 
     let update = run_knots(&root, &db, &home, &["skills", "update", "opencode"]);
@@ -314,7 +345,7 @@ fn doctor_reports_drifted_skills_and_update_reconciles_them() {
 }
 
 #[test]
-fn doctor_fix_creates_missing_codex_root_and_installs_skills() {
+fn doctor_skips_codex_when_agents_root_is_absent() {
     let root = unique_workspace("knots-cli-skills-doctor-fix-root");
     let home = unique_workspace("knots-cli-skills-home");
     setup_repo_with_remote(&root);
@@ -325,14 +356,13 @@ fn doctor_fix_creates_missing_codex_root_and_installs_skills() {
     assert_success(&doctor);
     let report: Value = serde_json::from_slice(&doctor.stdout).expect("doctor json should parse");
     let codex = find_check(&report, "skills_codex");
-    assert_eq!(codex["status"], "warn");
+    assert_eq!(codex["status"], "pass");
     let detail = codex["detail"].as_str().expect("detail should be a string");
-    assert!(detail.contains(".agents/skills"));
-    assert!(detail.contains("run `kno skills install codex`"));
+    assert!(detail.contains(".agents root absent"));
 
     let _doctor_fix = run_repo_debug_knots(&root, &db, &home, &["doctor", "--fix"]);
-    assert!(root.join(".agents/skills/knots/SKILL.md").exists());
-    assert!(root.join(".agents/skills/knots-create/SKILL.md").exists());
+    assert!(!root.join(".agents/skills/knots/SKILL.md").exists());
+    assert!(!root.join(".agents/skills/knots-create/SKILL.md").exists());
 
     let after = run_repo_debug_knots(&root, &db, &home, &["doctor", "--json"]);
     assert_success(&after);
