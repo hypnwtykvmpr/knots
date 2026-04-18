@@ -1,0 +1,17 @@
+{
+  "event_id": "019da052-99cb-7830-a5ec-53f5ed793069",
+  "occurred_at": "2026-04-18T11:21:01.130843Z",
+  "knot_id": "knots-0993",
+  "type": "knot.created",
+  "data": {
+    "body": "Some execution_plan knots appear with work_sdlc and ready_for_planning semantics after type conversion or adjacent defaulting paths. Trace every path that assigns type, workflow, profile, and initial state for execution_plan knots, identify why a work root can stick, and decide whether we need a migration or repair command for already mis-rooted knots.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Investigate execution_plan knots inheriting work workflow roots",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
