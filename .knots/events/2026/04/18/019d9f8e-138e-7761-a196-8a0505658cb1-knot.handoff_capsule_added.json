@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9f8e-138e-7761-a196-8a0505658cb1",
+  "occurred_at": "2026-04-18T07:46:21.7101Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Re-verified feature/knots-dab8-execution-plan-compat-v2 at 788e796 on 2026-04-18.\n- rg -n beat_id src/ returns 0 hits.\n- cargo test execution_plan: 41 tests passed, including serde legacy/canonical, db hot round-trip, sync apply (legacy+canonical), and update rehydrate.\n- Branch already pushed to origin; commits 8c81d08 and 788e796 tagged on knot.\n- Legacy beat_ids/unassigned_beat_ids keys deserialize via custom Deserialize impls; serialization emits knot_ids only.",
+    "datetime": "2026-04-18T07:46:21.7101Z",
+    "entry_id": "019d9f8e-138e-7761-a196-89f698b0b4c0",
+    "model": "claude-opus-4-7",
+    "username": "claude",
+    "version": "1"
+  }
+}

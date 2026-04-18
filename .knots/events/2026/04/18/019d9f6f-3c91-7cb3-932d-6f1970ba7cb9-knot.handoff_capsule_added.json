@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9f6f-3c91-7cb3-932d-6f1970ba7cb9",
+  "occurred_at": "2026-04-18T07:12:40.593701Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planned `knots-dab8` as a focused execution-plan compatibility pass. The current Rust domain model already uses `knot_ids`; the next step should verify the wave-level wording in the knot, add legacy `beat_ids` deserialization where needed, and extend domain/db/app/sync/CLI coverage so write/show/rehydrate paths emit only `knot_ids`.",
+    "datetime": "2026-04-18T07:12:40.593701Z",
+    "entry_id": "019d9f6f-3c91-7cb3-932d-6f099f82ce0a",
+    "model": "gpt-5.4",
+    "username": "Codex",
+    "version": "5.4"
+  }
+}

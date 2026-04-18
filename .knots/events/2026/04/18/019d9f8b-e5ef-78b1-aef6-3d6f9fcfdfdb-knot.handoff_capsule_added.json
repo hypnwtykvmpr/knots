@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9f8b-e5ef-78b1-aef6-3d6f9fcfdfdb",
+  "occurred_at": "2026-04-18T07:43:58.958963Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Branch: feature/knots-dab8-execution-plan-compat-v2\nCommits: 8c81d0871651c81ead5f2ed6e24309a21beee65b, 788e79613360622f3f1c0b08b28ddfd9e06c26ce\nVerification: rg -n \"beat_id\" src => 0 hits; cargo test execution_plan; make sanity passed at 95.26% coverage.\nNotes: legacy execution-plan ids still deserialize from old event payloads, but all Knots-owned serialization now emits knot_ids only.",
+    "datetime": "2026-04-18T07:43:40Z",
+    "entry_id": "019d9f8b-e5ef-78b1-aef6-3d55fb371a5e",
+    "model": "gpt-5",
+    "username": "codex",
+    "version": "2026-04-18"
+  }
+}

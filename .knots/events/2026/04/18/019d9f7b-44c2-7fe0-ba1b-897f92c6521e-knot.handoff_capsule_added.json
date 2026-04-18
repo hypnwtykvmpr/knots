@@ -1,0 +1,15 @@
+{
+  "event_id": "019d9f7b-44c2-7fe0-ba1b-897f92c6521e",
+  "occurred_at": "2026-04-18T07:25:49.122006Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: feature/knots-dab8-execution-plan-compat (commit a7c42da). Added serde aliases on ExecutionPlanStep.knot_ids and ExecutionPlanData.knot_ids/unassigned_knot_ids so legacy beat_ids/unassigned_beat_ids payloads deserialize cleanly while serialization continues to emit only the canonical knot_ids. New tests in src/domain/execution_plan.rs cover the legacy deserialize path and assert no beat_id keys re-emit. make sanity passed (1055 tests, 95.41% coverage, +0.01%).",
+    "datetime": "2026-04-18T07:25:49.122006Z",
+    "entry_id": "019d9f7b-44c2-7fe0-ba1b-8964c74792c6",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

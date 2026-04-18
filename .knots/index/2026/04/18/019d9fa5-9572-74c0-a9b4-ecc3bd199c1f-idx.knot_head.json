@@ -1,0 +1,21 @@
+{
+  "event_id": "019d9fa5-9572-74c0-a9b4-ecc3bd199c1f",
+  "occurred_at": "2026-04-18T08:12:02.29094Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-dab8",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Rename beat_ids to knot_ids in ExecutionPlanData domain types",
+    "type": "work",
+    "updated_at": "2026-04-18T08:12:02.29094Z",
+    "workflow_id": "work_sdlc"
+  }
+}

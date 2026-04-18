@@ -1,0 +1,47 @@
+{
+  "event_id": "019d9f6f-5330-7c90-a3c3-320aaa7fff33",
+  "occurred_at": "2026-04-18T07:12:46.384591Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-dab8",
+    "next_step_metadata": {
+      "action_kind": "gate",
+      "action_state": "plan_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_plan_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "plan_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Rename beat_ids to knot_ids in ExecutionPlanData domain types",
+    "type": "work",
+    "updated_at": "2026-04-18T07:12:46.384591Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019d9f8b-e5ef-78b1-aef6-3d4a60b34a6e",
+  "occurred_at": "2026-04-18T07:43:58.958963Z",
+  "knot_id": "knots-dab8",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/knots-dab8-execution-plan-compat-v2"
+  }
+}
