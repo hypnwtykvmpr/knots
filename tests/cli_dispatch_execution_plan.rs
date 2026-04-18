@@ -222,3 +222,33 @@ fn updating_work_knot_to_execution_plan_re_roots_workflow() {
 
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn execution_plan_next_advances_from_design_queue() {
+    let root = unique_workspace("knots-cli-exec-plan-next");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_builtin_workflows(&root, &db);
+
+    let created = run_knots(
+        &root,
+        &db,
+        &["new", "Execution plan", "--type", "execution_plan"],
+    );
+    assert_success(&created);
+    let knot_id = parse_created_id(&created);
+
+    let next = run_knots(&root, &db, &["next", &knot_id, "--json"]);
+    assert_success(&next);
+    let next_json: Value = serde_json::from_slice(&next.stdout).expect("next json");
+    assert_eq!(next_json["state"], "design");
+
+    let shown = run_knots(&root, &db, &["show", &knot_id, "--json"]);
+    assert_success(&shown);
+    let shown_json: Value = serde_json::from_slice(&shown.stdout).expect("show json");
+    assert_eq!(shown_json["workflow_id"], "execution_plan_sdlc");
+    assert_eq!(shown_json["profile_id"], "autopilot");
+    assert_eq!(shown_json["state"], "design");
+
+    let _ = std::fs::remove_dir_all(root);
+}

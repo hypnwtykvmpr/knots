@@ -19,12 +19,10 @@ pub fn owner_kind_label(kind: &OwnerKind) -> &'static str {
 }
 
 pub fn profile_lookup_id(knot: &KnotView) -> String {
-    if !crate::installed_workflows::is_builtin_workflow_id(&knot.workflow_id)
-        && !knot.profile_id.contains('/')
-    {
-        format!("{}/{}", knot.workflow_id, knot.profile_id)
-    } else {
+    if knot.profile_id.contains('/') || knot.workflow_id.trim().is_empty() {
         knot.profile_id.clone()
+    } else {
+        crate::installed_workflows::namespaced_profile_id(&knot.workflow_id, &knot.profile_id)
     }
 }
 
@@ -106,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn profile_lookup_id_returns_as_is_for_builtin() {
+    fn profile_lookup_id_prefixes_builtin_workflow() {
         let knot = KnotView {
             id: "knots-2".to_string(),
             alias: None,
@@ -140,6 +138,6 @@ mod tests {
             edges: Vec::new(),
             child_summaries: Vec::new(),
         };
-        assert_eq!(profile_lookup_id(&knot), "default");
+        assert_eq!(profile_lookup_id(&knot), "work_sdlc/default");
     }
 }

@@ -54,10 +54,10 @@ pub(crate) fn canonical_profile_id(raw: &str, workflow_id: &str) -> String {
 }
 
 pub(crate) fn profile_lookup_id(workflow_id: &str, profile_id: &str) -> String {
-    if !installed_workflows::is_builtin_workflow_id(workflow_id) && !profile_id.contains('/') {
-        format!("{workflow_id}/{profile_id}")
-    } else {
+    if profile_id.contains('/') || workflow_id.trim().is_empty() {
         profile_id.to_string()
+    } else {
+        installed_workflows::namespaced_profile_id(workflow_id, profile_id)
     }
 }
 

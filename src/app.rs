@@ -237,7 +237,9 @@ impl App {
         let pid = helpers::non_empty(record.profile_id.as_str()).ok_or_else(|| {
             AppError::InvalidArgument(format!("knot '{}' is missing profile_id", record.id))
         })?;
-        Ok(self.profile_registry.require(&pid)?)
+        let workflow_id = helpers::non_empty(record.workflow_id.as_str());
+        let resolved = self.resolve_profile_id(&pid, workflow_id.as_deref())?;
+        Ok(self.profile_registry.require(&resolved)?)
     }
 
     /// Take the most recent cold-sweep report (produced by `list_knots` /
