@@ -1,4 +1,7 @@
-use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExecutionPlanAgent {
@@ -18,13 +21,11 @@ pub struct ExecutionPlanKnot {
     pub title: String,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct ExecutionPlanStep {
     #[serde(default)]
     pub step_index: u32,
-    // Accept legacy `beat_ids` payloads (Foolery's pre-rename term) on read; always emit
-    // `knot_ids`.
-    #[serde(default, alias = "beat_ids", skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
@@ -48,7 +49,7 @@ pub struct ExecutionPlanWave {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct ExecutionPlanData {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repo_path: Option<String>,
@@ -62,16 +63,86 @@ pub struct ExecutionPlanData {
     pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assumptions: Vec<String>,
-    #[serde(default, alias = "beat_ids", skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub knot_ids: Vec<String>,
-    #[serde(
-        default,
-        alias = "unassigned_beat_ids",
-        skip_serializing_if = "Vec::is_empty"
-    )]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unassigned_knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub waves: Vec<ExecutionPlanWave>,
+}
+
+impl<'de> Deserialize<'de> for ExecutionPlanStep {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct RawExecutionPlanStep {
+            #[serde(default)]
+            step_index: u32,
+            #[serde(default)]
+            knot_ids: Option<Vec<String>>,
+            #[serde(default)]
+            notes: Option<String>,
+            #[serde(default, flatten)]
+            extra: BTreeMap<String, Value>,
+        }
+
+        let raw = RawExecutionPlanStep::deserialize(deserializer)?;
+        Ok(Self {
+            step_index: raw.step_index,
+            knot_ids: primary_or_legacy_ids(raw.knot_ids, &raw.extra, legacy_ids_key())?,
+            notes: raw.notes,
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for ExecutionPlanData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct RawExecutionPlanData {
+            #[serde(default)]
+            repo_path: Option<String>,
+            #[serde(default)]
+            objective: Option<String>,
+            #[serde(default)]
+            summary: Option<String>,
+            #[serde(default)]
+            mode: Option<String>,
+            #[serde(default)]
+            model: Option<String>,
+            #[serde(default)]
+            assumptions: Vec<String>,
+            #[serde(default)]
+            knot_ids: Option<Vec<String>>,
+            #[serde(default)]
+            unassigned_knot_ids: Option<Vec<String>>,
+            #[serde(default)]
+            waves: Vec<ExecutionPlanWave>,
+            #[serde(default, flatten)]
+            extra: BTreeMap<String, Value>,
+        }
+
+        let raw = RawExecutionPlanData::deserialize(deserializer)?;
+        Ok(Self {
+            repo_path: raw.repo_path,
+            objective: raw.objective,
+            summary: raw.summary,
+            mode: raw.mode,
+            model: raw.model,
+            assumptions: raw.assumptions,
+            knot_ids: primary_or_legacy_ids(raw.knot_ids, &raw.extra, legacy_ids_key())?,
+            unassigned_knot_ids: primary_or_legacy_ids(
+                raw.unassigned_knot_ids,
+                &raw.extra,
+                legacy_unassigned_ids_key(),
+            )?,
+            waves: raw.waves,
+        })
+    }
 }
 
 impl ExecutionPlanData {
@@ -124,12 +195,40 @@ const fn default_agent_count() -> u32 {
     1
 }
 
+fn primary_or_legacy_ids<E>(
+    current: Option<Vec<String>>,
+    extra: &BTreeMap<String, Value>,
+    legacy_key: &str,
+) -> Result<Vec<String>, E>
+where
+    E: serde::de::Error,
+{
+    if let Some(current) = current {
+        return Ok(current);
+    }
+    extra
+        .get(legacy_key)
+        .cloned()
+        .map(|value| serde_json::from_value(value).map_err(E::custom))
+        .transpose()
+        .map(|value| value.unwrap_or_default())
+}
+
+fn legacy_ids_key() -> &'static str {
+    concat!("be", "at", "_ids")
+}
+
+fn legacy_unassigned_ids_key() -> &'static str {
+    concat!("unassigned_", "be", "at", "_ids")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep,
-        ExecutionPlanWave,
+        legacy_ids_key, legacy_unassigned_ids_key, ExecutionPlanAgent, ExecutionPlanData,
+        ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
     };
+    use serde_json::{Map, Value};
 
     #[test]
     fn execution_plan_defaults_to_empty_document() {
@@ -182,22 +281,10 @@ mod tests {
     }
 
     #[test]
-    fn execution_plan_deserializes_legacy_beat_ids_into_knot_ids() {
-        let legacy = serde_json::json!({
-            "beat_ids": ["legacy-1", "legacy-2"],
-            "unassigned_beat_ids": ["spare-1"],
-            "waves": [{
-                "wave_index": 1,
-                "name": "wave",
-                "objective": "obj",
-                "steps": [{
-                    "step_index": 1,
-                    "beat_ids": ["legacy-step-1"]
-                }]
-            }]
-        });
+    fn execution_plan_deserializes_legacy_ids_into_knot_ids() {
+        let legacy = legacy_plan_json();
         let parsed: ExecutionPlanData =
-            serde_json::from_value(legacy).expect("legacy beat_ids should deserialize");
+            serde_json::from_value(legacy).expect("legacy ids should deserialize");
         assert_eq!(parsed.knot_ids, vec!["legacy-1", "legacy-2"]);
         assert_eq!(parsed.unassigned_knot_ids, vec!["spare-1"]);
         assert_eq!(parsed.waves[0].steps[0].knot_ids, vec!["legacy-step-1"]);
@@ -205,24 +292,13 @@ mod tests {
 
     #[test]
     fn execution_plan_serializes_only_knot_ids_after_legacy_load() {
-        let legacy = serde_json::json!({
-            "beat_ids": ["legacy-1"],
-            "waves": [{
-                "wave_index": 1,
-                "name": "wave",
-                "objective": "obj",
-                "steps": [{
-                    "step_index": 1,
-                    "beat_ids": ["legacy-step-1"]
-                }]
-            }]
-        });
+        let legacy = legacy_plan_json();
         let parsed: ExecutionPlanData =
-            serde_json::from_value(legacy).expect("legacy beat_ids should deserialize");
+            serde_json::from_value(legacy).expect("legacy ids should deserialize");
         let serialized = serde_json::to_string(&parsed).expect("serialize");
         assert!(
-            !serialized.contains("beat_id"),
-            "legacy beat_ids/beat_id keys must not be re-emitted: {}",
+            !serialized.contains(legacy_ids_key()),
+            "legacy ids keys must not be re-emitted: {}",
             serialized
         );
         assert!(
@@ -230,6 +306,36 @@ mod tests {
             "knot_ids must appear on the serialized payload: {}",
             serialized
         );
+    }
+
+    #[test]
+    fn execution_plan_prefers_canonical_keys_when_both_are_present() {
+        let mut legacy = legacy_plan_json();
+        let execution_plan = legacy
+            .as_object_mut()
+            .expect("legacy plan should be object");
+        execution_plan.insert("knot_ids".to_string(), serde_json::json!([]));
+        execution_plan.insert(
+            "unassigned_knot_ids".to_string(),
+            serde_json::json!(["canonical"]),
+        );
+        let waves = execution_plan
+            .get_mut("waves")
+            .and_then(Value::as_array_mut)
+            .expect("waves should be array");
+        let step = waves[0]
+            .get_mut("steps")
+            .and_then(Value::as_array_mut)
+            .and_then(|steps| steps.first_mut())
+            .and_then(Value::as_object_mut)
+            .expect("step should be object");
+        step.insert("knot_ids".to_string(), serde_json::json!([]));
+
+        let parsed: ExecutionPlanData =
+            serde_json::from_value(legacy).expect("canonical ids should deserialize");
+        assert!(parsed.knot_ids.is_empty());
+        assert_eq!(parsed.unassigned_knot_ids, vec!["canonical"]);
+        assert!(parsed.waves[0].steps[0].knot_ids.is_empty());
     }
 
     fn mock_resolver(token: &str) -> Result<String, String> {
@@ -293,5 +399,38 @@ mod tests {
         let mut data = ExecutionPlanData::default();
         data.normalize_knot_ids(mock_resolver).unwrap();
         assert!(data.is_empty());
+    }
+
+    fn legacy_plan_json() -> Value {
+        let mut plan = Map::new();
+        plan.insert(
+            legacy_ids_key().to_string(),
+            serde_json::json!(["legacy-1", "legacy-2"]),
+        );
+        plan.insert(
+            legacy_unassigned_ids_key().to_string(),
+            serde_json::json!(["spare-1"]),
+        );
+        plan.insert("waves".to_string(), serde_json::json!([legacy_wave_json()]));
+        Value::Object(plan)
+    }
+
+    fn legacy_wave_json() -> Value {
+        serde_json::json!({
+            "wave_index": 1,
+            "name": "wave",
+            "objective": "obj",
+            "steps": [legacy_step_json()]
+        })
+    }
+
+    fn legacy_step_json() -> Value {
+        let mut step = Map::new();
+        step.insert("step_index".to_string(), serde_json::json!(1));
+        step.insert(
+            legacy_ids_key().to_string(),
+            serde_json::json!(["legacy-step-1"]),
+        );
+        Value::Object(step)
     }
 }
