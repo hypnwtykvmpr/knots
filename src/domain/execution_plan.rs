@@ -22,7 +22,9 @@ pub struct ExecutionPlanKnot {
 pub struct ExecutionPlanStep {
     #[serde(default)]
     pub step_index: u32,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    // Accept legacy `beat_ids` payloads (Foolery's pre-rename term) on read; always emit
+    // `knot_ids`.
+    #[serde(default, alias = "beat_ids", skip_serializing_if = "Vec::is_empty")]
     pub knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
@@ -60,9 +62,13 @@ pub struct ExecutionPlanData {
     pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assumptions: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, alias = "beat_ids", skip_serializing_if = "Vec::is_empty")]
     pub knot_ids: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        alias = "unassigned_beat_ids",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub unassigned_knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub waves: Vec<ExecutionPlanWave>,
@@ -173,6 +179,57 @@ mod tests {
     fn execution_plan_deserializes_legacy_empty_payload() {
         let parsed: ExecutionPlanData = serde_json::from_str("{}").expect("deserialize");
         assert_eq!(parsed, ExecutionPlanData::default());
+    }
+
+    #[test]
+    fn execution_plan_deserializes_legacy_beat_ids_into_knot_ids() {
+        let legacy = serde_json::json!({
+            "beat_ids": ["legacy-1", "legacy-2"],
+            "unassigned_beat_ids": ["spare-1"],
+            "waves": [{
+                "wave_index": 1,
+                "name": "wave",
+                "objective": "obj",
+                "steps": [{
+                    "step_index": 1,
+                    "beat_ids": ["legacy-step-1"]
+                }]
+            }]
+        });
+        let parsed: ExecutionPlanData =
+            serde_json::from_value(legacy).expect("legacy beat_ids should deserialize");
+        assert_eq!(parsed.knot_ids, vec!["legacy-1", "legacy-2"]);
+        assert_eq!(parsed.unassigned_knot_ids, vec!["spare-1"]);
+        assert_eq!(parsed.waves[0].steps[0].knot_ids, vec!["legacy-step-1"]);
+    }
+
+    #[test]
+    fn execution_plan_serializes_only_knot_ids_after_legacy_load() {
+        let legacy = serde_json::json!({
+            "beat_ids": ["legacy-1"],
+            "waves": [{
+                "wave_index": 1,
+                "name": "wave",
+                "objective": "obj",
+                "steps": [{
+                    "step_index": 1,
+                    "beat_ids": ["legacy-step-1"]
+                }]
+            }]
+        });
+        let parsed: ExecutionPlanData =
+            serde_json::from_value(legacy).expect("legacy beat_ids should deserialize");
+        let serialized = serde_json::to_string(&parsed).expect("serialize");
+        assert!(
+            !serialized.contains("beat_id"),
+            "legacy beat_ids/beat_id keys must not be re-emitted: {}",
+            serialized
+        );
+        assert!(
+            serialized.contains("knot_ids"),
+            "knot_ids must appear on the serialized payload: {}",
+            serialized
+        );
     }
 
     fn mock_resolver(token: &str) -> Result<String, String> {
