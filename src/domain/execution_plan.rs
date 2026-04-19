@@ -52,8 +52,6 @@ pub struct ExecutionPlanWave {
 #[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct ExecutionPlanData {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub repo_path: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub objective: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
@@ -63,8 +61,6 @@ pub struct ExecutionPlanData {
     pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assumptions: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unassigned_knot_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -105,8 +101,6 @@ impl<'de> Deserialize<'de> for ExecutionPlanData {
         #[derive(Deserialize)]
         struct RawExecutionPlanData {
             #[serde(default)]
-            repo_path: Option<String>,
-            #[serde(default)]
             objective: Option<String>,
             #[serde(default)]
             summary: Option<String>,
@@ -117,8 +111,6 @@ impl<'de> Deserialize<'de> for ExecutionPlanData {
             #[serde(default)]
             assumptions: Vec<String>,
             #[serde(default)]
-            knot_ids: Option<Vec<String>>,
-            #[serde(default)]
             unassigned_knot_ids: Option<Vec<String>>,
             #[serde(default)]
             waves: Vec<ExecutionPlanWave>,
@@ -128,13 +120,11 @@ impl<'de> Deserialize<'de> for ExecutionPlanData {
 
         let raw = RawExecutionPlanData::deserialize(deserializer)?;
         Ok(Self {
-            repo_path: raw.repo_path,
             objective: raw.objective,
             summary: raw.summary,
             mode: raw.mode,
             model: raw.model,
             assumptions: raw.assumptions,
-            knot_ids: primary_or_legacy_ids(raw.knot_ids, &raw.extra, legacy_ids_key())?,
             unassigned_knot_ids: primary_or_legacy_ids(
                 raw.unassigned_knot_ids,
                 &raw.extra,
@@ -147,13 +137,11 @@ impl<'de> Deserialize<'de> for ExecutionPlanData {
 
 impl ExecutionPlanData {
     pub fn is_empty(&self) -> bool {
-        self.repo_path.is_none()
-            && self.objective.is_none()
+        self.objective.is_none()
             && self.summary.is_none()
             && self.mode.is_none()
             && self.model.is_none()
             && self.assumptions.is_empty()
-            && self.knot_ids.is_empty()
             && self.unassigned_knot_ids.is_empty()
             && self.waves.is_empty()
     }
@@ -167,7 +155,6 @@ impl ExecutionPlanData {
     where
         F: Fn(&str) -> Result<String, E>,
     {
-        resolve_id_vec(&mut self.knot_ids, &resolver)?;
         resolve_id_vec(&mut self.unassigned_knot_ids, &resolver)?;
         for wave in &mut self.waves {
             for knot in &mut wave.knots {
@@ -228,7 +215,7 @@ mod tests {
         legacy_ids_key, legacy_unassigned_ids_key, ExecutionPlanAgent, ExecutionPlanData,
         ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
     };
-    use serde_json::{Map, Value};
+    use serde_json::{json, Map, Value};
 
     #[test]
     fn execution_plan_defaults_to_empty_document() {
@@ -239,13 +226,11 @@ mod tests {
     #[test]
     fn execution_plan_round_trips_through_json() {
         let data = ExecutionPlanData {
-            repo_path: Some("/repo".to_string()),
             objective: Some("Ship the plan".to_string()),
             summary: Some("Execution plan for caller-selected knots".to_string()),
             mode: Some("autopilot".to_string()),
             model: Some("gpt-5".to_string()),
             assumptions: vec!["assume existing knots are valid".to_string()],
-            knot_ids: vec!["knot-1".to_string()],
             unassigned_knot_ids: vec!["knot-2".to_string()],
             waves: vec![ExecutionPlanWave {
                 wave_index: 1,
@@ -281,40 +266,46 @@ mod tests {
     }
 
     #[test]
-    fn execution_plan_deserializes_legacy_ids_into_knot_ids() {
+    fn execution_plan_reads_legacy_step_and_unassigned_ids() {
         let legacy = legacy_plan_json();
         let parsed: ExecutionPlanData =
             serde_json::from_value(legacy).expect("legacy ids should deserialize");
-        assert_eq!(parsed.knot_ids, vec!["legacy-1", "legacy-2"]);
         assert_eq!(parsed.unassigned_knot_ids, vec!["spare-1"]);
         assert_eq!(parsed.waves[0].steps[0].knot_ids, vec!["legacy-step-1"]);
     }
 
     #[test]
-    fn execution_plan_serializes_only_knot_ids_after_legacy_load() {
+    fn execution_plan_serializes_without_removed_top_level_fields_after_legacy_load() {
         let legacy = legacy_plan_json();
         let parsed: ExecutionPlanData =
             serde_json::from_value(legacy).expect("legacy ids should deserialize");
-        let serialized = serde_json::to_string(&parsed).expect("serialize");
+        let serialized = serde_json::to_value(&parsed).expect("serialize");
+        let plan = serialized.as_object().expect("plan should be object");
         assert!(
-            !serialized.contains(legacy_ids_key()),
-            "legacy ids keys must not be re-emitted: {}",
-            serialized
+            !plan.contains_key(legacy_ids_key()),
+            "legacy ids key must not be re-emitted: {plan:?}",
         );
         assert!(
-            serialized.contains("knot_ids"),
-            "knot_ids must appear on the serialized payload: {}",
-            serialized
+            !plan.contains_key("repo_path"),
+            "repo_path must not be re-emitted: {plan:?}",
+        );
+        assert!(
+            !plan.contains_key("knot_ids"),
+            "top-level knot_ids must not be re-emitted: {plan:?}",
+        );
+        assert_eq!(plan.get("unassigned_knot_ids"), Some(&json!(["spare-1"])));
+        assert_eq!(
+            plan["waves"][0]["steps"][0]["knot_ids"],
+            json!(["legacy-step-1"])
         );
     }
 
     #[test]
-    fn execution_plan_prefers_canonical_keys_when_both_are_present() {
+    fn execution_plan_prefers_canonical_unassigned_and_step_keys_when_both_are_present() {
         let mut legacy = legacy_plan_json();
         let execution_plan = legacy
             .as_object_mut()
             .expect("legacy plan should be object");
-        execution_plan.insert("knot_ids".to_string(), serde_json::json!([]));
         execution_plan.insert(
             "unassigned_knot_ids".to_string(),
             serde_json::json!(["canonical"]),
@@ -333,7 +324,6 @@ mod tests {
 
         let parsed: ExecutionPlanData =
             serde_json::from_value(legacy).expect("canonical ids should deserialize");
-        assert!(parsed.knot_ids.is_empty());
         assert_eq!(parsed.unassigned_knot_ids, vec!["canonical"]);
         assert!(parsed.waves[0].steps[0].knot_ids.is_empty());
     }
@@ -351,7 +341,6 @@ mod tests {
     #[test]
     fn normalize_resolves_bare_ids_to_qualified() {
         let mut data = ExecutionPlanData {
-            knot_ids: vec!["a1b2".to_string()],
             unassigned_knot_ids: vec!["c3d4".to_string()],
             waves: vec![ExecutionPlanWave {
                 knots: vec![ExecutionPlanKnot {
@@ -368,7 +357,6 @@ mod tests {
             ..Default::default()
         };
         data.normalize_knot_ids(mock_resolver).unwrap();
-        assert_eq!(data.knot_ids, vec!["proj-a1b2"]);
         assert_eq!(data.unassigned_knot_ids, vec!["proj-c3d4"]);
         assert_eq!(data.waves[0].knots[0].id, "proj-a1b2");
         assert_eq!(data.waves[0].steps[0].knot_ids, vec!["proj-c3d4"]);
@@ -377,17 +365,17 @@ mod tests {
     #[test]
     fn normalize_passes_through_already_qualified_ids() {
         let mut data = ExecutionPlanData {
-            knot_ids: vec!["proj-a1b2".to_string()],
+            unassigned_knot_ids: vec!["proj-a1b2".to_string()],
             ..Default::default()
         };
         data.normalize_knot_ids(mock_resolver).unwrap();
-        assert_eq!(data.knot_ids, vec!["proj-a1b2"]);
+        assert_eq!(data.unassigned_knot_ids, vec!["proj-a1b2"]);
     }
 
     #[test]
     fn normalize_rejects_unresolvable_ids() {
         let mut data = ExecutionPlanData {
-            knot_ids: vec!["unknown".to_string()],
+            unassigned_knot_ids: vec!["unknown".to_string()],
             ..Default::default()
         };
         let err = data.normalize_knot_ids(mock_resolver).unwrap_err();

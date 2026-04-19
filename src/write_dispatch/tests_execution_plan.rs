@@ -72,6 +72,7 @@ fn execute_operation_update_loads_execution_plan_file() {
             "repo_path": "/repo",
             "objective": "Ship file-based update",
             "summary": "Execution plan for file-based update",
+            "knot_ids": ["knot-1"],
             "waves": [{
                 "wave_index": 1,
                 "name": "Persist",
@@ -128,12 +129,15 @@ fn execute_operation_update_loads_execution_plan_file() {
 
     let updated = app.show_knot(&knot.id).expect("show").expect("knot exists");
     let execution_plan = updated.execution_plan.expect("payload should exist");
-    assert_eq!(execution_plan.repo_path.as_deref(), Some("/repo"));
     assert_eq!(
         execution_plan.objective.as_deref(),
         Some("Ship file-based update")
     );
     assert_eq!(execution_plan.waves.len(), 1);
+    let serialized = serde_json::to_value(&execution_plan).expect("payload should serialize");
+    let plan = serialized.as_object().expect("plan should be object");
+    assert_eq!(plan.get("repo_path"), None);
+    assert_eq!(plan.get("knot_ids"), None);
 
     let _ = std::fs::remove_dir_all(root);
 }

@@ -256,13 +256,11 @@ mod tests {
 
     fn sample_plan() -> ExecutionPlanData {
         ExecutionPlanData {
-            repo_path: Some("/repo".to_string()),
             objective: Some("Ship".to_string()),
             summary: Some("summary".to_string()),
             mode: Some("autopilot".to_string()),
             model: Some("gpt-5".to_string()),
             assumptions: vec!["assume".to_string()],
-            knot_ids: vec!["root".to_string()],
             unassigned_knot_ids: vec!["spare".to_string()],
             waves: vec![
                 ExecutionPlanWave {
@@ -315,7 +313,7 @@ mod tests {
         assert_eq!(next.waves[0].wave_index, 1);
         assert_eq!(next.waves[0].name, "alpha");
         assert_eq!(next.waves[0].objective, "objective");
-        assert_eq!(next.repo_path, None);
+        assert!(next.objective.is_none());
     }
 
     #[test]

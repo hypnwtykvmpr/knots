@@ -15,6 +15,38 @@ fn canonical_id(repo_root: &Path, db: &Path, id_or_alias: &str) -> String {
         .to_string()
 }
 
+fn assert_round_trip_plan(plan: &Value, work_a_id: &str, work_b_id: &str) {
+    assert!(plan.get("repo_path").is_none());
+    assert_eq!(plan["objective"], "Smoke-test execution plan persistence");
+    assert_eq!(plan["mode"], "autopilot");
+    assert_eq!(plan["model"], "smoke-tester");
+    assert_eq!(
+        plan["assumptions"],
+        json!(["assume CLI dispatch stays wired"])
+    );
+    assert!(plan.get("knot_ids").is_none());
+
+    let waves = plan["waves"].as_array().expect("waves array");
+    assert_eq!(waves.len(), 1);
+    let wave = &waves[0];
+    assert_eq!(wave["wave_index"], 1);
+    assert_eq!(wave["name"], "Wave 1");
+    assert_eq!(wave["objective"], "Land both work knots together");
+    assert_eq!(wave["notes"], "Sole wave");
+
+    let agents = wave["agents"].as_array().expect("agents array");
+    assert_eq!(agents.len(), 1);
+    assert_eq!(agents[0]["role"], "implementer");
+    assert_eq!(agents[0]["count"], 2);
+    assert_eq!(agents[0]["specialty"], "rust");
+
+    let steps = wave["steps"].as_array().expect("steps array");
+    assert_eq!(steps.len(), 1);
+    assert_eq!(steps[0]["step_index"], 1);
+    assert_eq!(steps[0]["knot_ids"], json!([work_a_id, work_b_id]));
+    assert_eq!(steps[0]["notes"], "Run A and B concurrently");
+}
+
 #[test]
 fn execution_plan_file_round_trips_through_show_json() {
     let root = unique_workspace("knots-cli-exec-plan-file");
@@ -29,7 +61,6 @@ fn execution_plan_file_round_trips_through_show_json() {
     );
     assert_success(&created);
     let knot_id = parse_created_id(&created);
-
     let work_a = run_knots(&root, &db, &["new", "Wave 1 work A"]);
     assert_success(&work_a);
     let work_a_id = canonical_id(&root, &db, &parse_created_id(&work_a));
@@ -83,45 +114,15 @@ fn execution_plan_file_round_trips_through_show_json() {
         ],
     );
     assert_success(&updated);
-
     let shown = run_knots(&root, &db, &["show", &knot_id, "--json"]);
     assert_success(&shown);
     let view: Value = serde_json::from_slice(&shown.stdout).expect("show json should parse");
     assert_eq!(view["type"], "execution_plan");
-
     let plan = view
         .get("execution_plan")
         .cloned()
         .expect("execution_plan field should be present");
-    assert_eq!(plan["repo_path"], "/repo");
-    assert_eq!(plan["objective"], "Smoke-test execution plan persistence");
-    assert_eq!(plan["mode"], "autopilot");
-    assert_eq!(plan["model"], "smoke-tester");
-    assert_eq!(
-        plan["assumptions"],
-        json!(["assume CLI dispatch stays wired"])
-    );
-    assert_eq!(plan["knot_ids"], json!([work_a_id, work_b_id]));
-
-    let waves = plan["waves"].as_array().expect("waves array");
-    assert_eq!(waves.len(), 1);
-    let wave = &waves[0];
-    assert_eq!(wave["wave_index"], 1);
-    assert_eq!(wave["name"], "Wave 1");
-    assert_eq!(wave["objective"], "Land both work knots together");
-    assert_eq!(wave["notes"], "Sole wave");
-
-    let agents = wave["agents"].as_array().expect("agents array");
-    assert_eq!(agents.len(), 1);
-    assert_eq!(agents[0]["role"], "implementer");
-    assert_eq!(agents[0]["count"], 2);
-    assert_eq!(agents[0]["specialty"], "rust");
-
-    let steps = wave["steps"].as_array().expect("steps array");
-    assert_eq!(steps.len(), 1);
-    assert_eq!(steps[0]["step_index"], 1);
-    assert_eq!(steps[0]["knot_ids"], json!([work_a_id, work_b_id]));
-    assert_eq!(steps[0]["notes"], "Run A and B concurrently");
+    assert_round_trip_plan(&plan, &work_a_id, &work_b_id);
 
     let _ = std::fs::remove_dir_all(root);
 }

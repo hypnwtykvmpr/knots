@@ -84,6 +84,7 @@ fn apply_index_event_reads_execution_plan_payload() {
             "type": "execution_plan",
             "execution_plan": {
                 "repo_path": "/repo",
+                "knot_ids": ["knot-1"],
                 "objective": "Ship sync payload",
                 "summary": "Execution plan for sync payload",
                 "waves": [{
@@ -120,13 +121,11 @@ fn apply_index_event_reads_execution_plan_payload() {
         .expect("hot lookup should succeed")
         .expect("record should exist");
     let expected = ExecutionPlanData {
-        repo_path: Some("/repo".to_string()),
         objective: Some("Ship sync payload".to_string()),
         summary: Some("Execution plan for sync payload".to_string()),
         mode: None,
         model: None,
         assumptions: vec![],
-        knot_ids: vec![],
         unassigned_knot_ids: vec![],
         waves: vec![ExecutionPlanWave {
             wave_index: 1,
@@ -155,7 +154,7 @@ fn apply_index_event_reads_execution_plan_payload() {
 }
 
 #[test]
-fn apply_index_event_reads_legacy_ids_payload_and_emits_knot_ids() {
+fn apply_index_event_ignores_removed_top_level_fields_and_legacy_ids() {
     let root = setup_repo();
     let conn = open_conn(&root);
     db::set_meta(&conn, "hot_window_days", "365").expect("hot window should be configurable");
@@ -222,7 +221,6 @@ fn apply_index_event_reads_legacy_ids_payload_and_emits_knot_ids() {
     let record = db::get_knot_hot(&conn, "K-plan-legacy")
         .expect("hot lookup should succeed")
         .expect("record should exist");
-    assert_eq!(record.execution_plan_data.knot_ids, vec!["knot-1"]);
     assert_eq!(
         record.execution_plan_data.unassigned_knot_ids,
         vec!["knot-2"]
@@ -232,10 +230,12 @@ fn apply_index_event_reads_legacy_ids_payload_and_emits_knot_ids() {
         vec!["knot-1"]
     );
 
-    let serialized = serde_json::to_string(&record.execution_plan_data)
+    let serialized = serde_json::to_value(&record.execution_plan_data)
         .expect("canonical payload should serialize");
-    assert!(serialized.contains("knot_ids"));
-    assert!(!serialized.contains(legacy_ids_key()));
+    let plan = serialized.as_object().expect("payload should be object");
+    assert_eq!(plan.get("repo_path"), None);
+    assert_eq!(plan.get("knot_ids"), None);
+    assert!(!plan.contains_key(legacy_ids_key()));
 
     let _ = std::fs::remove_dir_all(root);
 }

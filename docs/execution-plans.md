@@ -193,6 +193,8 @@ kno show plan-9ab3 --json
 
 The `execution_plan` field will contain the ordered `waves` array, and each
 wave will contain its ordered `steps`.
+The repo path is implied by the current repository, and there is no persisted
+top-level knot-id list. Step-local `knot_ids` are the source of truth.
 
 ## Practical Reading Guide
 

@@ -238,13 +238,11 @@ fn update_knot_persists_execution_plan_and_rehydrates_it() {
         .expect("ref2");
 
     let execution_plan_data = ExecutionPlanData {
-        repo_path: Some("/repo".to_string()),
         objective: Some("Ship the feature".to_string()),
         summary: Some("Execution plan for selected knots".to_string()),
         mode: Some("autopilot".to_string()),
         model: Some("gpt-5".to_string()),
         assumptions: vec!["assume current knots are correct".to_string()],
-        knot_ids: vec![ref1.id.clone()],
         unassigned_knot_ids: vec![ref2.id.clone()],
         waves: vec![ExecutionPlanWave {
             wave_index: 1,

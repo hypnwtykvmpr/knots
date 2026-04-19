@@ -240,13 +240,11 @@ fn upsert_and_get_knot_hot_round_trips_execution_plan_data() {
     let path = unique_db_path();
     let conn = open_connection(&path).expect("connection should open");
     let execution_plan_data = ExecutionPlanData {
-        repo_path: Some("/repo".to_string()),
         objective: Some("Ship the payload".to_string()),
         summary: Some("Execution plan for payload work".to_string()),
         mode: Some("autopilot".to_string()),
         model: Some("gpt-5".to_string()),
         assumptions: vec!["assume knot ids already exist".to_string()],
-        knot_ids: vec!["knot-1".to_string()],
         unassigned_knot_ids: vec!["knot-2".to_string()],
         waves: vec![ExecutionPlanWave {
             wave_index: 1,

@@ -5,6 +5,7 @@ use crate::domain::execution_plan::{
 };
 use crate::knot_id::display_id;
 use rusqlite::params;
+use serde_json::json;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -35,7 +36,6 @@ fn bare_ids_are_normalized_to_fully_qualified() {
 
     let bare = display_id(&child.id).to_string();
     let ep = ExecutionPlanData {
-        knot_ids: vec![bare.clone()],
         unassigned_knot_ids: vec![bare.clone()],
         waves: vec![ExecutionPlanWave {
             knots: vec![ExecutionPlanKnot {
@@ -57,7 +57,6 @@ fn bare_ids_are_normalized_to_fully_qualified() {
         .expect("update should succeed");
 
     let plan = updated.execution_plan.expect("plan present");
-    assert_eq!(plan.knot_ids, vec![child.id.clone()]);
     assert_eq!(plan.unassigned_knot_ids, vec![child.id.clone()],);
     assert_eq!(plan.waves[0].knots[0].id, child.id);
     assert_eq!(plan.waves[0].steps[0].knot_ids, vec![child.id.clone()],);
@@ -78,7 +77,7 @@ fn already_qualified_ids_pass_through_unchanged() {
         .unwrap();
 
     let ep = ExecutionPlanData {
-        knot_ids: vec![child.id.clone()],
+        unassigned_knot_ids: vec![child.id.clone()],
         ..Default::default()
     };
 
@@ -87,7 +86,7 @@ fn already_qualified_ids_pass_through_unchanged() {
         .expect("update should succeed");
 
     let plan = updated.execution_plan.expect("plan present");
-    assert_eq!(plan.knot_ids, vec![child.id]);
+    assert_eq!(plan.unassigned_knot_ids, vec![child.id]);
 
     let _ = std::fs::remove_dir_all(root);
 }
@@ -102,7 +101,7 @@ fn unresolvable_ids_are_rejected() {
         .unwrap();
 
     let ep = ExecutionPlanData {
-        knot_ids: vec!["nonexistent".to_string()],
+        unassigned_knot_ids: vec!["nonexistent".to_string()],
         ..Default::default()
     };
 
@@ -137,7 +136,7 @@ fn show_json_displays_qualified_ids_at_all_levels() {
 
     let bare = display_id(&child.id).to_string();
     let ep = ExecutionPlanData {
-        knot_ids: vec![bare.clone()],
+        unassigned_knot_ids: vec![bare.clone()],
         waves: vec![ExecutionPlanWave {
             knots: vec![ExecutionPlanKnot {
                 id: bare.clone(),
@@ -159,7 +158,7 @@ fn show_json_displays_qualified_ids_at_all_levels() {
     let shown = app.show_knot(&parent.id).expect("show").expect("exists");
 
     let plan = shown.execution_plan.expect("plan present");
-    assert_eq!(plan.knot_ids, vec![child.id.clone()]);
+    assert_eq!(plan.unassigned_knot_ids, vec![child.id.clone()]);
     assert_eq!(plan.waves[0].knots[0].id, child.id);
     assert_eq!(plan.waves[0].steps[0].knot_ids, vec![child.id],);
 
@@ -179,35 +178,32 @@ fn show_json_canonicalizes_legacy_bare_ids_from_cache() {
         .unwrap();
 
     let bare = display_id(&child.id).to_string();
-    let ep = ExecutionPlanData {
-        knot_ids: vec![bare.clone()],
-        unassigned_knot_ids: vec![bare.clone()],
-        waves: vec![ExecutionPlanWave {
-            knots: vec![ExecutionPlanKnot {
-                id: bare.clone(),
-                title: "t".into(),
+    let payload = json!({
+        "repo_path": "/repo",
+        "knot_ids": [bare.clone()],
+        "unassigned_knot_ids": [bare.clone()],
+        "waves": [{
+            "wave_index": 1,
+            "knots": [{
+                "id": bare.clone(),
+                "title": "t"
             }],
-            steps: vec![ExecutionPlanStep {
-                step_index: 1,
-                knot_ids: vec![bare],
-                notes: None,
-            }],
-            ..Default::default()
-        }],
-        ..Default::default()
-    };
-    let json = serde_json::to_string(&ep).expect("serialize");
+            "steps": [{
+                "step_index": 1,
+                "knot_ids": [bare]
+            }]
+        }]
+    });
     let conn = open_connection(db.to_str().unwrap()).expect("db");
     conn.execute(
         "UPDATE knot_hot SET execution_plan_data_json=?1 WHERE id=?2",
-        params![json, parent.id],
+        params![payload.to_string(), parent.id],
     )
     .expect("rewrite hot cache");
 
     let shown = app.show_knot(&parent.id).expect("show").expect("exists");
 
     let plan = shown.execution_plan.expect("plan present");
-    assert_eq!(plan.knot_ids, vec![child.id.clone()]);
     assert_eq!(plan.unassigned_knot_ids, vec![child.id.clone()]);
     assert_eq!(plan.waves[0].knots[0].id, child.id.clone());
     assert_eq!(plan.waves[0].steps[0].knot_ids, vec![child.id]);
