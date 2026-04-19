@@ -25,6 +25,8 @@ jobs:
       - name: Detect version bump
         id: detect
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -53,10 +55,43 @@ jobs:
           fi
 
           tag="v${current_version}"
-          if [[ "${should_release}" == "true" ]] && \
-             git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
-            echo "::error::Tag ${tag} already exists on remote. A Version Packages PR was merged but the tag was pre-existing — the release was never published. Resolve the tag collision and re-run."
-            exit 1
+          tag_exists="false"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            tag_exists="true"
+          fi
+
+          release_exists="false"
+          release_complete="false"
+          if gh release view "${tag}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --json assets \
+            --jq '.assets[].name' > /tmp/release-assets.txt 2>/dev/null; then
+            release_exists="true"
+            release_complete="true"
+            for asset in \
+              "knots-v${current_version}-darwin-arm64.tar.gz" \
+              "knots-v${current_version}-linux-x86_64.tar.gz" \
+              "knots-v${current_version}-linux-aarch64.tar.gz" \
+              "knots-v${current_version}-checksums.txt"; do
+              if ! grep -Fxq "${asset}" /tmp/release-assets.txt; then
+                release_complete="false"
+                break
+              fi
+            done
+          fi
+
+          if [[ "${should_release}" == "true" ]]; then
+            if [[ "${release_complete}" == "true" ]]; then
+              echo "::notice::Release ${tag} already exists with expected assets. Skipping publish."
+              should_release="false"
+            elif [[ "${release_exists}" == "true" ]]; then
+              echo "::notice::Release ${tag} is missing expected assets."
+              echo "::notice::Continuing in recovery mode."
+            elif [[ "${tag_exists}" == "true" ]]; then
+              echo "::error::Tag ${tag} exists, but no GitHub release was found."
+              echo "::error::Inspect the existing tag before retrying."
+              exit 1
+            fi
           fi
 
           echo "should_release=${should_release}" >> "${GITHUB_OUTPUT}"
@@ -198,11 +233,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "${RELEASE_TAG}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "${RELEASE_TAG}" \
-            --generate-notes \
-            "dist/knots-v${RELEASE_VERSION}-darwin-arm64.tar.gz" \
-            "dist/knots-v${RELEASE_VERSION}-linux-x86_64.tar.gz" \
-            "dist/knots-v${RELEASE_VERSION}-linux-aarch64.tar.gz" \
-            "dist/knots-v${RELEASE_VERSION}-checksums.txt"
+          if gh release view "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --clobber \
+              "dist/knots-v${RELEASE_VERSION}-darwin-arm64.tar.gz" \
+              "dist/knots-v${RELEASE_VERSION}-linux-x86_64.tar.gz" \
+              "dist/knots-v${RELEASE_VERSION}-linux-aarch64.tar.gz" \
+              "dist/knots-v${RELEASE_VERSION}-checksums.txt"
+          else
+            gh release create "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${RELEASE_TAG}" \
+              --generate-notes \
+              "dist/knots-v${RELEASE_VERSION}-darwin-arm64.tar.gz" \
+              "dist/knots-v${RELEASE_VERSION}-linux-x86_64.tar.gz" \
+              "dist/knots-v${RELEASE_VERSION}-linux-aarch64.tar.gz" \
+              "dist/knots-v${RELEASE_VERSION}-checksums.txt"
+          fi

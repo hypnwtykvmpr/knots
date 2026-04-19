@@ -22,9 +22,10 @@ Ship a new Knots release.
 
 1. **Confirm release state on `main`** — Work from a clean `main` branch and
    pull the latest remote state first. Check the current version in
-   `Cargo.toml` and `package.json`, then compare it with the latest git tag.
-   Preview commits since the last tag with:
-   `git log $(git describe --tags --abbrev=0)..HEAD --oneline`
+   `Cargo.toml` and `package.json`, then compare it with the latest semver
+   tag and the GitHub release for `v<version>`.
+   Preview commits since the latest semver tag with:
+   `git log "$(git tag --sort=-version:refname | head -n 1)"..HEAD --oneline`
 
 2. **Inspect pending release inputs** — Check whether there are unreleased
    changesets in `.changeset/` and whether a `Version Packages` PR already
@@ -36,8 +37,11 @@ Ship a new Knots release.
      Changesets workflow create or update the `Version Packages` PR.
    - If the `Version Packages` PR exists, review the bump, changelog, and
      version sync before merging it.
-   - If the version PR is already merged and `Cargo.toml` is ahead of the
-     latest release tag, move to release verification or recovery.
+   - If the version PR is already merged and a GitHub release already exists
+     for `v<version>`, treat it as already shipped and verify assets instead of
+     calling it a tag collision.
+   - If the version PR is already merged and the GitHub release is missing or
+     incomplete, move to release verification or recovery.
 
 4. **Run required quality gates** — Before merging a version PR or retrying a
    release, run:
@@ -53,8 +57,8 @@ Ship a new Knots release.
    - Normal path: merge the `Version Packages` PR into `main`. The `Release`
      GitHub Actions workflow should trigger automatically on the push.
    - Recovery path: if the version bump is already on `main` but the release is
-     missing, inspect the `Release` workflow and re-run it or trigger it with
-     `workflow_dispatch`.
+     missing or incomplete, inspect the `Release` workflow and re-run it or
+     trigger it with `workflow_dispatch`.
 
 6. **Verify published outputs** — Confirm the GitHub Release exists for
    `v<version>` and that these assets are attached:
@@ -74,5 +78,6 @@ Ship a new Knots release.
 - `npm run version-packages` runs `changeset version` and then syncs
   `Cargo.toml` and `package.json`.
 - The release workflow publishes GitHub release notes with `--generate-notes`.
-- If the workflow reports that `v<version>` already exists on remote, stop and
-  treat it as a tag-collision recovery task instead of retrying blindly.
+- An existing `v<version>` tag is normal after a successful release. Treat only
+  `tag exists but release is missing` or `release exists but required assets are
+  missing` as recovery conditions.

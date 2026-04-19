@@ -11,6 +11,9 @@ Knots uses Changesets to manage release metadata.
 3. Changesets workflow opens/updates a `Version Packages` PR.
 4. Merge version PR.
 5. Release workflow builds binaries, creates release assets, and publishes tag `v<version>`.
+6. Re-running the workflow for an already-published version should be a no-op.
+   Treat only `tag exists but release is missing` or `release exists but assets
+   are missing` as recovery cases.
 
 Published assets:
 - `knots-v<semver>-darwin-arm64.tar.gz`
