@@ -141,7 +141,7 @@ pub enum Commands {
     Poll(PollArgs),
     #[command(about = "Claim a knot and get its action prompt.")]
     Claim(ClaimArgs),
-    #[command(about = "List knots queued for action (ready_for_* states).")]
+    #[command(about = "Inspect knots queued for action.")]
     Ready(ReadyArgs),
     #[command(about = "Manage step execution history.")]
     Step(StepArgs),

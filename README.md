@@ -219,6 +219,10 @@ Each iteration claims work, executes it, and advances the knot through the workf
 `poll` and `claim` are the primary agent interface. CLI stdout is the prompt delivery mechanism — no file injection, no hooks, and no agent-specific API required.
 
 ```bash
+kno ready                      # inspect the current queue
+kno ready implementation       # filter to a specific upcoming action
+kno ready evaluate --owner human
+kno ready --json               # machine-readable queue inventory
 kno poll                       # peek at the top claimable knot
 kno poll implementation        # filter to a specific stage
 kno poll --owner human         # show human-owned stages instead
@@ -228,6 +232,12 @@ kno claim <id>                 # claim a specific knot by id
 kno claim <id> --json          # machine-readable claim
 kno claim <id> --peek          # preview without advancing state
 ```
+
+`kno ready` is for queue inspection, not recommendation. It lists knots that are
+resting in queue states, sorted by priority and then age, and its text output
+surfaces the upcoming owner/action for each item. Use `--owner` when you want
+to inspect only agent- or human-owned work; use `poll` when you want the single
+next claimable knot for one owner.
 
 Agent metadata is recorded on each claim:
 ```bash

@@ -77,6 +77,31 @@ fn verify_gate_show(root: &std::path::Path, db: &std::path::Path, gate_id: &str)
 }
 
 fn verify_gate_poll_and_claim(root: &std::path::Path, db: &std::path::Path, gate_id: &str) {
+    let ready = run_knots(
+        root,
+        db,
+        &["ready", "evaluate", "--owner", "human", "--json"],
+    );
+    assert_success(&ready);
+    let ready_json: Value = serde_json::from_slice(&ready.stdout).expect("ready json");
+    let ready_items = ready_json
+        .as_array()
+        .expect("ready json should be an array");
+    assert_eq!(ready_items.len(), 1);
+    let ready_id = ready_items[0]["id"]
+        .as_str()
+        .expect("ready item id should be a string");
+    assert!(
+        ready_id.ends_with(gate_id),
+        "full id '{ready_id}' should end with '{gate_id}'"
+    );
+
+    let ready_text = run_knots(root, db, &["ready", "evaluate", "--owner", "human"]);
+    assert_success(&ready_text);
+    let ready_stdout = String::from_utf8_lossy(&ready_text.stdout);
+    assert!(ready_stdout.contains("Release gate"));
+    assert!(ready_stdout.contains("human -> evaluating"));
+
     let poll = run_knots(
         root,
         db,

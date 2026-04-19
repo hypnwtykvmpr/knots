@@ -116,6 +116,7 @@ fn run_ready_empty_queue_prints_message() {
     let app = App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app should open");
     let args = ReadyArgs {
         ready_type: None,
+        owner: None,
         json: false,
     };
     run_ready(&app, args).expect("run_ready should succeed");
@@ -129,6 +130,7 @@ fn run_ready_json_empty_queue() {
     let app = App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app should open");
     let args = ReadyArgs {
         ready_type: None,
+        owner: None,
         json: true,
     };
     run_ready(&app, args).expect("run_ready json should succeed");
@@ -163,6 +165,7 @@ fn run_ready_with_knot_in_queue() {
         .expect("create should succeed");
     let args = ReadyArgs {
         ready_type: None,
+        owner: None,
         json: false,
     };
     run_ready(&app, args).expect("run_ready with knot should succeed");

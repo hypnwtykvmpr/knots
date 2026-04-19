@@ -300,11 +300,18 @@ pub struct RehydrateArgs {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "List knots queued for action.")]
+#[command(about = "Inspect knots queued for action.")]
 pub struct ReadyArgs {
-    #[arg(help = "Optional ready type filter \
-                (e.g. plan, implementation, plan_review).")]
+    #[arg(help = "Optional stage/action filter \
+                (e.g. planning, implementation, evaluate).")]
     pub ready_type: Option<String>,
+
+    #[arg(
+        short = 'o',
+        long = "owner",
+        help = "Optional owner kind filter (agent or human)."
+    )]
+    pub owner: Option<String>,
 
     #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
     pub json: bool,

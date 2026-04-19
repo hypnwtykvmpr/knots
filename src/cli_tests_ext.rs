@@ -96,6 +96,7 @@ fn ready_parses_without_type() {
     match cli.command {
         Commands::Ready(args) => {
             assert!(args.ready_type.is_none());
+            assert!(args.owner.is_none());
             assert!(!args.json);
         }
         other => panic!("expected Ready, got {:?}", other),
@@ -108,6 +109,7 @@ fn ready_parses_with_type() {
     match cli.command {
         Commands::Ready(args) => {
             assert_eq!(args.ready_type.as_deref(), Some("plan"));
+            assert!(args.owner.is_none());
         }
         other => panic!("expected Ready, got {:?}", other),
     }
@@ -119,6 +121,7 @@ fn ready_parses_with_json_flag() {
     match cli.command {
         Commands::Ready(args) => {
             assert!(args.ready_type.is_none());
+            assert!(args.owner.is_none());
             assert!(args.json);
         }
         other => panic!("expected Ready, got {:?}", other),
@@ -131,7 +134,21 @@ fn ready_parses_with_type_and_json() {
     match cli.command {
         Commands::Ready(args) => {
             assert_eq!(args.ready_type.as_deref(), Some("implementation"));
+            assert!(args.owner.is_none());
             assert!(args.json);
+        }
+        other => panic!("expected Ready, got {:?}", other),
+    }
+}
+
+#[test]
+fn ready_parses_with_owner() {
+    let cli = parse(&["kno", "ready", "evaluate", "--owner", "human"]);
+    match cli.command {
+        Commands::Ready(args) => {
+            assert_eq!(args.ready_type.as_deref(), Some("evaluate"));
+            assert_eq!(args.owner.as_deref(), Some("human"));
+            assert!(!args.json);
         }
         other => panic!("expected Ready, got {:?}", other),
     }

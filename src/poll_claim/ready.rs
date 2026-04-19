@@ -8,7 +8,15 @@ use crate::workflow_runtime;
 
 pub fn run_ready(app: &App, args: ReadyArgs) -> Result<(), AppError> {
     let stage = normalize_ready_type(args.ready_type.as_deref());
-    let candidates = list_queue_candidates(app, stage.as_deref())?;
+    let owner_filter = args
+        .owner
+        .as_deref()
+        .map(|owner| parse_owner_filter(Some(owner)));
+    let registry = app.profile_registry();
+    let mut candidates = list_queue_candidates(app, stage.as_deref())?;
+    if let Some(owner_kind) = owner_filter.as_ref() {
+        candidates.retain(|knot| ready_owner_matches(registry, knot, owner_kind));
+    }
     if args.json {
         let json =
             serde_json::to_string_pretty(&candidates).expect("JSON serialization should work");
@@ -23,10 +31,14 @@ pub fn run_ready(app: &App, args: ReadyArgs) -> Result<(), AppError> {
                 .alias
                 .as_deref()
                 .map_or(sid.to_string(), |a| format!("{a} ({sid})"));
+            let owner = ready_owner_label(registry, knot);
+            let action = ready_action_label(registry, knot);
             println!(
-                "{} {} {}",
+                "{} {} [{} -> {}] {}",
                 palette.id(&display_id),
                 palette.state(&knot.state),
+                owner,
+                action,
                 knot.title
             );
         }
@@ -87,6 +99,64 @@ pub fn queue_stage_matches(registry: &ProfileRegistry, knot: &KnotView, normaliz
         });
     }
     false
+}
+
+fn ready_owner_matches(
+    registry: &ProfileRegistry,
+    knot: &KnotView,
+    owner_kind: &OwnerKind,
+) -> bool {
+    ready_owner_kind(registry, knot).as_ref() == Some(owner_kind)
+}
+
+fn ready_owner_label(registry: &ProfileRegistry, knot: &KnotView) -> &'static str {
+    match ready_owner_kind(registry, knot) {
+        Some(OwnerKind::Human) => "human",
+        Some(OwnerKind::Agent) => "agent",
+        None => "unspecified",
+    }
+}
+
+fn ready_owner_kind(registry: &ProfileRegistry, knot: &KnotView) -> Option<OwnerKind> {
+    knot.next_step_metadata
+        .as_ref()
+        .and_then(|meta| meta.owner.as_ref())
+        .map(|owner| owner.kind.clone())
+        .or_else(|| {
+            let action_state = ready_action_state(registry, knot)?;
+            let gate = knot.gate.clone().unwrap_or_default();
+            let profile_id = profile_lookup_id(knot);
+            workflow_runtime::owner_kind_for_state(
+                registry,
+                &profile_id,
+                knot.knot_type,
+                &gate,
+                action_state.as_str(),
+            )
+            .ok()
+            .flatten()
+        })
+}
+
+fn ready_action_label(registry: &ProfileRegistry, knot: &KnotView) -> String {
+    ready_action_state(registry, knot).unwrap_or_else(|| "unknown".to_string())
+}
+
+fn ready_action_state(registry: &ProfileRegistry, knot: &KnotView) -> Option<String> {
+    knot.next_step_metadata
+        .as_ref()
+        .map(|meta| meta.action_state.clone())
+        .or_else(|| {
+            let profile_id = profile_lookup_id(knot);
+            workflow_runtime::next_happy_path_state(
+                registry,
+                &profile_id,
+                knot.knot_type,
+                &knot.state,
+            )
+            .ok()
+            .flatten()
+        })
 }
 
 pub fn normalize_ready_type(raw: Option<&str>) -> Option<String> {

@@ -148,6 +148,7 @@ fn run_poll_and_claim_cover_json_and_text_rendering_paths() {
         &app,
         ReadyArgs {
             ready_type: Some("evaluate".to_string()),
+            owner: None,
             json: true,
         },
     )
@@ -198,6 +199,54 @@ fn run_poll_and_claim_cover_json_and_text_rendering_paths() {
         },
     )
     .expect("peek claim should succeed");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn run_ready_owner_filter_matches_pollable_owner() {
+    let root = unique_workspace();
+    let app = open_app(&root);
+    app.create_knot(
+        "Implementation work",
+        None,
+        Some("ready_for_implementation"),
+        None,
+    )
+    .expect("work knot should be created");
+    app.create_knot_with_options(
+        "Human gate",
+        None,
+        None,
+        None,
+        None,
+        CreateKnotOptions {
+            knot_type: KnotType::Gate,
+            gate_data: GateData {
+                owner_kind: GateOwnerKind::Human,
+                ..Default::default()
+            },
+            ..CreateKnotOptions::default()
+        },
+    )
+    .expect("gate should be created");
+
+    let agent_candidates =
+        list_queue_candidates(&app, None).expect("list candidates should succeed");
+    assert_eq!(
+        agent_candidates.len(),
+        2,
+        "unfiltered ready shows both queue items"
+    );
+
+    let human_candidates = list_queue_candidates(&app, Some("evaluate"))
+        .expect("stage-filtered candidates should succeed");
+    assert_eq!(human_candidates.len(), 1, "stage filter isolates the gate");
+
+    let human_poll = poll_queue(&app, Some("evaluate"), Some("human"))
+        .expect("human poll should work")
+        .expect("human should see the gate");
+    assert_eq!(human_poll.knot.title, "Human gate");
 
     let _ = std::fs::remove_dir_all(root);
 }
