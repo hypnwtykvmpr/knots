@@ -1,0 +1,15 @@
+{
+  "event_id": "019da490-57b5-74d1-ae4e-37ea7b329b61",
+  "occurred_at": "2026-04-19T07:06:56.309122Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Plan review approved: scope is cohesive, legacy read compatibility is the only notable risk, and the planned domain/app/sync/CLI coverage plus make sanity is sufficient for shipment.",
+    "datetime": "2026-04-19T07:06:56.309122Z",
+    "entry_id": "019da490-57b5-74d1-ae4e-37de1cda1db6",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

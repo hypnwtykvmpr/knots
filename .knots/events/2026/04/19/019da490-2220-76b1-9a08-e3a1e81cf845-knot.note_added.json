@@ -1,0 +1,15 @@
+{
+  "event_id": "019da490-2220-76b1-9a08-e3a1e81cf845",
+  "occurred_at": "2026-04-19T07:06:42.592311Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Implementation plan for removing redundant execution-plan fields\n\nScope\n- Remove persisted `repo_path` and top-level `knot_ids` from `ExecutionPlanData`.\n- Treat `waves[*].steps[*].knot_ids` as the source of truth for coordinated work ordering.\n- Keep `unassigned_knot_ids` and wave-local knot metadata unless implementation proves they need follow-up.\n\nLikely file changes\n- `src/domain/execution_plan.rs`: drop the fields from the typed model and serializer, update `is_empty`, and keep only the compatibility needed to read legacy payloads safely during sync/rehydrate.\n- `src/domain/execution_plan_edit.rs`: remove sample-plan expectations for the deleted fields while keeping wave/step editing behavior intact.\n- `src/app/tests_update_ext.rs`, `src/app/tests_update_normalize_ids.rs`, `src/db/tests_ext.rs`, `src/sync/apply_tests_execution_plan.rs`, `src/write_dispatch/tests_execution_plan.rs`, and `tests/cli_dispatch_execution_plan.rs`: rewrite fixtures/assertions so write, show, sync, and rehydrate paths no longer emit `repo_path` or top-level `knot_ids`.\n- `docs/execution-plans.md` and any nearby README snippets: describe execution plans in terms of waves and step-local knot groups only.\n\nComplexity and risks\n- Complexity is moderate: the change is structurally small but touches the model, compatibility reads, and many serialization assertions.\n- Main risk is older event-log or cache payloads that still contain `repo_path` or top-level `knot_ids`; the implementation should stay tolerant on read so historic plans still rehydrate.\n- Secondary risk is ID normalization coverage; tests currently assert canonicalization at the removed top level, so replacement coverage should prove step-local ids and any remaining references still normalize correctly.\n\nTest strategy\n- Run focused execution-plan Rust tests first across domain, app, sync, and CLI surfaces.\n- Finish with `make sanity` to satisfy lint, tests, and coverage gates before shipping.\n\nHierarchy of knots created\n- None. The change is cohesive enough to ship inside `08c4` without child knots.",
+    "datetime": "2026-04-19T07:06:42.592311Z",
+    "entry_id": "019da490-2220-76b1-9a08-e390e567a126",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

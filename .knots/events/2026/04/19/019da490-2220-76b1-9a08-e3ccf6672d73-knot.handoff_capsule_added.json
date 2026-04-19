@@ -1,0 +1,15 @@
+{
+  "event_id": "019da490-2220-76b1-9a08-e3ccf6672d73",
+  "occurred_at": "2026-04-19T07:06:42.592311Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Plan: remove `repo_path` and top-level `knot_ids` from execution-plan payloads, keep legacy reads tolerant, update execution-plan fixtures/docs, and validate with focused tests plus `make sanity`. No child knots needed.",
+    "datetime": "2026-04-19T07:06:42.592311Z",
+    "entry_id": "019da490-2220-76b1-9a08-e3b6d43c30bb",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "019da488-96d6-7451-9152-f0685ff156ae",
+  "occurred_at": "2026-04-19T06:58:28.182089Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.created",
+  "data": {
+    "body": "both fields are just confusing waste.  repoPath is implicit and knot_ids should be derived from wave steps only",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "remove repoPath variable and knot_ids from execution_plan knots",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
