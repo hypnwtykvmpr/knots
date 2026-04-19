@@ -1,0 +1,21 @@
+{
+  "event_id": "019da4a2-861a-7f31-9baa-f1b50278059d",
+  "occurred_at": "2026-04-19T07:26:47.834507Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-08c4",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "remove repoPath variable and knot_ids from execution_plan knots",
+    "type": "work",
+    "updated_at": "2026-04-19T07:26:47.834507Z",
+    "workflow_id": "work_sdlc"
+  }
+}

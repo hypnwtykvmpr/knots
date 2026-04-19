@@ -1,0 +1,15 @@
+{
+  "event_id": "019da49b-ac69-79b3-8678-c4b297b6303e",
+  "occurred_at": "2026-04-19T07:19:18.8891Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Implementation complete on branch `codex/08c4-remove-execution-plan-fields` at commit `cf3bf7a74de8eeaf70aedf9d24d8829e9b356d97`.\n\nWhat changed\n- Removed persisted `repo_path` and top-level `knot_ids` from `ExecutionPlanData`.\n- Kept execution-plan reads tolerant of legacy payloads while making step-local `knot_ids` the source of truth.\n- Updated serialization, normalization, sync, CLI round-trip, and docs coverage to match the new shape.\n\nValidation\n- `cargo test execution_plan`\n- `make sanity`\n- pre-push coverage hook passed at 95.29%\n\nArtifact\n- Branch: `codex/08c4-remove-execution-plan-fields`\n- Commit: `cf3bf7a74de8eeaf70aedf9d24d8829e9b356d97`",
+    "datetime": "2026-04-19T07:19:18.8891Z",
+    "entry_id": "019da49b-ac69-79b3-8678-c4a696a11459",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

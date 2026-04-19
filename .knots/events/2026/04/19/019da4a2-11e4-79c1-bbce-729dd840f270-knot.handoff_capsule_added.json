@@ -1,0 +1,15 @@
+{
+  "event_id": "019da4a2-11e4-79c1-bbce-729dd840f270",
+  "occurred_at": "2026-04-19T07:26:18.084039Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Shipment complete.\n\nShipped artifact\n- main commit: `cf3bf7a74de8eeaf70aedf9d24d8829e9b356d97`\n- merged branch: `codex/08c4-remove-execution-plan-fields`\n\nRemote verification\n- CI: success — https://github.com/acartine/knots/actions/runs/24623715559\n- Repo Hygiene: success — https://github.com/acartine/knots/actions/runs/24623715547\n- Changesets Version PR: success — https://github.com/acartine/knots/actions/runs/24623715556\n- Release: success — https://github.com/acartine/knots/actions/runs/24623715562",
+    "datetime": "2026-04-19T07:26:18.084039Z",
+    "entry_id": "019da4a2-11e4-79c1-bbce-7285f5092280",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

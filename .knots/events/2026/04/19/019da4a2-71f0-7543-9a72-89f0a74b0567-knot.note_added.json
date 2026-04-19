@@ -1,0 +1,15 @@
+{
+  "event_id": "019da4a2-71f0-7543-9a72-89f0a74b0567",
+  "occurred_at": "2026-04-19T07:26:42.672264Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Shipment review approved: main and origin/main both resolve to cf3bf7a74de8eeaf70aedf9d24d8829e9b356d97, the commit tag is present on the knot, and Repo Hygiene, CI, Changesets Version PR, and Release all completed successfully for the shipped commit.",
+    "datetime": "2026-04-19T07:26:42.672264Z",
+    "entry_id": "019da4a2-71f0-7543-9a72-89eb02491f7e",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

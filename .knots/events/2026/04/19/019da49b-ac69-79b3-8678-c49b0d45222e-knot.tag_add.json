@@ -1,0 +1,9 @@
+{
+  "event_id": "019da49b-ac69-79b3-8678-c49b0d45222e",
+  "occurred_at": "2026-04-19T07:19:18.8891Z",
+  "knot_id": "knots-08c4",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:codex/08c4-remove-execution-plan-fields"
+  }
+}
