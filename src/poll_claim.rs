@@ -66,6 +66,11 @@ pub fn run_poll(app: &App, args: PollArgs) -> Result<(), AppError> {
 
 pub fn run_claim(app: &App, args: ClaimArgs) -> Result<(), AppError> {
     use crate::lease_expiry::DEFAULT_LEASE_TIMEOUT_SECONDS;
+    warn_deprecated_claim_agent_metadata(
+        args.agent_name.as_deref(),
+        args.agent_model.as_deref(),
+        args.agent_version.as_deref(),
+    );
     let result = crate::trace::measure("claim", || {
         if args.peek {
             peek_knot(app, &args.id)
@@ -84,6 +89,20 @@ pub fn run_claim(app: &App, args: ClaimArgs) -> Result<(), AppError> {
     })?;
     print_result_verbose(&result, args.json, args.verbose);
     Ok(())
+}
+
+pub fn warn_deprecated_claim_agent_metadata(
+    agent_name: Option<&str>,
+    agent_model: Option<&str>,
+    agent_version: Option<&str>,
+) {
+    if agent_name.is_none() && agent_model.is_none() && agent_version.is_none() {
+        return;
+    }
+    eprintln!(
+        "warning: --agent-name/--agent-model/--agent-version on `kno claim` are deprecated. \
+         Create a lease with `kno lease create` and pass `--lease <id>` instead."
+    );
 }
 
 pub fn peek_knot(app: &App, id: &str) -> Result<PollResult, AppError> {

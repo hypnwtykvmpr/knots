@@ -84,8 +84,7 @@ verify CI is green and advance. Do not roll back.
 - Add a handoff capsule summarizing shipment:
   `kno update <id> --add-handoff-capsule "<handoff_capsule>"`
 - Transition:
-  `kno next <id> <currentState> --actor-kind agent --agent-name <AGENT_NAME>`
-  `--agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`
+  `kno next <id> <currentState> --lease <LEASE_ID>`
 
 ## When to Roll Back
 Only roll back to `ready_for_implementation` when the merge itself

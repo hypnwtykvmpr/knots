@@ -239,13 +239,17 @@ surfaces the upcoming owner/action for each item. Use `--owner` when you want
 to inspect only agent- or human-owned work; use `poll` when you want the single
 next claimable knot for one owner.
 
-Agent metadata is recorded on each claim:
+Agent metadata belongs on the lease, not on the claim. Create a lease first and
+pass its id to `--lease`:
 ```bash
-kno claim <id> \
+lease_id=$(kno lease create --nickname "my-session" \
   --agent-name "claude-code" \
-  --agent-model "opus-4" \
-  --agent-version "1.0"
+  --model "opus" --model-version "4.6" --json | jq -r .id)
+kno claim <id> --lease "$lease_id"
 ```
+
+The `--agent-name`, `--agent-model`, and `--agent-version` flags on `kno claim`
+are deprecated and will be removed in a future release.
 
 ### Step metadata for downstream consumers
 

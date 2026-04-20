@@ -147,6 +147,11 @@ fn claim_transitions_and_returns_prompt() {
     assert!(stdout.contains("# Implementation"), "skill: {stdout}");
     assert!(stdout.contains("kno next"), "next: {stdout}");
     assert!(stdout.contains("--actor-kind agent"), "actor: {stdout}");
+    let stderr = String::from_utf8_lossy(&claim.stderr);
+    assert!(
+        stderr.contains("deprecated") && stderr.contains("--lease"),
+        "deprecation warning missing: {stderr}"
+    );
 
     let show = run_knots(&root, &db, &["show", &knot_id, "--json"]);
     assert_success(&show);
@@ -188,6 +193,11 @@ fn claim_json_output() {
         .as_str()
         .unwrap()
         .contains("# Implementation"));
+    let stderr = String::from_utf8_lossy(&claim.stderr);
+    assert!(
+        !stderr.contains("deprecated"),
+        "claim without agent metadata should not warn: {stderr}"
+    );
 
     let _ = std::fs::remove_dir_all(root);
 }

@@ -74,8 +74,7 @@ params:
 ## Output
 - Approved:
   `kno update <id> --add-handoff-capsule "<review summary>"`
-  `kno next <id> <currentState> --actor-kind agent --agent-name <AGENT_NAME>`
-  `--agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`
+  `kno next <id> <currentState> --lease <LEASE_ID>`
 - Needs revision:
   `kno update <id> --status ready_for_implementation`
   `--add-note "<blocker details>"`

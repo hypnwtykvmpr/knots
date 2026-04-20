@@ -46,8 +46,8 @@ Every lease has an expiry timestamp set at creation. The default timeout is
 **600 seconds (10 minutes)**, configurable via `--timeout-seconds`:
 
 ```bash
-kno claim <id> --agent-name claude --timeout-seconds 1800   # 30 min
-kno lease create --nickname "session" --timeout-seconds 900  # 15 min
+kno lease create --nickname "session" --timeout-seconds 900   # 15 min
+kno claim <id> --lease <lease-id> --timeout-seconds 1800      # 30 min
 ```
 
 ### Heartbeat

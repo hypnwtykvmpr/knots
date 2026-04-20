@@ -66,8 +66,7 @@ params:
 - Add a handoff capsule summarizing the plan:
   `kno update <id> --add-handoff-capsule "<handoff_capsule>"`
 - Transition:
-  `kno next <id> <currentState> --actor-kind agent --agent-name <AGENT_NAME>`
-  `--agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`
+  `kno next <id> <currentState> --lease <LEASE_ID>`
 
 ## Failure Modes
 - Insufficient context:

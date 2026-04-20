@@ -76,8 +76,7 @@ params:
 - Working implementation on feature branch
 - All tests passing with coverage threshold met
 - Transition:
-  `kno next <id> <currentState> --actor-kind agent --agent-name <AGENT_NAME>`
-  `--agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`
+  `kno next <id> <currentState> --lease <LEASE_ID>`
 
 ## Failure Modes
 - Blocked by dependency:

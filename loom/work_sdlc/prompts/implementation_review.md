@@ -96,8 +96,7 @@ Find the review artifact by reading the knot metadata:
 ## Output
 - Approved:
   `kno update <id> --add-handoff-capsule "<review summary>"`
-  `kno next <id> <currentState> --actor-kind agent --agent-name <AGENT_NAME>`
-  `--agent-model <AGENT_MODEL> --agent-version <AGENT_VERSION>`
+  `kno next <id> <currentState> --lease <LEASE_ID>`
 - Needs changes:
   `kno update <id> --status ready_for_implementation`
   `--add-note "<feedback>"`

@@ -94,11 +94,23 @@ pub struct ClaimArgs {
     pub id: String,
     #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
     pub json: bool,
-    #[arg(long = "agent-name", help = "Agent name for claim metadata.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED] Agent name for claim metadata. \
+                Create a lease with `kno lease create` and pass `--lease <id>` instead."
+    )]
     pub agent_name: Option<String>,
-    #[arg(long = "agent-model", help = "Agent model for claim metadata.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED] Agent model for claim metadata. \
+                Create a lease with `kno lease create` and pass `--lease <id>` instead."
+    )]
     pub agent_model: Option<String>,
-    #[arg(long = "agent-version", help = "Agent version for claim metadata.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED] Agent version for claim metadata. \
+                Create a lease with `kno lease create` and pass `--lease <id>` instead."
+    )]
     pub agent_version: Option<String>,
     #[arg(long, help = "Show claim output without advancing state.")]
     pub peek: bool,
