@@ -66,6 +66,9 @@ pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) -> FixOutcom
                 crate::doctor_workflow_parity::fix_workflow_id_parity(repo_root);
                 outcome.event_log_touched = true;
             }
+            "knot_type_backfill" => {
+                crate::doctor_knot_type_backfill::fix_knot_type_backfill(repo_root)
+            }
             name if name.starts_with("skills_") => {
                 crate::managed_skills::fix_doctor_check(repo_root, name)
             }

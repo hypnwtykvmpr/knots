@@ -311,7 +311,12 @@ pub(super) fn build_index_upsert(
     let description = existing.as_ref().and_then(|r| r.description.clone());
     let acceptance = existing.as_ref().and_then(|r| r.acceptance.clone());
     let priority = existing.as_ref().and_then(|r| r.priority);
-    let knot_type = existing.as_ref().and_then(|r| r.knot_type.clone());
+    // Index events carry `type` in their data. Prefer that over the cached
+    // value so new knots pulled from origin inherit their type on first
+    // apply; without this, `kno ls --type execution_plan` (and similar)
+    // miss knots that were authored on another machine.
+    let knot_type = optional_string(params.data.get("type"))
+        .or_else(|| existing.as_ref().and_then(|r| r.knot_type.clone()));
     let tags = existing
         .as_ref()
         .map(|r| r.tags.clone())

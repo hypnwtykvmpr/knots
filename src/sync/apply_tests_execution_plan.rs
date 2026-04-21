@@ -4,7 +4,7 @@ use std::process::Command;
 use serde_json::{Map, Value};
 use uuid::Uuid;
 
-use crate::db;
+use crate::db::{self, UpsertKnotHot};
 use crate::domain::execution_plan::{
     ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
 };
@@ -236,6 +236,138 @@ fn apply_index_event_ignores_removed_top_level_fields_and_legacy_ids() {
     assert_eq!(plan.get("repo_path"), None);
     assert_eq!(plan.get("knot_ids"), None);
     assert!(!plan.contains_key(legacy_ids_key()));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+fn seed_hot_knot_empty_type(conn: &rusqlite::Connection, knot_id: &str) {
+    db::upsert_knot_hot(
+        conn,
+        &UpsertKnotHot {
+            id: knot_id,
+            title: "Seed",
+            state: "work_item",
+            updated_at: "2026-02-25T10:00:00Z",
+            body: None,
+            description: None,
+            acceptance: None,
+            priority: None,
+            knot_type: None,
+            tags: &[],
+            notes: &[],
+            handoff_capsules: &[],
+            invariants: &[],
+            step_history: &[],
+            gate_data: &crate::domain::gate::GateData::default(),
+            lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
+            lease_id: None,
+            workflow_id: "execution_plan_sdlc",
+            profile_id: "autopilot",
+            profile_etag: Some("etag-1"),
+            deferred_from_state: None,
+            blocked_from_state: None,
+            created_at: Some("2026-02-25T10:00:00Z"),
+        },
+    )
+    .expect("seed hot knot should upsert");
+}
+
+#[test]
+fn apply_index_event_populates_knot_type_from_event_data_for_new_knot() {
+    // Regression: before this was fixed, build_index_upsert only read
+    // knot_type from the pre-existing cache row, so a brand-new knot
+    // pulled from origin had `knot_type = NULL`, which made
+    // `kno ls --type execution_plan` (and similar filters) silently
+    // drop the knot.
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    db::set_meta(&conn, "hot_window_days", "365").expect("hot window should be configurable");
+    let mut applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+
+    let idx_dir = root.join(".knots/index/2026/04/19");
+    std::fs::create_dir_all(&idx_dir).expect("index directory should be creatable");
+    let ts = "2026-04-19T10:00:00Z";
+    let payload = serde_json::json!({
+        "event_id": "7200",
+        "occurred_at": ts,
+        "type": "idx.knot_head",
+        "data": {
+            "knot_id": "K-plan-new",
+            "title": "Pulled plan",
+            "state": "orchestration",
+            "workflow_id": "execution_plan_sdlc",
+            "profile_id": "autopilot",
+            "updated_at": ts,
+            "terminal": false,
+            "type": "execution_plan"
+        }
+    });
+    std::fs::write(idx_dir.join("7200-idx.knot_head.json"), payload.to_string())
+        .expect("index event should write");
+
+    let updated = applier
+        .apply_index_event(Path::new(".knots/index/2026/04/19/7200-idx.knot_head.json"))
+        .expect("index event should apply");
+    assert!(updated);
+
+    let record = db::get_knot_hot(&conn, "K-plan-new")
+        .expect("hot lookup should succeed")
+        .expect("new knot should exist in hot cache");
+    assert_eq!(
+        record.knot_type.as_deref(),
+        Some("execution_plan"),
+        "knot_type must be taken from the event when no prior row exists"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn apply_index_event_prefers_event_knot_type_over_stale_cached_value() {
+    // If a knot's type was previously set incorrectly in the cache (e.g.
+    // by a version that didn't populate it at all), a later idx.knot_head
+    // event carrying the correct `type` must override the cached value —
+    // otherwise the empty knot_type sticks forever.
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    db::set_meta(&conn, "hot_window_days", "365").expect("hot window should be configurable");
+    seed_hot_knot_empty_type(&conn, "K-reapply");
+    let mut applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+
+    let idx_dir = root.join(".knots/index/2026/04/19");
+    std::fs::create_dir_all(&idx_dir).expect("index directory should be creatable");
+    let ts = "2026-04-19T10:05:00Z";
+    let payload = serde_json::json!({
+        "event_id": "7201",
+        "occurred_at": ts,
+        "type": "idx.knot_head",
+        "data": {
+            "knot_id": "K-reapply",
+            "title": "Reapplied plan",
+            "state": "orchestration",
+            "workflow_id": "execution_plan_sdlc",
+            "profile_id": "autopilot",
+            "updated_at": ts,
+            "terminal": false,
+            "type": "execution_plan"
+        }
+    });
+    std::fs::write(idx_dir.join("7201-idx.knot_head.json"), payload.to_string())
+        .expect("index event should write");
+
+    applier
+        .apply_index_event(Path::new(".knots/index/2026/04/19/7201-idx.knot_head.json"))
+        .expect("index event should apply");
+
+    let record = db::get_knot_hot(&conn, "K-reapply")
+        .expect("hot lookup should succeed")
+        .expect("re-applied knot should exist in hot cache");
+    assert_eq!(
+        record.knot_type.as_deref(),
+        Some("execution_plan"),
+        "later event's knot_type must override the empty cached value"
+    );
 
     let _ = std::fs::remove_dir_all(root);
 }
