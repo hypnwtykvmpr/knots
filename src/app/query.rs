@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::time::Duration;
 
 use crate::db::{self, ColdCatalogRecord, UpsertKnotHot};
@@ -249,7 +250,13 @@ impl App {
         };
         let state = cold_record.state.clone();
         let updated_at = cold_record.updated_at.clone();
-        let record = rehydrate_from_events(&self.store_paths.root, id, title, state, updated_at)?;
+        // Read events from both the local store (locally-created, possibly
+        // unsynced events) and the `_worktree` (events pulled from origin
+        // that never pass through the local store). Without the second root,
+        // knots authored on another machine cannot be rehydrated here.
+        let worktree_root = self.store_paths.worktree_path();
+        let roots: &[&Path] = &[self.store_paths.root.as_path(), worktree_root.as_path()];
+        let record = rehydrate_from_events(roots, id, title, state, updated_at)?;
         // Bump updated_at to now so the rehydrated knot gets a fresh 72h
         // grace window before it becomes eligible for cold again. This is
         // a local-only materialization timestamp; the event log still

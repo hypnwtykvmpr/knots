@@ -45,15 +45,15 @@ pub(crate) struct RehydrateProjection {
 }
 
 pub(crate) fn rehydrate_from_events(
-    store_root: &Path,
+    store_roots: &[&Path],
     knot_id: &str,
     title: String,
     state: String,
     updated_at: String,
 ) -> Result<RehydrateProjection, AppError> {
     let mut projection = new_projection(title, state, updated_at);
-    apply_full_events(store_root, knot_id, &mut projection)?;
-    apply_index_events(store_root, knot_id, &mut projection)?;
+    apply_full_events(store_roots, knot_id, &mut projection)?;
+    apply_index_events(store_roots, knot_id, &mut projection)?;
     finalize_projection(&mut projection, knot_id)?;
     Ok(projection)
 }
@@ -106,13 +106,39 @@ fn collect_json_paths(root: &Path) -> Result<Vec<std::path::PathBuf>, AppError> 
     Ok(paths)
 }
 
+/// Collect event files under each root's `<subdir>/...` tree and dedupe by
+/// relative path so events that exist in both the local store and the
+/// `_worktree` copy (same event_id → same filename) aren't replayed twice.
+fn collect_deduped_paths(
+    store_roots: &[&Path],
+    subdir: &str,
+) -> Result<Vec<std::path::PathBuf>, AppError> {
+    use std::collections::HashMap;
+    let mut by_rel: HashMap<std::path::PathBuf, std::path::PathBuf> = HashMap::new();
+    for root in store_roots {
+        let base = resolve_subdir(root, subdir);
+        if !base.exists() {
+            continue;
+        }
+        for path in collect_json_paths(&base)? {
+            let rel = path.strip_prefix(&base).unwrap_or(&path).to_path_buf();
+            by_rel.entry(rel).or_insert(path);
+        }
+    }
+    let mut paths: Vec<_> = by_rel.into_values().collect();
+    paths.sort_by(|a, b| {
+        // Sort by filename so apply order matches single-root behavior.
+        a.file_name().cmp(&b.file_name())
+    });
+    Ok(paths)
+}
+
 fn apply_full_events(
-    store_root: &Path,
+    store_roots: &[&Path],
     knot_id: &str,
     projection: &mut RehydrateProjection,
 ) -> Result<(), AppError> {
-    let event_root = resolve_subdir(store_root, "events");
-    let full_paths = collect_json_paths(&event_root)?;
+    let full_paths = collect_deduped_paths(store_roots, "events")?;
     for path in full_paths {
         let bytes = fs::read(&path)?;
         let event: FullEvent = serde_json::from_slice(&bytes).map_err(|err| {
@@ -131,12 +157,11 @@ fn apply_full_events(
 }
 
 fn apply_index_events(
-    store_root: &Path,
+    store_roots: &[&Path],
     knot_id: &str,
     projection: &mut RehydrateProjection,
 ) -> Result<(), AppError> {
-    let index_root = resolve_subdir(store_root, "index");
-    let idx_paths = collect_json_paths(&index_root)?;
+    let idx_paths = collect_deduped_paths(store_roots, "index")?;
     for path in idx_paths {
         let bytes = fs::read(&path)?;
         let event: IndexEvent = serde_json::from_slice(&bytes).map_err(|err| {

@@ -32,7 +32,7 @@ fn open_app(root: &std::path::Path) -> App {
 fn rehydrate_from_events_rejects_missing_workflow_id() {
     let missing_root = unique_root("knots-rehydrate-missing-workflow");
     let missing = rehydrate_from_events(
-        &missing_root,
+        &[missing_root.as_path()],
         "K-missing",
         "Title".to_string(),
         "work_item".to_string(),
@@ -43,6 +43,131 @@ fn rehydrate_from_events_rejects_missing_workflow_id() {
         message.contains("missing workflow_id")));
 
     let _ = std::fs::remove_dir_all(missing_root);
+}
+
+#[test]
+fn rehydrate_from_events_reads_union_of_local_and_worktree_roots() {
+    // Simulates a knot whose events live only under the `_worktree` copy
+    // (pulled from origin, never written locally). Before the multi-root
+    // fix, rehydrate would fail with "missing workflow_id".
+    let root = unique_root("knots-rehydrate-worktree-only");
+    let worktree_knots = root.join(".knots").join("_worktree").join(".knots");
+    let event_dir = worktree_knots
+        .join("events")
+        .join("2026")
+        .join("02")
+        .join("25");
+    std::fs::create_dir_all(&event_dir).expect("worktree event dir should be creatable");
+    std::fs::write(
+        event_dir.join("1000-knot.created.json"),
+        concat!(
+            "{\n",
+            "  \"event_id\": \"1000\",\n",
+            "  \"type\": \"knot.created\",\n",
+            "  \"occurred_at\": \"2026-02-25T10:00:00Z\",\n",
+            "  \"knot_id\": \"K-pulled\",\n",
+            "  \"data\": {\n",
+            "    \"title\": \"Pulled\",\n",
+            "    \"state\": \"implementation\",\n",
+            "    \"workflow_id\": \"work_sdlc\",\n",
+            "    \"profile_id\": \"autopilot\"\n",
+            "  }\n",
+            "}\n"
+        ),
+    )
+    .expect("worktree event should be writable");
+
+    let local_root = root.join(".knots");
+    let worktree_root = root.join(".knots").join("_worktree");
+    let projection = rehydrate_from_events(
+        &[local_root.as_path(), worktree_root.as_path()],
+        "K-pulled",
+        "Pulled".to_string(),
+        "implementation".to_string(),
+        "2026-02-25T10:00:00Z".to_string(),
+    )
+    .expect("rehydrate should find events under the worktree root");
+    assert_eq!(projection.workflow_id, "work_sdlc");
+    assert_eq!(projection.profile_id, "autopilot");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn rehydrate_from_events_dedupes_events_present_in_both_roots() {
+    // After a push, the same event file exists in both `.knots/events/`
+    // and `.knots/_worktree/.knots/events/`. Replaying it twice would
+    // double-append list fields like tags; the dedupe pass prevents that.
+    let root = unique_root("knots-rehydrate-dedup");
+    let local_dir = root
+        .join(".knots")
+        .join("events")
+        .join("2026")
+        .join("02")
+        .join("25");
+    let worktree_dir = root
+        .join(".knots")
+        .join("_worktree")
+        .join(".knots")
+        .join("events")
+        .join("2026")
+        .join("02")
+        .join("25");
+    std::fs::create_dir_all(&local_dir).expect("local dir creatable");
+    std::fs::create_dir_all(&worktree_dir).expect("worktree dir creatable");
+    let created = concat!(
+        "{\n",
+        "  \"event_id\": \"1000\",\n",
+        "  \"type\": \"knot.created\",\n",
+        "  \"occurred_at\": \"2026-02-25T10:00:00Z\",\n",
+        "  \"knot_id\": \"K-dup\",\n",
+        "  \"data\": {\n",
+        "    \"title\": \"Dup\",\n",
+        "    \"state\": \"implementation\",\n",
+        "    \"workflow_id\": \"work_sdlc\",\n",
+        "    \"profile_id\": \"autopilot\"\n",
+        "  }\n",
+        "}\n"
+    );
+    let tag_add = concat!(
+        "{\n",
+        "  \"event_id\": \"1001\",\n",
+        "  \"type\": \"knot.tag_add\",\n",
+        "  \"occurred_at\": \"2026-02-25T10:01:00Z\",\n",
+        "  \"knot_id\": \"K-dup\",\n",
+        "  \"data\": { \"tag\": \"alpha\" }\n",
+        "}\n"
+    );
+    std::fs::write(local_dir.join("1000-knot.created.json"), created)
+        .expect("local created writable");
+    std::fs::write(worktree_dir.join("1000-knot.created.json"), created)
+        .expect("worktree created writable");
+    std::fs::write(local_dir.join("1001-knot.tag_add.json"), tag_add)
+        .expect("local tag_add writable");
+    std::fs::write(worktree_dir.join("1001-knot.tag_add.json"), tag_add)
+        .expect("worktree tag_add writable");
+
+    let local_root = root.join(".knots");
+    let worktree_root = root.join(".knots").join("_worktree");
+    let projection = rehydrate_from_events(
+        &[local_root.as_path(), worktree_root.as_path()],
+        "K-dup",
+        "Dup".to_string(),
+        "implementation".to_string(),
+        "2026-02-25T10:00:00Z".to_string(),
+    )
+    .expect("rehydrate should dedupe events present in both roots");
+    assert_eq!(
+        projection
+            .tags
+            .iter()
+            .filter(|t| t.as_str() == "alpha")
+            .count(),
+        1,
+        "a tag_add event in both roots should apply exactly once"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]
@@ -67,7 +192,7 @@ fn rehydrate_from_events_converts_legacy_workflow_id() {
         ),
     );
     let projection = rehydrate_from_events(
-        &legacy_root,
+        &[legacy_root.as_path()],
         "K-legacy",
         "Legacy".to_string(),
         "ready_for_planning".to_string(),
@@ -85,7 +210,7 @@ fn rehydrate_from_events_reports_invalid_json() {
     write_event(&root, "bad-knot.created.json", "{");
 
     let bad_full = rehydrate_from_events(
-        &root,
+        &[root.as_path()],
         "K-1",
         "Title".to_string(),
         "work_item".to_string(),
@@ -119,7 +244,7 @@ fn rehydrate_from_events_reports_invalid_json() {
     std::fs::write(&index_path, "{").expect("index event should be writable");
 
     let bad_index = rehydrate_from_events(
-        &root,
+        &[root.as_path()],
         "K-1",
         "Title".to_string(),
         "work_item".to_string(),
