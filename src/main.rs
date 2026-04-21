@@ -17,6 +17,7 @@ mod dispatch;
 mod doctor;
 mod doctor_cold_tier;
 mod doctor_fix;
+mod doctor_workflow_parity;
 mod doctor_workflows;
 mod domain;
 mod events;
