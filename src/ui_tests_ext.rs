@@ -63,6 +63,27 @@ fn sample_knot() -> KnotView {
 }
 
 #[test]
+fn row_and_show_strip_project_prefix_from_alias() {
+    let palette = Palette { enabled: false };
+    let mut knot = sample_knot();
+    knot.id = "knots-19dc".to_string();
+    knot.alias = Some("knots-19dc.1".to_string());
+    let row = DisplayKnot {
+        knot: knot.clone(),
+        depth: 0,
+    };
+    let formatted = format_knot_row(&row, &palette);
+    assert!(formatted.contains("19dc.1 (19dc)"));
+    assert!(!formatted.contains("knots-19dc.1"));
+
+    let alias_field = knot_show_fields(&knot, false)
+        .into_iter()
+        .find(|f| f.label == "alias")
+        .expect("alias field should be present");
+    assert_eq!(alias_field.value, "19dc.1");
+}
+
+#[test]
 fn row_and_indent_formatting_cover_alias_tag_and_type_paths() {
     let palette = Palette { enabled: false };
     assert_eq!(indentation_prefix(0, &palette), "");

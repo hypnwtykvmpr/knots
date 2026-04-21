@@ -27,10 +27,9 @@ pub fn run_ready(app: &App, args: ReadyArgs) -> Result<(), AppError> {
         let palette = crate::ui::Palette::auto();
         for knot in &candidates {
             let sid = crate::knot_id::display_id(&knot.id);
-            let display_id = knot
-                .alias
-                .as_deref()
-                .map_or(sid.to_string(), |a| format!("{a} ({sid})"));
+            let display_id = knot.alias.as_deref().map_or(sid.to_string(), |a| {
+                format!("{} ({sid})", crate::knot_id::display_alias(a))
+            });
             let owner = ready_owner_label(registry, knot);
             let action = ready_action_label(registry, knot);
             println!(
