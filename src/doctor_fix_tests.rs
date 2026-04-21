@@ -307,7 +307,11 @@ fn apply_fixes_reconciles_terminal_parents() {
         .expect("edge should be added");
 
     let checks = vec![sample_check("terminal_parents", DoctorStatus::Warn)];
-    apply_fixes(&local, &checks);
+    let outcome = apply_fixes(&local, &checks);
+    assert!(
+        outcome.event_log_touched,
+        "terminal_parents fix emits state-change events, so event_log_touched must be true"
+    );
 
     let updated = app
         .show_knot(&parent.id)
@@ -315,6 +319,38 @@ fn apply_fixes_reconciles_terminal_parents() {
         .expect("parent should exist");
     assert_eq!(updated.state, "shipped");
 
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn apply_fixes_reports_event_log_touched_for_workflow_id_parity() {
+    let (root, local) = setup_repo_with_origin();
+    // The fix opens a DB connection via open_connection, which requires the
+    // cache dir to exist. A no-op scan (empty worktree) still flips the flag
+    // because dispatching to the fix is what we're verifying.
+    let checks = vec![sample_check("workflow_id_parity", DoctorStatus::Warn)];
+    let outcome = apply_fixes(&local, &checks);
+    assert!(
+        outcome.event_log_touched,
+        "workflow_id_parity fix writes repair events, so event_log_touched must be true"
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn apply_fixes_leaves_event_log_touched_false_for_non_event_fixes() {
+    let (root, local) = setup_repo_with_origin();
+    let repo_lock = local.join(".knots/locks/repo.lock");
+    std::fs::create_dir_all(repo_lock.parent().expect("repo lock parent should exist"))
+        .expect("repo lock parent should be creatable");
+    std::fs::write(&repo_lock, "busy").expect("repo lock fixture should be writable");
+
+    let checks = vec![sample_check("lock_health", DoctorStatus::Warn)];
+    let outcome = apply_fixes(&local, &checks);
+    assert!(
+        !outcome.event_log_touched,
+        "lock_health fix only removes lock files; the event log should be untouched"
+    );
     let _ = std::fs::remove_dir_all(root);
 }
 

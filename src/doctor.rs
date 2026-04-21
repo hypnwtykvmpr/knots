@@ -145,7 +145,10 @@ pub fn run_doctor_with_fix_at(
         return Ok(report);
     }
     if distribution == DistributionMode::Git {
-        crate::doctor_fix::apply_fixes(repo_root, &report.checks);
+        let outcome = crate::doctor_fix::apply_fixes(repo_root, &report.checks);
+        if outcome.event_log_touched {
+            crate::doctor_fix::sync_after_fixes(repo_root);
+        }
     }
     run_doctor_at(repo_root, store_root, distribution)
 }

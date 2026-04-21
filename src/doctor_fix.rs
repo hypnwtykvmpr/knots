@@ -29,8 +29,20 @@ pub(crate) fn set_version_fix_applied_for_tests(applied: bool) {
     set_version_fix_applied(applied);
 }
 
-pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) {
+/// Result of running `apply_fixes`. Lets the caller decide whether to take
+/// pipeline-level follow-up actions (e.g. a sync to publish repair events)
+/// before re-running the checks.
+#[derive(Debug, Default, Clone, Copy)]
+pub(crate) struct FixOutcome {
+    /// Set when a fix wrote to `.knots/index/` or `.knots/events/`. Those
+    /// events are only visible to doctor checks after `kno sync` publishes
+    /// them into the shared `_worktree`.
+    pub event_log_touched: bool,
+}
+
+pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) -> FixOutcome {
     set_version_fix_applied(false);
+    let mut outcome = FixOutcome::default();
     for check in checks {
         if check.status == DoctorStatus::Pass {
             continue;
@@ -45,10 +57,14 @@ pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) {
             "workflow_registry" => fix_workflow_registry(repo_root),
             "schema_version" => fix_schema_version(repo_root),
             "stuck_leases" => fix_stuck_leases(repo_root),
-            "terminal_parents" => fix_terminal_parents(repo_root),
+            "terminal_parents" => {
+                fix_terminal_parents(repo_root);
+                outcome.event_log_touched = true;
+            }
             "cold_tier_imbalance" => crate::doctor_cold_tier::fix_cold_tier_imbalance(repo_root),
             "workflow_id_parity" => {
-                crate::doctor_workflow_parity::fix_workflow_id_parity(repo_root)
+                crate::doctor_workflow_parity::fix_workflow_id_parity(repo_root);
+                outcome.event_log_touched = true;
             }
             name if name.starts_with("skills_") => {
                 crate::managed_skills::fix_doctor_check(repo_root, name)
@@ -56,6 +72,28 @@ pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) {
             _ => {}
         }
     }
+    outcome
+}
+
+/// Best-effort sync to publish repair events emitted by `apply_fixes` into
+/// the shared `_worktree` so a subsequent doctor check can observe them.
+///
+/// Swallows all errors: if the sync fails (offline, diverged branch, missing
+/// remote), the warn will simply persist into the re-check — same as if we
+/// never ran sync at all. The user can rerun `kno doctor --fix` once the
+/// underlying cause is addressed.
+pub(crate) fn sync_after_fixes(repo_root: &Path) {
+    let db_path = repo_root.join(".knots").join("cache").join("state.sqlite");
+    if !db_path.exists() {
+        return;
+    }
+    let Some(db_str) = db_path.to_str() else {
+        return;
+    };
+    let Ok(app) = App::open(db_str, repo_root.to_path_buf()) else {
+        return;
+    };
+    let _ = app.sync();
 }
 
 fn fix_lock_health(repo_root: &Path) {
