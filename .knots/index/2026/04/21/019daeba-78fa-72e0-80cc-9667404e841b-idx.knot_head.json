@@ -1,0 +1,21 @@
+{
+  "event_id": "019daeba-78fa-72e0-80cc-9667404e841b",
+  "occurred_at": "2026-04-21T06:29:09.490889Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-e64c",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "Remove explicit agent flags from lease-backed completion prompts",
+    "type": "work",
+    "updated_at": "2026-04-21T06:29:09.490889Z",
+    "workflow_id": "work_sdlc"
+  }
+}

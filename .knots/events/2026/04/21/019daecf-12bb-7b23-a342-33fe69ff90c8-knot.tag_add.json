@@ -1,0 +1,9 @@
+{
+  "event_id": "019daecf-12bb-7b23-a342-33fe69ff90c8",
+  "occurred_at": "2026-04-21T06:51:39.578999Z",
+  "knot_id": "knots-9530",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/knots-9530-strip-alias-prefix"
+  }
+}
