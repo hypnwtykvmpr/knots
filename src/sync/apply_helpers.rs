@@ -147,14 +147,20 @@ pub(super) fn required_profile_id(
     Err(invalid_event(path, "missing 'profile_id' string field"))
 }
 
+pub(super) enum WorkflowIdResolution {
+    Direct,
+    ConvertedLegacy(String),
+    InferredFromType(String),
+}
+
 pub(super) struct ResolvedWorkflowId {
     pub id: String,
-    pub converted_from: Option<String>,
+    pub resolution: WorkflowIdResolution,
 }
 
 pub(super) fn required_workflow_id(
     object: &Map<String, Value>,
-    path: &Path,
+    _path: &Path,
 ) -> Result<ResolvedWorkflowId, SyncError> {
     if let Some(value) = object.get("workflow_id").and_then(Value::as_str) {
         let trimmed = value.trim();
@@ -163,16 +169,21 @@ pub(super) fn required_workflow_id(
             return Ok(match normalized.as_str() {
                 "compatibility" | "knots_sdlc" => ResolvedWorkflowId {
                     id: "work_sdlc".to_string(),
-                    converted_from: Some(normalized),
+                    resolution: WorkflowIdResolution::ConvertedLegacy(normalized),
                 },
                 _ => ResolvedWorkflowId {
                     id: normalized,
-                    converted_from: None,
+                    resolution: WorkflowIdResolution::Direct,
                 },
             });
         }
     }
-    Err(invalid_event(path, "missing 'workflow_id' string field"))
+    let type_value = object.get("type").and_then(Value::as_str);
+    let knot_type = crate::domain::knot_type::parse_knot_type(type_value);
+    Ok(ResolvedWorkflowId {
+        id: installed_workflows::builtin_workflow_id_for_knot_type(knot_type),
+        resolution: WorkflowIdResolution::InferredFromType(knot_type.as_str().to_string()),
+    })
 }
 
 pub(super) fn optional_string(value: Option<&Value>) -> Option<String> {

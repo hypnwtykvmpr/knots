@@ -18,7 +18,7 @@ use apply_helpers::{
     build_index_upsert, current_unix_ms_string, invalid_event, is_stale_precondition, optional_i64,
     optional_string, parse_execution_plan_data, parse_gate_data, parse_invariants,
     parse_lease_data, parse_metadata_entry, read_json_file, required_profile_id, required_string,
-    required_workflow_id, IndexUpsertParams, MetadataProjection,
+    required_workflow_id, IndexUpsertParams, MetadataProjection, WorkflowIdResolution,
 };
 
 pub struct IncrementalApplier<'a> {
@@ -192,13 +192,26 @@ impl<'a> IncrementalApplier<'a> {
         let updated_at = required_string(data, "updated_at", &absolute_path)?;
         let profile_id = required_profile_id(data, &absolute_path)?.to_ascii_lowercase();
         let resolved = required_workflow_id(data, &absolute_path)?;
-        if let Some(ref legacy_id) = resolved.converted_from {
-            if self.warned_legacy.insert(legacy_id.clone()) {
-                eprintln!(
-                    "warning: converted legacy workflow '{}' to '{}'; \
-                     this is probably fine but you should know",
-                    legacy_id, resolved.id
-                );
+        match &resolved.resolution {
+            WorkflowIdResolution::Direct => {}
+            WorkflowIdResolution::ConvertedLegacy(legacy_id) => {
+                if self.warned_legacy.insert(legacy_id.clone()) {
+                    eprintln!(
+                        "warning: converted legacy workflow '{}' to '{}'; \
+                         this is probably fine but you should know",
+                        legacy_id, resolved.id
+                    );
+                }
+            }
+            WorkflowIdResolution::InferredFromType(knot_type) => {
+                let key = format!("<unspecified:{knot_type}>");
+                if self.warned_legacy.insert(key) {
+                    eprintln!(
+                        "warning: inferred workflow '{}' from knot type '{}' for \
+                         events missing workflow_id; this is probably fine but you should know",
+                        resolved.id, knot_type
+                    );
+                }
             }
         }
         if !self.known_workflows.contains(&resolved.id) {

@@ -10,7 +10,7 @@ use crate::sync::{GitAdapter, SyncError};
 
 use super::{
     invalid_event, is_stale_precondition, optional_i64, optional_string, parse_metadata_entry,
-    required_workflow_id, IncrementalApplier,
+    required_workflow_id, IncrementalApplier, WorkflowIdResolution,
 };
 
 fn unique_workspace() -> PathBuf {
@@ -124,10 +124,16 @@ fn parse_metadata_entry_requires_all_string_fields() {
 }
 
 #[test]
-fn required_workflow_id_rejects_missing_workflow_id_for_unnamespaced_profile() {
+fn required_workflow_id_defaults_to_work_when_workflow_and_type_missing() {
     let object = Map::<String, Value>::new();
 
-    assert!(required_workflow_id(&object, Path::new("/tmp/event.json")).is_err());
+    let resolved = required_workflow_id(&object, Path::new("/tmp/event.json"))
+        .expect("legacy events without workflow_id or type should default to work_sdlc");
+    assert_eq!(resolved.id, "work_sdlc");
+    assert!(matches!(
+        resolved.resolution,
+        WorkflowIdResolution::InferredFromType(ref t) if t == "work"
+    ));
 }
 
 #[test]
@@ -138,7 +144,10 @@ fn required_workflow_id_converts_legacy_builtin_workflow_id() {
     let resolved = required_workflow_id(&object, Path::new("/tmp/event.json"))
         .expect("legacy workflow should convert, not fail");
     assert_eq!(resolved.id, "work_sdlc");
-    assert_eq!(resolved.converted_from.as_deref(), Some("knots_sdlc"));
+    assert!(matches!(
+        resolved.resolution,
+        WorkflowIdResolution::ConvertedLegacy(ref from) if from == "knots_sdlc"
+    ));
 }
 
 #[test]
@@ -149,7 +158,24 @@ fn required_workflow_id_converts_compatibility_workflow_id() {
     let resolved = required_workflow_id(&object, Path::new("/tmp/event.json"))
         .expect("compatibility workflow should convert, not fail");
     assert_eq!(resolved.id, "work_sdlc");
-    assert_eq!(resolved.converted_from.as_deref(), Some("compatibility"));
+    assert!(matches!(
+        resolved.resolution,
+        WorkflowIdResolution::ConvertedLegacy(ref from) if from == "compatibility"
+    ));
+}
+
+#[test]
+fn required_workflow_id_infers_from_knot_type_when_missing() {
+    let mut object = Map::<String, Value>::new();
+    object.insert("type".to_string(), json!("work"));
+
+    let resolved = required_workflow_id(&object, Path::new("/tmp/event.json"))
+        .expect("missing workflow_id with known type should resolve via knot type");
+    assert_eq!(resolved.id, "work_sdlc");
+    assert!(matches!(
+        resolved.resolution,
+        WorkflowIdResolution::InferredFromType(ref t) if t == "work"
+    ));
 }
 
 #[test]
