@@ -134,9 +134,16 @@ pub(super) fn required_string(
         .ok_or_else(|| invalid_event(path, &format!("missing '{}' string field", key)))
 }
 
+/// Default profile used when a legacy event omits `profile_id`. The field
+/// was only made required after 2026-04-09 ("Remove legacy workflow runtime
+/// fallbacks"); older events committed before that date may lack it. We
+/// translate them at apply time to the built-in default so a bootstrap pull
+/// of a pre-cutoff repo doesn't hard-fail.
+const LEGACY_DEFAULT_PROFILE_ID: &str = "autopilot";
+
 pub(super) fn required_profile_id(
     object: &Map<String, Value>,
-    path: &Path,
+    _path: &Path,
 ) -> Result<String, SyncError> {
     if let Some(value) = object.get("profile_id").and_then(Value::as_str) {
         let trimmed = value.trim();
@@ -144,7 +151,7 @@ pub(super) fn required_profile_id(
             return Ok(trimmed.to_string());
         }
     }
-    Err(invalid_event(path, "missing 'profile_id' string field"))
+    Ok(LEGACY_DEFAULT_PROFILE_ID.to_string())
 }
 
 pub(super) enum WorkflowIdResolution {
@@ -167,7 +174,9 @@ pub(super) fn required_workflow_id(
         if !trimmed.is_empty() {
             let normalized = installed_workflows::normalize_workflow_id(trimmed);
             return Ok(match normalized.as_str() {
-                "compatibility" | "knots_sdlc" => ResolvedWorkflowId {
+                // "default" was the pre-workflow-registry name used before
+                // knots_sdlc/work_sdlc existed; treated the same way.
+                "compatibility" | "knots_sdlc" | "default" => ResolvedWorkflowId {
                     id: "work_sdlc".to_string(),
                     resolution: WorkflowIdResolution::ConvertedLegacy(normalized),
                 },
