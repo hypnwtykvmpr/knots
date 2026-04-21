@@ -3,6 +3,9 @@
 Local-first, event-sourced workflow tracker backed by git and SQLite.
 
 See [TAXONOMY.md](TAXONOMY.md) for the shared vocabulary used throughout this document.
+See [knots-architecture-v5.md](knots-architecture-v5.md) for the current deep
+dive and [knots-architecture-v4.md](knots-architecture-v4.md) for historical
+context.
 
 ## Data/Control Flow
 

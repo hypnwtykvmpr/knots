@@ -1,5 +1,9 @@
 # Knots — Architecture Design (Rust)
 
+> Historical note: this document describes an earlier Knots design.
+> See [knots-architecture-v5.md](knots-architecture-v5.md) for the current
+> architecture and [TAXONOMY.md](TAXONOMY.md) for canonical vocabulary.
+
 This document describes the architecture of **Knots**: a robust, git-backed coordination and memory system designed to feel database-like (fast queries, reliable concurrency) while remaining repo-native and PR-invisible.
 
 ---
