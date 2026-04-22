@@ -1,7 +1,8 @@
-use super::{App, AppError, KnotView, StateActorMetadata, UpdateKnotPatch};
+use super::{App, AppError, CreateKnotOptions, KnotView, StateActorMetadata, UpdateKnotPatch};
 use crate::domain::execution_plan::{
     ExecutionPlanAgent, ExecutionPlanData, ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
 };
+use crate::domain::knot_type::KnotType;
 use crate::domain::metadata::MetadataEntryInput;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -44,6 +45,7 @@ fn empty_patch() -> UpdateKnotPatch {
         gate_owner_kind: None,
         gate_failure_modes: None,
         clear_gate_failure_modes: false,
+        execution_plan_objective: None,
         execution_plan_data: None,
         add_note: None,
         add_handoff_capsule: None,
@@ -303,6 +305,104 @@ fn update_knot_persists_execution_plan_and_rehydrates_it() {
 
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn update_knot_sets_execution_plan_objective_without_replacing_waves() {
+    let root = unique_workspace();
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().expect("utf8"), root.clone()).expect("app");
+    let created = app
+        .create_knot("Plan", None, Some("idea"), Some("default"))
+        .expect("created");
+    let seeded = ExecutionPlanData {
+        objective: Some("Old objective".to_string()),
+        waves: vec![ExecutionPlanWave {
+            wave_index: 1,
+            name: "Wave 1".to_string(),
+            objective: "Preserve".to_string(),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    app.update_knot(
+        &created.id,
+        UpdateKnotPatch {
+            execution_plan_data: Some(seeded),
+            ..empty_patch()
+        },
+    )
+    .expect("seed plan");
+
+    let updated = app
+        .update_knot(
+            &created.id,
+            UpdateKnotPatch {
+                execution_plan_objective: Some("New objective".to_string()),
+                ..empty_patch()
+            },
+        )
+        .expect("objective update");
+    let plan = updated.execution_plan.expect("plan should exist");
+    assert_eq!(plan.objective.as_deref(), Some("New objective"));
+    assert_eq!(plan.waves.len(), 1);
+    assert_eq!(plan.waves[0].name, "Wave 1");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn create_knot_rejects_execution_plan_without_top_level_objective() {
+    let root = unique_workspace();
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().expect("utf8"), root.clone()).expect("app");
+
+    let err = app
+        .create_knot_with_options(
+            "Plan",
+            None,
+            Some("ready_for_design"),
+            Some("autopilot"),
+            None,
+            CreateKnotOptions {
+                knot_type: KnotType::ExecutionPlan,
+                ..CreateKnotOptions::default()
+            },
+        )
+        .expect_err("missing objective should fail");
+    assert_eq!(
+        err.to_string(),
+        "execution_plan knots require a non-empty top-level objective"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn update_knot_rejects_execution_plan_type_without_top_level_objective() {
+    let root = unique_workspace();
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().expect("utf8"), root.clone()).expect("app");
+    let created = app
+        .create_knot("Needs orchestration", None, Some("idea"), Some("default"))
+        .expect("created");
+
+    let err = app
+        .update_knot(
+            &created.id,
+            UpdateKnotPatch {
+                knot_type: Some(KnotType::ExecutionPlan),
+                ..empty_patch()
+            },
+        )
+        .expect_err("conversion without objective should fail");
+    assert_eq!(
+        err.to_string(),
+        "execution_plan knots require a non-empty top-level objective"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn update_knot_rejects_stale_if_match() {
     let root = unique_workspace();

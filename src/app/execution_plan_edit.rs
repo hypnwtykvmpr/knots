@@ -127,6 +127,11 @@ impl App {
         let profile = self.resolve_profile_for_record(current)?;
         let occurred_at = now_utc_rfc3339();
         let knot_type = parse_knot_type(current.knot_type.as_deref());
+        if knot_type == crate::domain::knot_type::KnotType::ExecutionPlan {
+            execution_plan_data
+                .validate_for_execution_plan_knot()
+                .map_err(AppError::InvalidArgument)?;
+        }
         let terminal = workflow_runtime::is_terminal_state(
             &self.profile_registry,
             profile.id.as_str(),

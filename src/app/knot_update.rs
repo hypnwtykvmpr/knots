@@ -16,10 +16,13 @@ use super::error::AppError;
 use super::helpers::{
     apply_step_transition, build_knot_head_data, build_state_event_data, ensure_profile_etag,
     next_blocked_from_state, next_deferred_from_state, normalize_state_input,
-    resolve_step_metadata, KnotHeadData, StateEventParams,
+    resolve_step_metadata, validate_execution_plan_data_for_knot_type, KnotHeadData,
+    StateEventParams,
 };
-use super::types::{KnotView, UpdateKnotPatch};
-use super::App;
+use super::{
+    types::{KnotView, UpdateKnotPatch},
+    App,
+};
 
 mod fields;
 
@@ -124,7 +127,6 @@ fn update_knot_locked(
     let mut us = UpdateState::from_record(&current, patch.expected_profile_etag.clone());
     let mut transition_current = current.clone();
     let mut full_events = Vec::new();
-
     if let Some(next_type) = patch.knot_type.filter(|next| *next != us.knot_type) {
         apply_type_change(
             app,
@@ -138,7 +140,6 @@ fn update_knot_locked(
             &mut profile_id,
         )?;
     }
-
     if let Some(next_raw) = patch.status.as_deref() {
         let profile = app.profile_registry.require(&profile_id)?;
         apply_status_change(
@@ -155,7 +156,6 @@ fn update_knot_locked(
             &occurred_at,
         )?;
     }
-
     let mut field_patch = patch.clone();
     field_patch.knot_type = None;
     fields::collect_field_events(
@@ -167,7 +167,7 @@ fn update_knot_locked(
         &transition_current,
         |token| app.resolve_knot_token_strict(token),
     )?;
-
+    validate_execution_plan_data_for_knot_type(us.knot_type, &us.execution_plan_data)?;
     if full_events.is_empty() {
         return app.apply_alias_and_enrich_knot(KnotView::from(transition_current));
     }

@@ -56,6 +56,26 @@ fn operation_from_command_maps_execution_plan_file() {
 }
 
 #[test]
+fn operation_from_command_maps_execution_plan_objective() {
+    let cli = crate::cli::Cli::parse_from([
+        "kno",
+        "new",
+        "Execution plan",
+        "--type",
+        "execution_plan",
+        "--objective",
+        "Coordinate rollout",
+    ]);
+    match operation_from_command(&cli.command).unwrap() {
+        WriteOperation::New(op) => {
+            assert_eq!(op.knot_type.as_deref(), Some("execution_plan"));
+            assert_eq!(op.objective.as_deref(), Some("Coordinate rollout"));
+        }
+        other => panic!("unexpected: {other:?}"),
+    }
+}
+
+#[test]
 fn execute_operation_update_loads_execution_plan_file() {
     let root = unique_workspace("knots-wd-execution-plan-file");
     setup_repo(&root);
@@ -102,6 +122,7 @@ fn execute_operation_update_loads_execution_plan_file() {
             gate_failure_modes: vec![],
             clear_gate_failure_modes: false,
             execution_plan_file: Some(plan_path.to_string_lossy().into_owned()),
+            objective: None,
             add_note: None,
             note_username: None,
             note_datetime: None,
@@ -138,6 +159,87 @@ fn execute_operation_update_loads_execution_plan_file() {
     let plan = serialized.as_object().expect("plan should be object");
     assert_eq!(plan.get("repo_path"), None);
     assert_eq!(plan.get("knot_ids"), None);
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn execute_operation_update_objective_preserves_existing_waves() {
+    let root = unique_workspace("knots-wd-execution-plan-objective");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().unwrap(), root.clone()).unwrap();
+    let knot = app
+        .create_knot("Plan carrier", None, Some("idea"), Some("default"))
+        .expect("knot should be created");
+    app.update_knot(
+        &knot.id,
+        crate::app::UpdateKnotPatch {
+            execution_plan_data: Some(crate::domain::execution_plan::ExecutionPlanData {
+                objective: Some("Old objective".to_string()),
+                waves: vec![crate::domain::execution_plan::ExecutionPlanWave {
+                    wave_index: 1,
+                    name: "Wave 1".to_string(),
+                    objective: "Persist".to_string(),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+    )
+    .expect("seed plan");
+
+    let output = execute_operation(
+        &app,
+        &WriteOperation::Update(UpdateOperation {
+            id: knot.id.clone(),
+            title: None,
+            description: None,
+            acceptance: None,
+            priority: None,
+            status: None,
+            knot_type: None,
+            add_tags: vec![],
+            remove_tags: vec![],
+            add_invariants: vec![],
+            remove_invariants: vec![],
+            clear_invariants: false,
+            gate_owner_kind: None,
+            gate_failure_modes: vec![],
+            clear_gate_failure_modes: false,
+            execution_plan_file: None,
+            objective: Some("New objective".to_string()),
+            add_note: None,
+            note_username: None,
+            note_datetime: None,
+            note_agentname: None,
+            note_model: None,
+            note_version: None,
+            add_handoff_capsule: None,
+            handoff_username: None,
+            handoff_datetime: None,
+            handoff_agentname: None,
+            handoff_model: None,
+            handoff_version: None,
+            if_match: None,
+            actor_kind: None,
+            agent_name: None,
+            agent_model: None,
+            agent_version: None,
+            force: false,
+            approve_terminal_cascade: false,
+            lease_id: None,
+        }),
+    )
+    .expect("update should succeed");
+    assert!(output.contains("updated"));
+
+    let updated = app.show_knot(&knot.id).expect("show").expect("knot exists");
+    let execution_plan = updated.execution_plan.expect("payload should exist");
+    assert_eq!(execution_plan.objective.as_deref(), Some("New objective"));
+    assert_eq!(execution_plan.waves.len(), 1);
+    assert_eq!(execution_plan.waves[0].name, "Wave 1");
 
     let _ = std::fs::remove_dir_all(root);
 }

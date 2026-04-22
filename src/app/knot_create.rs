@@ -14,7 +14,8 @@ use crate::workflow_runtime;
 use super::error::AppError;
 use super::helpers::{
     build_knot_head_data, non_empty, normalize_state_input, normalize_tag,
-    require_state_for_knot_type, resolve_step_metadata, KnotHeadData,
+    require_state_for_knot_type, resolve_step_metadata, validate_execution_plan_data_for_knot_type,
+    KnotHeadData,
 };
 use super::types::{CreateKnotOptions, KnotView};
 use super::App;
@@ -65,6 +66,10 @@ impl App {
                 .execution_plan_data
                 .normalize_knot_ids(|token| self.resolve_knot_token_strict(token))?;
         }
+        validate_execution_plan_data_for_knot_type(
+            options.knot_type,
+            &options.execution_plan_data,
+        )?;
         let (profile, state) =
             self.resolve_create_params(profile_id, workflow_id, initial_state, options.knot_type)?;
         require_state_for_knot_type(options.knot_type, profile, &state)?;

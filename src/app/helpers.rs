@@ -42,6 +42,18 @@ pub(crate) fn non_empty(raw: &str) -> Option<String> {
     }
 }
 
+pub(crate) fn validate_execution_plan_data_for_knot_type(
+    knot_type: KnotType,
+    execution_plan_data: &ExecutionPlanData,
+) -> Result<(), AppError> {
+    if knot_type == KnotType::ExecutionPlan {
+        execution_plan_data
+            .validate_for_execution_plan_knot()
+            .map_err(AppError::InvalidArgument)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn canonical_profile_id(raw: &str, workflow_id: &str) -> String {
     let trimmed = raw.trim();
     let unqualified =

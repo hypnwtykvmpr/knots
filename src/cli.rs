@@ -222,6 +222,9 @@ pub struct NewArgs {
     )]
     pub knot_type: Option<String>,
 
+    #[arg(long, help = "Top-level objective for an execution_plan knot.")]
+    pub objective: Option<String>,
+
     #[arg(long = "gate-owner-kind", help = "Gate owner kind: human or agent.")]
     pub gate_owner_kind: Option<String>,
 

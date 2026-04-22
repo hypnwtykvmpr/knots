@@ -107,6 +107,7 @@ fn build_update_patch(
         gate_owner_kind: parse_gate_owner_kind_arg(args.gate_owner_kind.as_deref())?,
         gate_failure_modes: parse_gate_failure_modes_option(&args.gate_failure_modes)?,
         clear_gate_failure_modes: args.clear_gate_failure_modes,
+        execution_plan_objective: args.objective.clone(),
         execution_plan_data: load_execution_plan_data(args.execution_plan_file.as_deref())?,
         add_note,
         add_handoff_capsule,

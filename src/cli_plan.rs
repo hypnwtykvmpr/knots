@@ -19,7 +19,7 @@ Use `kno plan wave ...` to shape the high-level phases, then use
 const PLAN_AFTER_HELP: &str = "\
 Examples:
 \n\
-  kno new \"Ship execution plan\" --type execution_plan
+  kno new \"Ship execution plan\" --type execution_plan --objective \"Coordinate the rollout\"
 \n\
   kno plan wave add knots-123 --name \"Wave 1\" --objective \"Foundations\"
 \n\
