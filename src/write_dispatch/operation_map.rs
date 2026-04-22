@@ -44,6 +44,7 @@ fn map_new(args: &crate::cli::NewArgs) -> WriteOperation {
         fast: args.fast,
         exploration: args.exploration,
         knot_type: args.knot_type.clone(),
+        objective: args.objective.clone(),
         gate_owner_kind: args.gate_owner_kind.clone(),
         gate_failure_modes: args.gate_failure_modes.clone(),
         tags: args.tags.clone(),
@@ -106,6 +107,7 @@ fn map_update(args: &crate::cli::UpdateArgs) -> WriteOperation {
             .execution_plan_file
             .as_ref()
             .map(|path| absolutize_path(path).to_string_lossy().into_owned()),
+        objective: args.objective.clone(),
         if_match: args.if_match.clone(),
         actor_kind: args.actor_kind.clone(),
         agent_name: args.agent_name.clone(),

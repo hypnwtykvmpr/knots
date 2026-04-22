@@ -173,6 +173,8 @@ pub struct UpdateArgs {
         help = "Load structured execution plan JSON from a file."
     )]
     pub execution_plan_file: Option<std::path::PathBuf>,
+    #[arg(long, help = "Set the top-level objective for an execution_plan knot.")]
+    pub objective: Option<String>,
     #[arg(short = 'n', long = "add-note", help = "Add note content.")]
     pub add_note: Option<String>,
     #[arg(long = "note-username", help = "Note author username.")]

@@ -34,6 +34,7 @@ where
         events,
         id,
         at,
+        patch.execution_plan_objective.as_deref(),
         &mut us.execution_plan_data,
         &resolve_knot_id,
     )?;
@@ -245,21 +246,32 @@ fn collect_execution_plan(
     events: &mut Vec<FullEvent>,
     id: &str,
     at: &str,
+    objective: Option<&str>,
     execution_plan_data: &mut crate::domain::execution_plan::ExecutionPlanData,
     resolve_knot_id: &dyn Fn(&str) -> Result<String, AppError>,
 ) -> Result<(), AppError> {
+    let mut changed = false;
     if let Some(mut next) = patch.execution_plan_data.clone() {
         next.normalize_knot_ids(resolve_knot_id)?;
         if next != *execution_plan_data {
             *execution_plan_data = next;
-            events.push(FullEvent::with_identity(
-                new_event_id(),
-                at.to_string(),
-                id.to_string(),
-                FullEventKind::KnotExecutionPlanDataSet.as_str(),
-                json!({"execution_plan": &*execution_plan_data}),
-            ));
+            changed = true;
         }
+    }
+    if let Some(objective) = objective {
+        if execution_plan_data.objective.as_deref() != Some(objective) {
+            execution_plan_data.objective = Some(objective.to_string());
+            changed = true;
+        }
+    }
+    if changed {
+        events.push(FullEvent::with_identity(
+            new_event_id(),
+            at.to_string(),
+            id.to_string(),
+            FullEventKind::KnotExecutionPlanDataSet.as_str(),
+            json!({"execution_plan": &*execution_plan_data}),
+        ));
     }
     Ok(())
 }

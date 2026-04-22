@@ -114,6 +114,7 @@ pub(super) fn default_update_patch() -> UpdateKnotPatch {
         gate_owner_kind: None,
         gate_failure_modes: None,
         clear_gate_failure_modes: false,
+        execution_plan_objective: None,
         execution_plan_data: None,
         add_note: None,
         add_handoff_capsule: None,

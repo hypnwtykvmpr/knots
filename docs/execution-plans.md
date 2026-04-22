@@ -4,6 +4,8 @@ An `execution_plan` knot is a coordination artifact. Instead of tracking one
 piece of implementation work, it tracks how a set of other knots should be
 executed.
 
+Every `execution_plan` knot must include a non-empty top-level `objective`.
+
 Use it when you already know the work items you want to coordinate and you need
 to say:
 
@@ -66,11 +68,13 @@ This walkthrough builds the plan incrementally from the CLI.
 kno new \
   "Auth migration execution plan" \
   --type execution_plan \
+  --objective "Coordinate the auth migration rollout" \
   --desc "Coordinate schema, API, and rollout work"
 ```
 
 The new knot is the plan container. It does not replace the work knots. It
-describes how those work knots should be sequenced.
+describes how those work knots should be sequenced, and the top-level
+`--objective` captures the plan's overall goal.
 
 ### 2. Create or identify the work knots
 

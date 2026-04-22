@@ -414,3 +414,40 @@ fn update_parses_execution_plan_file() {
         other => panic!("expected Update, got {:?}", other),
     }
 }
+
+#[test]
+fn new_parses_execution_plan_objective() {
+    let cli = parse(&[
+        "kno",
+        "new",
+        "Plan",
+        "--type",
+        "execution_plan",
+        "--objective",
+        "Coordinate rollout",
+    ]);
+    match cli.command {
+        Commands::New(args) => {
+            assert_eq!(args.knot_type.as_deref(), Some("execution_plan"));
+            assert_eq!(args.objective.as_deref(), Some("Coordinate rollout"));
+        }
+        other => panic!("expected New, got {:?}", other),
+    }
+}
+
+#[test]
+fn update_parses_execution_plan_objective() {
+    let cli = parse(&[
+        "kno",
+        "update",
+        "abc123",
+        "--objective",
+        "Coordinate rollout",
+    ]);
+    match cli.command {
+        Commands::Update(args) => {
+            assert_eq!(args.objective.as_deref(), Some("Coordinate rollout"));
+        }
+        other => panic!("expected Update, got {:?}", other),
+    }
+}

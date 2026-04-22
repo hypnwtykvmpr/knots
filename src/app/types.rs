@@ -126,6 +126,7 @@ pub struct UpdateKnotPatch {
     pub gate_owner_kind: Option<crate::domain::gate::GateOwnerKind>,
     pub gate_failure_modes: Option<std::collections::BTreeMap<String, Vec<String>>>,
     pub clear_gate_failure_modes: bool,
+    pub execution_plan_objective: Option<String>,
     pub execution_plan_data: Option<ExecutionPlanData>,
     pub add_note: Option<crate::domain::metadata::MetadataEntryInput>,
     pub add_handoff_capsule: Option<crate::domain::metadata::MetadataEntryInput>,
@@ -150,6 +151,7 @@ impl UpdateKnotPatch {
             || self.gate_owner_kind.is_some()
             || self.gate_failure_modes.is_some()
             || self.clear_gate_failure_modes
+            || self.execution_plan_objective.is_some()
             || self.execution_plan_data.is_some()
             || self.add_note.is_some()
             || self.add_handoff_capsule.is_some()

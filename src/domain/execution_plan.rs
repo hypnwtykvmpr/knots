@@ -67,6 +67,9 @@ pub struct ExecutionPlanData {
     pub waves: Vec<ExecutionPlanWave>,
 }
 
+pub const EXECUTION_PLAN_OBJECTIVE_REQUIRED_MESSAGE: &str =
+    "execution_plan knots require a non-empty top-level objective";
+
 impl<'de> Deserialize<'de> for ExecutionPlanStep {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -146,6 +149,18 @@ impl ExecutionPlanData {
             && self.waves.is_empty()
     }
 
+    pub fn validate_for_execution_plan_knot(&self) -> Result<(), String> {
+        if self
+            .objective
+            .as_deref()
+            .is_some_and(|objective| !objective.trim().is_empty())
+        {
+            Ok(())
+        } else {
+            Err(EXECUTION_PLAN_OBJECTIVE_REQUIRED_MESSAGE.to_string())
+        }
+    }
+
     /// Resolve and normalize every knot ID reference in the plan.
     ///
     /// Accepts bare suffixes (e.g. "a873") and fully-qualified IDs
@@ -214,6 +229,7 @@ mod tests {
     use super::{
         legacy_ids_key, legacy_unassigned_ids_key, ExecutionPlanAgent, ExecutionPlanData,
         ExecutionPlanKnot, ExecutionPlanStep, ExecutionPlanWave,
+        EXECUTION_PLAN_OBJECTIVE_REQUIRED_MESSAGE,
     };
     use serde_json::{json, Map, Value};
 
@@ -257,6 +273,29 @@ mod tests {
         let parsed: ExecutionPlanData = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed, data);
         assert!(!parsed.is_empty());
+    }
+
+    #[test]
+    fn execution_plan_validation_requires_top_level_objective() {
+        let err = ExecutionPlanData::default()
+            .validate_for_execution_plan_knot()
+            .expect_err("missing objective should fail");
+        assert_eq!(err, EXECUTION_PLAN_OBJECTIVE_REQUIRED_MESSAGE);
+
+        let err = ExecutionPlanData {
+            objective: Some("   ".to_string()),
+            ..Default::default()
+        }
+        .validate_for_execution_plan_knot()
+        .expect_err("blank objective should fail");
+        assert_eq!(err, EXECUTION_PLAN_OBJECTIVE_REQUIRED_MESSAGE);
+
+        ExecutionPlanData {
+            objective: Some("Ship the rollout".to_string()),
+            ..Default::default()
+        }
+        .validate_for_execution_plan_knot()
+        .expect("non-empty objective should pass");
     }
 
     #[test]

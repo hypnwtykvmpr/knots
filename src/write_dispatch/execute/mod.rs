@@ -1,5 +1,6 @@
 use crate::app::{App, AppError, CreateKnotOptions, StateActorMetadata};
 use crate::dispatch::knot_ref;
+use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::knot_type::KnotType;
 use crate::domain::step_history::StepActorInfo;
 use crate::poll_claim;
@@ -102,6 +103,10 @@ fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<Str
             acceptance: args.acceptance.clone(),
             knot_type,
             gate_data,
+            execution_plan_data: ExecutionPlanData {
+                objective: args.objective.clone(),
+                ..ExecutionPlanData::default()
+            },
             tags: args.tags.clone(),
             ..CreateKnotOptions::default()
         },

@@ -57,7 +57,14 @@ fn execution_plan_file_round_trips_through_show_json() {
     let created = run_knots(
         &root,
         &db,
-        &["new", "Execution plan carrier", "--type", "execution_plan"],
+        &[
+            "new",
+            "Execution plan carrier",
+            "--type",
+            "execution_plan",
+            "--objective",
+            "Coordinate execution-plan updates",
+        ],
     );
     assert_success(&created);
     let knot_id = parse_created_id(&created);
@@ -137,7 +144,14 @@ fn execution_plan_file_survives_rehydrate_after_hot_eviction() {
     let created = run_knots(
         &root,
         &db,
-        &["new", "Plan to rehydrate", "--type", "execution_plan"],
+        &[
+            "new",
+            "Plan to rehydrate",
+            "--type",
+            "execution_plan",
+            "--objective",
+            "Coordinate rehydrate coverage",
+        ],
     );
     assert_success(&created);
     let knot_id = parse_created_id(&created);
@@ -209,7 +223,14 @@ fn updating_work_knot_to_execution_plan_re_roots_workflow() {
     let updated = run_knots(
         &root,
         &db,
-        &["update", &knot_id, "--type", "execution_plan"],
+        &[
+            "update",
+            &knot_id,
+            "--type",
+            "execution_plan",
+            "--objective",
+            "Coordinate the execution plan",
+        ],
     );
     assert_success(&updated);
 
@@ -220,6 +241,116 @@ fn updating_work_knot_to_execution_plan_re_roots_workflow() {
     assert_eq!(view["workflow_id"], "execution_plan_sdlc");
     assert_eq!(view["profile_id"], "autopilot");
     assert_eq!(view["state"], "ready_for_design");
+    assert_eq!(
+        view["execution_plan"]["objective"],
+        "Coordinate the execution plan"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn creating_execution_plan_without_objective_fails() {
+    let root = unique_workspace("knots-cli-exec-plan-create-fail");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_builtin_workflows(&root, &db);
+
+    let created = run_knots(
+        &root,
+        &db,
+        &["new", "Execution plan", "--type", "execution_plan"],
+    );
+    assert_failure(&created);
+    let stderr = String::from_utf8_lossy(&created.stderr);
+    assert!(
+        stderr.contains("execution_plan knots require a non-empty top-level objective"),
+        "stderr should mention missing objective: {stderr}"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn execution_plan_objective_update_preserves_existing_waves() {
+    let root = unique_workspace("knots-cli-exec-plan-objective-update");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_builtin_workflows(&root, &db);
+
+    let created = run_knots(
+        &root,
+        &db,
+        &[
+            "new",
+            "Execution plan",
+            "--type",
+            "execution_plan",
+            "--objective",
+            "Original objective",
+        ],
+    );
+    assert_success(&created);
+    let knot_id = parse_created_id(&created);
+
+    let wave = run_knots(
+        &root,
+        &db,
+        &[
+            "plan",
+            "wave",
+            "add",
+            &knot_id,
+            "--name",
+            "Wave 1",
+            "--objective",
+            "Land the wave",
+        ],
+    );
+    assert_success(&wave);
+
+    let updated = run_knots(
+        &root,
+        &db,
+        &["update", &knot_id, "--objective", "Updated objective"],
+    );
+    assert_success(&updated);
+
+    let shown = run_knots(&root, &db, &["show", &knot_id, "--json"]);
+    assert_success(&shown);
+    let view: Value = serde_json::from_slice(&shown.stdout).expect("show json should parse");
+    assert_eq!(view["execution_plan"]["objective"], "Updated objective");
+    let waves = view["execution_plan"]["waves"]
+        .as_array()
+        .expect("waves should remain present");
+    assert_eq!(waves.len(), 1);
+    assert_eq!(waves[0]["name"], "Wave 1");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn updating_work_knot_to_execution_plan_without_objective_fails() {
+    let root = unique_workspace("knots-cli-exec-plan-type-fail");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_builtin_workflows(&root, &db);
+
+    let created = run_knots(&root, &db, &["new", "Needs orchestration"]);
+    assert_success(&created);
+    let knot_id = parse_created_id(&created);
+
+    let updated = run_knots(
+        &root,
+        &db,
+        &["update", &knot_id, "--type", "execution_plan"],
+    );
+    assert_failure(&updated);
+    let stderr = String::from_utf8_lossy(&updated.stderr);
+    assert!(
+        stderr.contains("execution_plan knots require a non-empty top-level objective"),
+        "stderr should mention missing objective: {stderr}"
+    );
 
     let _ = std::fs::remove_dir_all(root);
 }
@@ -234,7 +365,14 @@ fn execution_plan_next_advances_from_design_queue() {
     let created = run_knots(
         &root,
         &db,
-        &["new", "Execution plan", "--type", "execution_plan"],
+        &[
+            "new",
+            "Execution plan",
+            "--type",
+            "execution_plan",
+            "--objective",
+            "Coordinate the rollout",
+        ],
     );
     assert_success(&created);
     let knot_id = parse_created_id(&created);

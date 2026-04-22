@@ -241,6 +241,7 @@ fn stripped_ids_resolve_for_show_state_update_and_edges() {
                 gate_owner_kind: None,
                 gate_failure_modes: None,
                 clear_gate_failure_modes: false,
+                execution_plan_objective: None,
                 execution_plan_data: None,
                 add_note: None,
                 add_handoff_capsule: None,

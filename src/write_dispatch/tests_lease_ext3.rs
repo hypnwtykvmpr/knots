@@ -23,6 +23,7 @@ fn update_operation(id: &str, title: &str, lease_id: Option<String>) -> WriteOpe
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
         execution_plan_file: None,
+        objective: None,
         add_note: None,
         note_username: None,
         note_datetime: None,
