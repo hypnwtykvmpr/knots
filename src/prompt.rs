@@ -25,15 +25,7 @@ fn render_prompt_inner(
     out.push_str(&format!("# {}\n\n", knot.title));
     out.push_str(&render_header(knot));
     out.push('\n');
-    if let Some(body) = knot.body.as_deref().filter(|b| !b.is_empty()) {
-        out.push_str("## Description\n\n");
-        out.push_str(body);
-        out.push_str("\n\n");
-    } else if let Some(desc) = knot.description.as_deref().filter(|d| !d.is_empty()) {
-        out.push_str("## Description\n\n");
-        out.push_str(desc);
-        out.push_str("\n\n");
-    }
+    render_context_section(&mut out, knot);
     if let Some(acceptance) = knot.acceptance.as_deref().filter(|value| !value.is_empty()) {
         out.push_str("## Acceptance Criteria\n\n");
         out.push_str(acceptance);
@@ -65,18 +57,7 @@ fn render_prompt_inner(
         }
         out.push('\n');
     }
-    if let Some(gate) = knot.gate.as_ref() {
-        out.push_str("## Gate\n\n");
-        out.push_str(&format!("- owner: {}\n", gate.owner_kind));
-        if gate.failure_modes.is_empty() {
-            out.push_str("- failure modes: none\n");
-        } else {
-            for (invariant, targets) in &gate.failure_modes {
-                out.push_str(&format!("- {} => {}\n", invariant, targets.join(", ")));
-            }
-        }
-        out.push('\n');
-    }
+    render_gate_section(&mut out, knot.gate.as_ref());
     render_step_metadata_section(&mut out, knot);
     if !knot.notes.is_empty() || !knot.handoff_capsules.is_empty() {
         out.push_str("## Notes\n\n");
@@ -115,6 +96,44 @@ fn render_prompt_inner(
     out.push_str("## Completion\n\n");
     out.push_str(&format!("`{completion_cmd}`\n"));
     out
+}
+
+fn render_context_section(out: &mut String, knot: &KnotView) {
+    let heading = if knot.gate.is_some() {
+        "## Context"
+    } else {
+        "## Description"
+    };
+    let value = knot
+        .body
+        .as_deref()
+        .filter(|body| !body.is_empty())
+        .or_else(|| knot.description.as_deref().filter(|desc| !desc.is_empty()));
+    if let Some(value) = value {
+        out.push_str(heading);
+        out.push_str("\n\n");
+        out.push_str(value);
+        out.push_str("\n\n");
+    }
+}
+
+fn render_gate_section(out: &mut String, gate: Option<&crate::domain::gate::GateData>) {
+    let Some(gate) = gate else {
+        return;
+    };
+    out.push_str("## Gate\n\n");
+    out.push_str(&format!("- gate.owner_kind: {}\n", gate.owner_kind));
+    if gate.failure_modes.is_empty() {
+        out.push_str("- gate.failure_modes: none\n");
+    } else {
+        for (invariant, targets) in &gate.failure_modes {
+            out.push_str(&format!(
+                "- gate.failure_modes[{invariant}]: {}\n",
+                targets.join(", ")
+            ));
+        }
+    }
+    out.push('\n');
 }
 
 pub fn render_prompt_json(knot: &KnotView, skill: &str, completion_cmd: &str) -> serde_json::Value {

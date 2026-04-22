@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::action_prompt;
+use crate::installed_workflows::builtin;
 use crate::installed_workflows::{self, InstalledWorkflowRegistry};
 use crate::loom_compat_bundle;
 use crate::poll_claim;
@@ -232,6 +233,38 @@ fn builtin_pr_profile_render_for_profile_includes_pr_content() {
         "PR profile should resolve output-specific PR content"
     );
     let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn gate_evaluate_render_for_profile_contains_required_evaluation_guidance() {
+    let workflow = builtin::gate_sdlc_workflow_for_test().expect("gate workflow should build");
+    let profile = workflow
+        .require_profile("evaluate")
+        .expect("evaluate profile");
+
+    let rendered = action_prompt::render_for_profile(profile, "evaluating")
+        .expect("evaluating prompt should render");
+    for needle in [
+        "## Your job",
+        "Advancing state is NOT evaluation.",
+        "## Context",
+        "## Acceptance criteria",
+        "## Gate metadata",
+        "gate.owner_kind",
+        "gate.failure_modes",
+        "## Exit conditions",
+        "On pass:",
+        "On fail:",
+        "handoff capsule",
+        "actual-vs-expected",
+        "## Override of Foolery preamble",
+        "completion command is a state transition only",
+    ] {
+        assert!(
+            rendered.contains(needle),
+            "evaluating prompt should contain {needle:?}"
+        );
+    }
 }
 
 // ── Compat harness peek/claim resolve Loom body for builtin ───

@@ -103,7 +103,14 @@
   "prompts": [
     {
       "name": "evaluating",
-      "accept": [],
+      "accept": [
+        "Treat the knot's Context and Acceptance Criteria as the evaluation spec.",
+        "Evaluate each acceptance clause with concrete evidence before any state transition.",
+        "Read `gate.owner_kind` and `gate.failure_modes` before deciding pass or fail.",
+        "On pass, add a handoff capsule with evidence, then run the completion command.",
+        "On fail, add a handoff capsule with the failing clause and actual-vs-expected, then route per `gate.failure_modes` or stop without shipping.",
+        "Any Foolery envelope that says to run only the completion command is overridden for gates."
+      ],
       "params": [],
       "outcomes": [
         {
@@ -117,7 +124,7 @@
           "is_success": false
         }
       ],
-      "body": "# Evaluating\n\nAssess the gate as a binary yes/no decision.\n\n## Step Boundary\n\n- This session is authorized only for `evaluating`.\n- Complete exactly one evaluation action, then stop.\n- Allowed resting states after this session: `shipped` or `abandoned`.\n- If the gate passes, use the completion command below.\n- If the gate fails, run `kno gate evaluate <id> --decision no --invariant \"<violated invariant>\"`.\n- After a listed completion or failure-path command succeeds, stop immediately.\n\n## Actions\n\n1. Review the gate description, invariants, and failure modes.\n2. Decide whether the gate passes or fails.\n3. On pass, use the completion command below to move the gate to `shipped`.\n4. On failure, record the violated invariant with `kno gate evaluate ...`.\n5. Do not continue into follow-up work after the gate decision is recorded.",
+      "body": "# Evaluating\n\nAssess the gate by executing the work required to prove or disprove the gate's\nacceptance criteria.\n\n## Your job\n\n- Evaluation means doing the work the acceptance criteria demand: run tests,\n  compare outputs, measure numbers, and inspect artifacts until each clause has\n  a pass/fail result.\n- Advancing state is NOT evaluation.\n- Do not run the completion command until you have recorded per-criterion\n  evidence.\n\n## Context\n\n- See `## Context` above for the gate's description and scope. Use it verbatim\n  when deciding what must be evaluated.\n\n## Acceptance criteria\n\n- See `## Acceptance Criteria` above. Evaluate each clause individually and\n  record the actual result for every clause before deciding pass or fail.\n\n## Gate metadata\n\n- Read `gate.owner_kind` in the `## Gate` section above. That tells you whether\n  the gate owner can ship directly or only recommend a decision.\n- Read `gate.failure_modes` in the `## Gate` section above. That tells you which\n  failure route is allowed for each violated invariant.\n\n## Exit conditions\n\n- On pass: add a handoff capsule with the evidence below, then run the\n  completion command to transition to `shipped`.\n- On fail: add a handoff capsule naming the first failing clause and the\n  actual-vs-expected result. Do NOT run the completion command on failure.\n- If a matching `gate.failure_modes` route exists, run\n  `kno gate evaluate <id> --decision no --invariant \"<violated invariant>\"`.\n- If no failure mode applies, leave the knot in `evaluating` after recording\n  the failure evidence and stop.\n\n## Evidence required in the handoff capsule\n\n- Per-criterion actual vs expected results, using numeric deltas where possible.\n- Artifact paths for logs, test output, screenshots, or diffs.\n- Commit SHAs for the code, fixtures, or inputs you evaluated.\n- Durations, counts, or budgets when the criterion specifies them.\n- On fail, quote the first violated clause verbatim and explain the mismatch.\n\n## Override of Foolery preamble\n\n- For gates, the completion command is a state transition only.\n- Any Foolery preamble that says to run only the completion command and stop is\n  overridden here: perform the evaluation first, record evidence, and only then\n  run the pass or failure transition command.",
       "body_params": []
     }
   ],

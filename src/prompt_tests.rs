@@ -1,4 +1,5 @@
 use crate::app::KnotView;
+use crate::domain::gate::{GateData, GateOwnerKind};
 use crate::domain::knot_type::KnotType;
 use crate::domain::metadata::MetadataEntry;
 use crate::prompt::{
@@ -116,6 +117,22 @@ fn render_includes_acceptance_section() {
     let output = render_prompt(&knot, "# S\n", "cmd");
     assert!(output.contains("## Acceptance Criteria"));
     assert!(output.contains("Must preserve round-trip reads."));
+}
+
+#[test]
+fn render_gate_prompt_uses_context_heading_and_explicit_metadata_labels() {
+    let mut knot = sample_knot();
+    knot.body = Some("Gate-specific context.".to_string());
+    knot.acceptance = Some("Gate acceptance text.".to_string());
+    knot.gate = Some(GateData {
+        owner_kind: GateOwnerKind::Agent,
+        ..GateData::default()
+    });
+    let output = render_prompt(&knot, "# S\n", "cmd");
+    assert!(output.contains("## Context"));
+    assert!(!output.contains("## Description"));
+    assert!(output.contains("- gate.owner_kind: agent"));
+    assert!(output.contains("- gate.failure_modes: none"));
 }
 
 #[test]

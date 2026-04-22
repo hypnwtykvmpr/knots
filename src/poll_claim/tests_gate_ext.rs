@@ -8,6 +8,7 @@ use super::{
 use crate::app::{App, CreateKnotOptions, StateActorMetadata};
 use crate::cli::{ClaimArgs, PollArgs, ReadyArgs};
 use crate::domain::gate::{GateData, GateOwnerKind};
+use crate::domain::invariant::{Invariant, InvariantType};
 use crate::domain::knot_type::KnotType;
 
 fn unique_workspace() -> PathBuf {
@@ -247,6 +248,81 @@ fn run_ready_owner_filter_matches_pollable_owner() {
         .expect("human poll should work")
         .expect("human should see the gate");
     assert_eq!(human_poll.knot.title, "Human gate");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn claim_prompt_for_gate_surfaces_acceptance_context_and_evaluation_rules() {
+    use std::collections::BTreeMap;
+
+    let root = unique_workspace();
+    let app = open_app(&root);
+    let target = app
+        .create_knot("Blocked work", None, Some("idea"), Some("default"))
+        .expect("target should be created");
+    let mut failure_modes = BTreeMap::new();
+    failure_modes.insert("tests must pass".to_string(), vec![target.id.clone()]);
+    let gate = app
+        .create_knot_with_options(
+            "Release gate",
+            Some("NON-TRIVIAL DESCRIPTION TEXT"),
+            None,
+            None,
+            None,
+            CreateKnotOptions {
+                knot_type: KnotType::Gate,
+                gate_data: GateData {
+                    owner_kind: GateOwnerKind::Agent,
+                    failure_modes,
+                },
+                acceptance: Some(
+                    "NON-TRIVIAL ACCEPTANCE TEXT\n- collect evidence\n- compare outputs"
+                        .to_string(),
+                ),
+                ..CreateKnotOptions::default()
+            },
+        )
+        .expect("gate should be created");
+    let gate = app
+        .update_knot(
+            &gate.id,
+            crate::app::UpdateKnotPatch {
+                add_invariants: vec![Invariant::new(InvariantType::State, "tests must pass")
+                    .expect("invariant should build")],
+                expected_profile_etag: gate.profile_etag.clone(),
+                ..crate::app::UpdateKnotPatch::default()
+            },
+        )
+        .expect("invariants should be added");
+
+    let claimed = claim_knot(&app, &gate.id, StateActorMetadata::default(), None, 600)
+        .expect("claim should succeed");
+    let prompt = claimed.skill;
+    let full_prompt = crate::prompt::render_prompt(&claimed.knot, &prompt, &claimed.completion_cmd);
+
+    for needle in [
+        "## Context",
+        "NON-TRIVIAL DESCRIPTION TEXT",
+        "## Acceptance Criteria",
+        "NON-TRIVIAL ACCEPTANCE TEXT",
+        "## Your job",
+        "Advancing state is NOT evaluation.",
+        "## Exit conditions",
+        "On pass:",
+        "On fail:",
+        "handoff capsule",
+        "actual-vs-expected",
+        "gate.owner_kind: agent",
+        "gate.failure_modes[tests must pass]",
+        "## Override of Foolery preamble",
+        "completion command is a state transition only",
+    ] {
+        assert!(
+            full_prompt.contains(needle),
+            "claim prompt should contain {needle:?}"
+        );
+    }
 
     let _ = std::fs::remove_dir_all(root);
 }
