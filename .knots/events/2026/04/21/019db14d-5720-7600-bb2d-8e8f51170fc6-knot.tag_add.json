@@ -1,0 +1,9 @@
+{
+  "event_id": "019db14d-5720-7600-bb2d-8e8f51170fc6",
+  "occurred_at": "2026-04-21T18:28:49.041503Z",
+  "knot_id": "knots-99d4",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "gates"
+  }
+}
