@@ -42,13 +42,16 @@ pub(crate) fn warn_deprecated_agent_metadata(
         .map(|f| format!("--{f}"))
         .collect::<Vec<_>>()
         .join(", ");
+    let (verb, pronoun) = if supplied_flags.len() == 1 {
+        ("is", "this value is")
+    } else {
+        ("are", "these values are")
+    };
     eprintln!(
-        "warning: {joined} are deprecated on `kno {command}` and will be rejected as an error \
+        "warning: {joined} {verb} deprecated on `kno {command}` and will be rejected as an error \
          in a future release"
     );
-    eprintln!(
-        "these values are ignored; agent identity is taken from the active lease on the knot"
-    );
+    eprintln!("{pronoun} ignored; agent identity is taken from the active lease on the knot");
     if !lease_bound {
         eprintln!(
             "no lease is bound to this knot \u{2014} create one with `kno lease create` and \
