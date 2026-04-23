@@ -1,0 +1,17 @@
+{
+  "event_id": "019dbb6b-7520-75f3-bf14-0d05287f8edc",
+  "occurred_at": "2026-04-23T17:37:54.976559Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "detect nested knots caches in kno doctor and report them, suggest manual fixes",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
