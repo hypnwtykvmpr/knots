@@ -292,6 +292,15 @@ Leases expire after a configurable timeout (default: 10 minutes). Write commands
 that touch a bound knot automatically refresh the timer. Expired leases are
 lazily terminated on the next interaction and unblock sync.
 
+The lease is also the **declared source of agent identity** (name, model,
+version). Knots stamps identity onto notes, handoff capsules, step-history
+entries, and gate decisions from the bound lease's `agent_info`. Agent
+identity flags (`--agent-name`, `--agent-model`, `--agent-version`, and the
+`--note-*` / `--handoff-*` variants) are accepted only on `kno lease create`;
+on every other subcommand they are deprecated, ignored at runtime, and
+emit a three-line stderr warning directing callers to create a lease — see
+[docs/leases.md](docs/leases.md#agent-identity-propagation).
+
 For full lifecycle details, timeout configuration, extension, and manual
 management commands see [docs/leases.md](docs/leases.md).
 

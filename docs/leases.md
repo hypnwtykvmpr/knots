@@ -163,6 +163,87 @@ the pre-created lease instead of creating a new one:
 kno claim <knot-id> --lease <lease-id> --timeout-seconds 900
 ```
 
+## Agent identity propagation
+
+The lease is the **declared source of agent identity** (name, model,
+version, provider, agent type) on a claimed knot. Identity is supplied
+exactly once, at `kno lease create`, and travels with the lease for the
+rest of the claim. Knots reads the bound lease's `agent_info` and stamps
+it onto every record produced while the lease is active.
+
+### The rule
+
+`kno lease create` is the **only** subcommand that accepts agent identity
+flags. On every other subcommand, the agent-identity flags are
+**deprecated and ignored at runtime**. Specifically:
+
+- `--agent-name`, `--agent-model`, `--agent-version` on `kno claim`,
+  `kno poll --claim`, `kno next`, `kno rollback`, `kno gate evaluate`,
+  and `kno step annotate`.
+- `--note-agentname`, `--note-model`, `--note-version` on
+  `kno update --add-note`.
+- `--handoff-agentname`, `--handoff-model`, `--handoff-version` on
+  `kno update --add-handoff-capsule`.
+
+These flags are still **accepted syntactically** so legacy callers do not
+break. Their values are **discarded**; identity comes from the bound
+lease's `agent_info`. A future release will reject the flags outright.
+
+`--actor-kind` (`agent` vs `human`) is orthogonal to agent identity and is
+unaffected by this rule. Continue to pass `--actor-kind` where the CLI
+accepts it.
+
+### Deprecation warning
+
+Whenever a deprecated agent-identity flag is supplied on a non-lease-create
+subcommand, Knots writes a three-line warning to stderr:
+
+1. The flag is deprecated and will be rejected in a future release.
+2. Its value is ignored on this subcommand — identity is read from the
+   bound lease.
+3. If no lease is bound, create one via
+   `kno lease create --agent-name ... --model ... --model-version ...` and
+   pass `--lease <id>` on claim.
+
+The warning is informational: the command still runs. The offending flag
+has no effect on the record Knots writes.
+
+### Contract for a Knots Client
+
+A *Knots Client* is any automated system driving `kno` on behalf of an
+agent (as opposed to a human at an interactive shell). A Knots Client
+declares identity by creating a lease:
+
+```bash
+lease_id=$(kno lease create --nickname "my-session" --type agent \
+    --agent-name <name> --model <model> --model-version <version> \
+    --provider <provider> --agent-type <type> --json | jq -r .id)
+kno claim <knot-id> --lease "$lease_id"
+```
+
+All subsequent `kno` calls within that claim operate on the bound lease
+and MUST NOT pass agent-identity flags. The deprecation warning above is
+the feedback loop for clients that still do.
+
+### What Knots stamps from the lease
+
+When a knot has a bound lease, Knots reads the lease's `agent_info` and
+stamps it onto records produced by the active claim:
+
+| Record | Fields stamped | Trigger |
+|---|---|---|
+| Note | `agentname`, `model`, `version`, `username` | `kno update --add-note` |
+| Handoff capsule | `agentname`, `model`, `version`, `username` | `kno update --add-handoff-capsule` |
+| Step-history entry (claim/transition) | `agent_name`, `agent_model`, `agent_version` | `kno claim`, `kno poll --claim`, `kno next` |
+| Step-history entry (rollback) | `agent_name`, `agent_model`, `agent_version` | `kno rollback` |
+| Gate decision metadata | `agentname`, `model`, `version` | `kno gate evaluate` |
+
+Lookup is performed by `resolve_lease_agent_info` in
+[`src/write_dispatch/helpers.rs`](../src/write_dispatch/helpers.rs): given a
+knot id, Knots reads the knot's currently bound `lease_id`, loads the
+lease, and returns its `agent_info`. If no lease is bound, these fields
+stay unset on the record.
+
 ## Known limitations
 
 - **Expired lease + reclaimed knot = wasted work.** If a lease expires and
