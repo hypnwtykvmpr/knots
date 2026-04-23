@@ -261,7 +261,9 @@ pub fn run_fsck(app: &app::App, args: FsckArgs) -> Result<(), app::AppError> {
 }
 
 pub fn run_doctor(app: &app::App, args: DoctorArgs) -> Result<(), app::AppError> {
-    let report = app.doctor(args.fix)?;
+    let mut reporter = progress_reporter(args.fix && !args.json);
+    let dyn_reporter = reporter.as_mut().map(progress::as_dyn);
+    let report = app.doctor_with_progress(args.fix, dyn_reporter)?;
     if args.json {
         print_json(&report);
     } else {

@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::app::App;
 use crate::doctor::{DoctorCheck, DoctorStatus};
+use crate::progress::{emit_progress, ProgressKind, ProgressReporter};
 use crate::project::StorePaths;
 use crate::remote_init::init_remote_knots_branch;
 use crate::sync::{GitAdapter, KnotsWorktree, SyncError};
@@ -40,13 +41,28 @@ pub(crate) struct FixOutcome {
     pub event_log_touched: bool,
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) -> FixOutcome {
+    apply_fixes_with_progress(repo_root, checks, &mut None)
+}
+
+pub(crate) fn apply_fixes_with_progress(
+    repo_root: &Path,
+    checks: &[DoctorCheck],
+    reporter: &mut Option<&mut dyn ProgressReporter>,
+) -> FixOutcome {
     set_version_fix_applied(false);
     let mut outcome = FixOutcome::default();
     for check in checks {
         if check.status == DoctorStatus::Pass {
             continue;
         }
+
+        let _ = emit_progress(
+            reporter,
+            ProgressKind::Info,
+            format!("Fixing {}...", check.name),
+        );
 
         match check.name.as_str() {
             "lock_health" => fix_lock_health(repo_root),
@@ -76,6 +92,46 @@ pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) -> FixOutcom
         }
     }
     outcome
+}
+
+pub(crate) fn announce_and_apply_fixes(
+    repo_root: &Path,
+    distribution: crate::project::DistributionMode,
+    report: &crate::doctor::DoctorReport,
+    reporter: &mut Option<&mut dyn ProgressReporter>,
+) {
+    if !has_non_pass_checks(&report.checks) {
+        let _ = emit_progress(reporter, ProgressKind::Success, "No issues found.");
+        return;
+    }
+
+    let fix_count = report
+        .checks
+        .iter()
+        .filter(|check| check.status != DoctorStatus::Pass)
+        .count();
+
+    if distribution == crate::project::DistributionMode::Git {
+        let outcome = apply_fixes_with_progress(repo_root, &report.checks, reporter);
+        if outcome.event_log_touched {
+            let _ = emit_progress(reporter, ProgressKind::Info, "Syncing fix events...");
+            sync_after_fixes(repo_root);
+        }
+        let _ = emit_progress(
+            reporter,
+            ProgressKind::Success,
+            format!("{} issue(s) fixed.", fix_count),
+        );
+    } else {
+        let _ = emit_progress(
+            reporter,
+            ProgressKind::Info,
+            format!(
+                "{} issue(s) found; local-only mode does not apply fixes.",
+                fix_count
+            ),
+        );
+    }
 }
 
 /// Best-effort sync to publish repair events emitted by `apply_fixes` into
@@ -275,3 +331,7 @@ fn fix_version() {
 #[cfg(test)]
 #[path = "doctor_fix_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "doctor_fix_progress_tests.rs"]
+mod progress_tests;

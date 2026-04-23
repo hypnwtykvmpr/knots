@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::doctor::{run_doctor_with_fix_at, DoctorReport};
+use crate::doctor::{run_doctor_with_fix_at_with_progress, DoctorReport};
 use crate::fsck::{run_fsck_at_store, FsckReport};
 use crate::locks::FileLock;
 use crate::perf::{run_perf_harness, PerfReport};
@@ -141,12 +141,18 @@ impl App {
         Ok(run_fsck_at_store(&self.store_paths.root)?)
     }
 
-    pub fn doctor(&self, fix: bool) -> Result<DoctorReport, AppError> {
-        Ok(run_doctor_with_fix_at(
+    pub fn doctor_with_progress(
+        &self,
+        fix: bool,
+        reporter: Option<&mut dyn ProgressReporter>,
+    ) -> Result<DoctorReport, AppError> {
+        let mut reporter = reporter;
+        Ok(run_doctor_with_fix_at_with_progress(
             &self.repo_root,
             &self.store_paths.root,
             self.distribution,
             fix,
+            &mut reporter,
         )?)
     }
 
