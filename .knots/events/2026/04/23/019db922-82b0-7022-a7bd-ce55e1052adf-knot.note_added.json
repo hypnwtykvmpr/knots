@@ -1,0 +1,15 @@
+{
+  "event_id": "019db922-82b0-7022-a7bd-ce55e1052adf",
+  "occurred_at": "2026-04-23T06:58:59.887781Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Verification steps (beyond AC8 quality gates):\n\nV1. In ~/knots: create a test knot, create a lease with --agent-name claude --model opus --model-version 4.7 --provider anthropic --agent-type code, claim the knot with --lease <id>. Run kno next to transition through planning -> plan_review -> implementation. Dump `kno show <id> --json` and confirm every step_history entry carries agent_name/agent_model/agent_version derived from the lease.\nV2. In ~/knots: repeat V1 but call `kno next <id> --agent-name bogus --agent-model bogus --agent-version bogus`. Confirm stderr shows the three-line deprecation warning and that the recorded step_history entry still carries the lease's agent identity, not \"bogus\".\nV3. In ~/knots: call `kno next <id>` on a knot with no bound lease. Confirm stderr shows the warning with the \"no lease bound; create one\" branch, and the step_history entry is written with unset agent fields.\nV4. In ~/knots: repeat V2 for kno update --add-note --note-agentname bogus, kno update --add-handoff-capsule --handoff-agentname bogus, kno gate evaluate --agent-name bogus, kno rollback --agent-name bogus, kno step annotate --agent-name bogus. Same assertion each time.\nV5. In ~/foolery: start the dev server, drive a knot through the Foolery UI via the full workflow (poll -> take -> next x N). Open the Retakes screen, expand a beat row, confirm each step shows real \"agentname | model | version | username | time\" instead of empty fields.\nV6. In ~/foolery: grep server logs produced during V5 for \"deprecated\" -- after the client cleanup, there should be zero deprecation warnings surfacing from kno invocations.\nV7. In ~/foolery: run `rg \"'--agent-name'|\\\\\\\"--agent-name\\\\\\\"|--note-agentname|--handoff-agentname\" src --type=ts` and confirm the only hit is inside createLease.",
+    "datetime": "2026-04-23T00:00:00Z",
+    "entry_id": "019db922-82b0-7022-a7bd-ce4fffcd2ee1",
+    "model": "unknown",
+    "username": "andrew",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019db922-38e7-7f03-bfcc-47f18a2f946e",
+  "occurred_at": "2026-04-23T06:58:40.960932Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "agent-identity"
+  }
+}

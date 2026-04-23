@@ -1,0 +1,17 @@
+{
+  "event_id": "019db922-38c1-73c2-88dc-16e945147e09",
+  "occurred_at": "2026-04-23T06:58:40.960932Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.created",
+  "data": {
+    "body": "Knots currently treats the lease's agent_info as a fallback for agent identity: step-history entries, gate decisions, notes, and handoff capsules are stamped from per-command --agent-* / --note-* / --handoff-* flags first, and only consult the bound lease when the flags are absent. That framing is wrong and produces two defects:\n\n1. kno next, kno rollback, kno gate evaluate, kno step annotate, kno claim, and kno poll --claim do not consult the lease at all. When a Knots Client (e.g. Foolery) omits agent flags on those commands, the resulting step_history entries carry actor_kind=\"agent\" but no agent_name/agent_model/agent_version. This is what produces the empty \"agent | model | version\" line on Foolery's Retakes screen steps.\n2. kno update's note/handoff paths do consult the lease, but only as a fallback behind caller-supplied flags. When Foolery passes a hardcoded \"foolery\" string, that string wins over the real agent identity in the lease, so notes and capsules are mis-attributed.\n\nThe correct model: the lease is the declared source of agent identity for a claim. Agent metadata flags are deprecated on every kno command except lease creation, are ignored at runtime, and emit deprecation warnings. Knots stamps identity onto notes, handoff capsules, step records, and gate decisions from the bound lease's agent_info unconditionally. The word \"fallback\" must not appear in taxonomy, docs, or code comments in the context of lease-derived identity.\n\nThe Foolery client must stop passing agent flags to any command other than kno lease create, including the currently-hardcoded \"foolery\" default in appendNoteArgs / appendHandoffArgs.\n\nSee the detailed gap report and action plan in conversation history; highlights:\n- Knots helper resolve_lease_agent_info exists at src/write_dispatch/helpers.rs:13-21 and already does the lookup.\n- Foolery-side violating call sites: src/lib/knots-operations.ts claimKnot/pollKnot/appendNoteArgs/appendHandoffArgs; callers in src/lib/execution-backend-helpers.ts and src/lib/backends/knots-backend-prompts.ts.\n- Docs that currently describe \"fallback\" framing and must be rewritten: knots/docs/leases.md, knots/README.md, foolery/docs/knots-agent-identity-contract.md, foolery/docs/adr-knots-compatibility.md.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Lease-driven agent identity: make lease the single source, deprecate agent flags on other commands",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

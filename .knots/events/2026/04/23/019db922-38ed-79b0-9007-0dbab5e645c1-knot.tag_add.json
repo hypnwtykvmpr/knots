@@ -1,0 +1,9 @@
+{
+  "event_id": "019db922-38ed-79b0-9007-0dbab5e645c1",
+  "occurred_at": "2026-04-23T06:58:40.960932Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "foolery-coordination"
+  }
+}
