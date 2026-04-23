@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 use super::{claim_knot, list_queue_candidates, run_poll};
-use crate::app::{App, StateActorMetadata};
+use crate::app::App;
 use crate::cli::PollArgs;
 use crate::domain::knot_type::KnotType;
 
@@ -69,14 +69,7 @@ fn claim_rejects_lease_knot() {
     )
     .expect("lease should be created");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: None,
-        agent_version: None,
-    };
-
-    let result = claim_knot(&app, &lease.id, actor, None, 600);
+    let result = claim_knot(&app, &lease.id, Some("agent".to_string()), None, 600);
     let err = match result {
         Err(e) => e.to_string(),
         Ok(_) => panic!("claim should reject lease knot"),
@@ -98,14 +91,8 @@ fn claim_creates_lease_on_claim() {
         .create_knot("Claimable work", None, Some("work_item"), Some("default"))
         .expect("work knot should be created");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("claude".to_string()),
-        agent_model: Some("opus".to_string()),
-        agent_version: Some("4".to_string()),
-    };
-
-    let _result = claim_knot(&app, &work.id, actor, None, 600).expect("claim should succeed");
+    let _result = claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim should succeed");
     let knot = app
         .show_knot(&work.id)
         .expect("show should succeed")
@@ -129,35 +116,26 @@ fn claim_creates_lease_on_claim() {
 }
 
 #[test]
-fn claim_without_agent_name_skips_lease_creation() {
+fn claim_without_external_lease_always_auto_creates_one() {
+    // With lease-declared identity, `kno claim` (no `--lease`) must always
+    // auto-create a lease. The CLI no longer has a path for declaring
+    // agent_name, so the auto-created lease simply has an empty agent_info.
     let root = unique_workspace();
     let app = open_app(&root);
 
     let work = app
-        .create_knot(
-            "No agent name work",
-            None,
-            Some("work_item"),
-            Some("default"),
-        )
+        .create_knot("Auto-lease work", None, Some("work_item"), Some("default"))
         .expect("work knot should be created");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: None,
-        agent_model: None,
-        agent_version: None,
-    };
-
-    claim_knot(&app, &work.id, actor, None, 600).expect("claim should succeed");
+    claim_knot(&app, &work.id, Some("agent".to_string()), None, 600).expect("claim should succeed");
     let knot = app
         .show_knot(&work.id)
         .expect("show should succeed")
         .expect("knot should exist");
 
     assert!(
-        knot.lease_id.is_none(),
-        "claim without agent_name should not create a lease"
+        knot.lease_id.is_some(),
+        "claim without --lease should auto-create one"
     );
 
     let _ = std::fs::remove_dir_all(root);
@@ -176,9 +154,10 @@ fn run_poll_with_claim_creates_lease() {
         owner: None,
         claim: true,
         json: true,
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
+        // Deprecated agent-identity flags — still parseable but ignored.
+        agent_name: None,
+        agent_model: None,
+        agent_version: None,
         timeout_seconds: None,
     };
 
@@ -240,14 +219,14 @@ fn claim_with_external_lease_binds_it() {
     )
     .expect("create lease");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let result =
-        claim_knot(&app, &work.id, actor, Some(&lease.id), 600).expect("claim should succeed");
+    let result = claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&lease.id),
+        600,
+    )
+    .expect("claim should succeed");
 
     // Verify the external lease is bound (not a new one)
     assert_eq!(result.knot.lease_id.as_deref(), Some(lease.id.as_str()));
@@ -280,12 +259,13 @@ fn claim_with_terminated_lease_rejects() {
     let _ = crate::lease::activate_lease(&app, &lease.id);
     let _ = crate::lease::terminate_lease(&app, &lease.id);
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        ..Default::default()
-    };
-    let result = claim_knot(&app, &work.id, actor, Some(&lease.id), 600);
+    let result = claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&lease.id),
+        600,
+    );
     assert!(
         result.is_err(),
         "claiming with terminated lease should fail"
@@ -308,13 +288,8 @@ fn claim_without_lease_creates_one() {
         )
         .expect("create work knot");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let result = claim_knot(&app, &work.id, actor, None, 600).expect("claim should succeed");
+    let result = claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim should succeed");
 
     assert!(
         result.knot.lease_id.is_some(),
@@ -347,14 +322,14 @@ fn completion_command_includes_lease() {
     )
     .expect("create lease");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let result =
-        claim_knot(&app, &work.id, actor, Some(&lease.id), 600).expect("claim with external lease");
+    let result = claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&lease.id),
+        600,
+    )
+    .expect("claim with external lease");
 
     assert!(
         result.completion_cmd.contains("--lease"),
@@ -388,12 +363,13 @@ fn claim_with_non_lease_knot_as_lease_rejects() {
         .create_knot("Not a lease", None, Some("work_item"), Some("default"))
         .expect("create second knot");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        ..Default::default()
-    };
-    let result = claim_knot(&app, &work.id, actor, Some(&fake_lease.id), 600);
+    let result = claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&fake_lease.id),
+        600,
+    );
     let err = match result {
         Err(e) => e.to_string(),
         Ok(_) => panic!("claiming with non-lease knot should fail"),
@@ -432,14 +408,14 @@ fn claim_with_ready_lease_activates_it() {
         .expect("lease exists");
     assert_eq!(lease_knot.state, "lease_ready");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let result =
-        claim_knot(&app, &work.id, actor, Some(&lease.id), 600).expect("claim should succeed");
+    let result = claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&lease.id),
+        600,
+    )
+    .expect("claim should succeed");
 
     // Verify the lease was activated and bound
     assert_eq!(result.knot.lease_id.as_deref(), Some(lease.id.as_str()));
@@ -467,12 +443,13 @@ fn claim_with_nonexistent_lease_rejects() {
         )
         .expect("create work knot");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        ..Default::default()
-    };
-    let result = claim_knot(&app, &work.id, actor, Some("nonexistent-lease-id"), 600);
+    let result = claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some("nonexistent-lease-id"),
+        600,
+    );
     assert!(
         result.is_err(),
         "claiming with nonexistent lease should fail"

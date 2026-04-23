@@ -20,11 +20,23 @@ pub struct NextArgs {
     pub json: bool,
     #[arg(long = "actor-kind", help = "Actor kind for the step: human or agent.")]
     pub actor_kind: Option<String>,
-    #[arg(long = "agent-name", help = "Agent name for step metadata.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_name: Option<String>,
-    #[arg(long = "agent-model", help = "Agent model for step metadata.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_model: Option<String>,
-    #[arg(long = "agent-version", help = "Agent version for step metadata.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_version: Option<String>,
     #[arg(
         long = "cascade-terminal-descendants",
@@ -47,11 +59,23 @@ pub struct RollbackArgs {
     pub dry_run: bool,
     #[arg(long = "actor-kind", help = "Actor kind for the step: human or agent.")]
     pub actor_kind: Option<String>,
-    #[arg(long = "agent-name", help = "Agent name for step metadata.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_name: Option<String>,
-    #[arg(long = "agent-model", help = "Agent model for step metadata.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_model: Option<String>,
-    #[arg(long = "agent-version", help = "Agent version for step metadata.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_version: Option<String>,
 }
 
@@ -77,11 +101,23 @@ pub struct PollArgs {
     pub claim: bool,
     #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
     pub json: bool,
-    #[arg(long = "agent-name", help = "Agent name for claim metadata.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_name: Option<String>,
-    #[arg(long = "agent-model", help = "Agent model for claim metadata.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_model: Option<String>,
-    #[arg(long = "agent-version", help = "Agent version for claim metadata.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_version: Option<String>,
     #[arg(long, help = "Lease timeout in seconds (default: 600).")]
     pub timeout_seconds: Option<u64>,
@@ -96,20 +132,20 @@ pub struct ClaimArgs {
     pub json: bool,
     #[arg(
         long = "agent-name",
-        help = "[DEPRECATED] Agent name for claim metadata. \
-                Create a lease with `kno lease create` and pass `--lease <id>` instead."
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` instead."
     )]
     pub agent_name: Option<String>,
     #[arg(
         long = "agent-model",
-        help = "[DEPRECATED] Agent model for claim metadata. \
-                Create a lease with `kno lease create` and pass `--lease <id>` instead."
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` instead."
     )]
     pub agent_model: Option<String>,
     #[arg(
         long = "agent-version",
-        help = "[DEPRECATED] Agent version for claim metadata. \
-                Create a lease with `kno lease create` and pass `--lease <id>` instead."
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` instead."
     )]
     pub agent_version: Option<String>,
     #[arg(long, help = "Show claim output without advancing state.")]
@@ -181,11 +217,26 @@ pub struct UpdateArgs {
     pub note_username: Option<String>,
     #[arg(long = "note-datetime", help = "Note datetime (RFC3339).")]
     pub note_datetime: Option<String>,
-    #[arg(long = "note-agentname", help = "Agent name for note metadata.")]
+    #[arg(
+        long = "note-agentname",
+        help = "[DEPRECATED \u{2014} IGNORED] Note agent identity is declared by the bound \
+                lease; create one with `kno lease create` and pass `--lease <id>` on \
+                `kno claim`."
+    )]
     pub note_agentname: Option<String>,
-    #[arg(long = "note-model", help = "Model name for note metadata.")]
+    #[arg(
+        long = "note-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Note agent identity is declared by the bound \
+                lease; create one with `kno lease create` and pass `--lease <id>` on \
+                `kno claim`."
+    )]
     pub note_model: Option<String>,
-    #[arg(long = "note-version", help = "Model/version tag for note metadata.")]
+    #[arg(
+        long = "note-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Note agent identity is declared by the bound \
+                lease; create one with `kno lease create` and pass `--lease <id>` on \
+                `kno claim`."
+    )]
     pub note_version: Option<String>,
     #[arg(
         short = 'H',
@@ -197,13 +248,25 @@ pub struct UpdateArgs {
     pub handoff_username: Option<String>,
     #[arg(long = "handoff-datetime", help = "Handoff datetime (RFC3339).")]
     pub handoff_datetime: Option<String>,
-    #[arg(long = "handoff-agentname", help = "Agent name for handoff metadata.")]
+    #[arg(
+        long = "handoff-agentname",
+        help = "[DEPRECATED \u{2014} IGNORED] Handoff agent identity is declared by the bound \
+                lease; create one with `kno lease create` and pass `--lease <id>` on \
+                `kno claim`."
+    )]
     pub handoff_agentname: Option<String>,
-    #[arg(long = "handoff-model", help = "Model name for handoff metadata.")]
+    #[arg(
+        long = "handoff-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Handoff agent identity is declared by the bound \
+                lease; create one with `kno lease create` and pass `--lease <id>` on \
+                `kno claim`."
+    )]
     pub handoff_model: Option<String>,
     #[arg(
         long = "handoff-version",
-        help = "Model/version tag for handoff metadata."
+        help = "[DEPRECATED \u{2014} IGNORED] Handoff agent identity is declared by the bound \
+                lease; create one with `kno lease create` and pass `--lease <id>` on \
+                `kno claim`."
     )]
     pub handoff_version: Option<String>,
     #[arg(
@@ -214,11 +277,23 @@ pub struct UpdateArgs {
     pub if_match: Option<String>,
     #[arg(long = "actor-kind", help = "Actor kind for the step: human or agent.")]
     pub actor_kind: Option<String>,
-    #[arg(long = "agent-name", help = "Agent name for step metadata.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_name: Option<String>,
-    #[arg(long = "agent-model", help = "Agent model for step metadata.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_model: Option<String>,
-    #[arg(long = "agent-version", help = "Agent version for step metadata.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_version: Option<String>,
     #[arg(
         short = 'f',
@@ -251,11 +326,23 @@ pub enum StepSubcommands {
 pub struct StepAnnotateArgs {
     #[arg(help = "Knot full id, stripped id, or hierarchical alias.")]
     pub id: String,
-    #[arg(long = "agent-name", help = "Agent name.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_name: Option<String>,
-    #[arg(long = "agent-model", help = "Agent model.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_model: Option<String>,
-    #[arg(long = "agent-version", help = "Agent version.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_version: Option<String>,
     #[arg(long = "actor-kind", help = "Actor kind: human or agent.")]
     pub actor_kind: Option<String>,

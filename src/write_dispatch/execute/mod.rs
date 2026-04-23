@@ -1,4 +1,4 @@
-use crate::app::{App, AppError, CreateKnotOptions, StateActorMetadata};
+use crate::app::{App, AppError, CreateKnotOptions};
 use crate::dispatch::knot_ref;
 use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::knot_type::KnotType;
@@ -10,8 +10,8 @@ use crate::write_queue::{
 };
 
 use super::helpers::{
-    format_json, parse_gate_data_args, parse_gate_decision, parse_knot_type_arg,
-    reject_non_claim_lease_binding,
+    format_json, lease_state_actor, parse_gate_data_args, parse_gate_decision, parse_knot_type_arg,
+    reject_non_claim_lease_binding, supplied_agent_flag_names, warn_deprecated_agent_metadata,
 };
 
 pub(crate) mod execute_plan_ops;
@@ -141,6 +141,22 @@ fn execute_quick_new(
 }
 
 fn execute_state(app: &App, args: &crate::write_queue::StateOperation) -> Result<String, AppError> {
+    let lease_bound = app
+        .show_knot(&args.id)
+        .ok()
+        .flatten()
+        .map(|k| k.lease_id.is_some())
+        .unwrap_or(false);
+    warn_deprecated_agent_metadata(
+        "state",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        lease_bound,
+    );
+    let actor = lease_state_actor(app, &args.id, args.actor_kind.clone());
     let knot = super::helpers::execute_with_terminal_cascade_prompt(
         args.approve_terminal_cascade,
         |approve_terminal_cascade| {
@@ -149,12 +165,7 @@ fn execute_state(app: &App, args: &crate::write_queue::StateOperation) -> Result
                 &args.state,
                 args.force,
                 args.if_match.as_deref(),
-                StateActorMetadata {
-                    actor_kind: args.actor_kind.clone(),
-                    agent_name: args.agent_name.clone(),
-                    agent_model: args.agent_model.clone(),
-                    agent_version: args.agent_version.clone(),
-                },
+                actor.clone(),
                 approve_terminal_cascade,
                 false,
             )
@@ -170,16 +181,25 @@ fn execute_state(app: &App, args: &crate::write_queue::StateOperation) -> Result
 
 fn execute_claim(app: &App, args: &crate::write_queue::ClaimOperation) -> Result<String, AppError> {
     use crate::lease_expiry::DEFAULT_LEASE_TIMEOUT_SECONDS;
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: args.agent_name.clone(),
-        agent_model: args.agent_model.clone(),
-        agent_version: args.agent_version.clone(),
-    };
+    warn_deprecated_agent_metadata(
+        "claim",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        args.lease_id.is_some(),
+    );
     let timeout = args
         .timeout_seconds
         .unwrap_or(DEFAULT_LEASE_TIMEOUT_SECONDS);
-    let claimed = poll_claim::claim_knot(app, &args.id, actor, args.lease_id.as_deref(), timeout)?;
+    let claimed = poll_claim::claim_knot(
+        app,
+        &args.id,
+        Some("agent".to_string()),
+        args.lease_id.as_deref(),
+        timeout,
+    )?;
     if args.json {
         let value = poll_claim::render_json_verbose(&claimed, args.verbose);
         Ok(format_json(&value))
@@ -199,16 +219,27 @@ fn execute_poll_claim(
             "no claimable knots found".to_string(),
         ));
     };
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: args.agent_name.clone(),
-        agent_model: args.agent_model.clone(),
-        agent_version: args.agent_version.clone(),
-    };
+    warn_deprecated_agent_metadata(
+        "poll --claim",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        // `poll --claim` always auto-creates a lease; no lease is bound yet
+        // when this warning fires.
+        false,
+    );
     let timeout = args
         .timeout_seconds
         .unwrap_or(DEFAULT_LEASE_TIMEOUT_SECONDS);
-    let claimed = poll_claim::claim_knot(app, &polled.knot.id, actor, None, timeout)?;
+    let claimed = poll_claim::claim_knot(
+        app,
+        &polled.knot.id,
+        Some("agent".to_string()),
+        None,
+        timeout,
+    )?;
     if args.json {
         let value = poll_claim::render_json(&claimed);
         Ok(format_json(&value))
@@ -221,16 +252,27 @@ fn execute_gate_evaluate(
     app: &App,
     args: &crate::write_queue::GateEvaluateOperation,
 ) -> Result<String, AppError> {
+    let lease_bound = app
+        .show_knot(&args.id)
+        .ok()
+        .flatten()
+        .and_then(|k| k.lease_id)
+        .is_some();
+    warn_deprecated_agent_metadata(
+        "gate evaluate",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        lease_bound,
+    );
+    let actor = lease_state_actor(app, &args.id, args.actor_kind.clone());
     let result = app.evaluate_gate(
         &args.id,
         parse_gate_decision(&args.decision)?,
         args.invariant.as_deref(),
-        StateActorMetadata {
-            actor_kind: args.actor_kind.clone(),
-            agent_name: args.agent_name.clone(),
-            agent_model: args.agent_model.clone(),
-            agent_version: args.agent_version.clone(),
-        },
+        actor,
     )?;
     if args.json {
         Ok(format_json(
@@ -257,11 +299,30 @@ fn execute_step_annotate(
     app: &App,
     args: &crate::write_queue::StepAnnotateOperation,
 ) -> Result<String, AppError> {
+    let lease_info = crate::write_dispatch::helpers::resolve_lease_agent_info(app, &args.id);
+    warn_deprecated_agent_metadata(
+        "step annotate",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        lease_info.is_some(),
+    );
     let actor = StepActorInfo {
         actor_kind: args.actor_kind.clone(),
-        agent_name: args.agent_name.clone(),
-        agent_model: args.agent_model.clone(),
-        agent_version: args.agent_version.clone(),
+        agent_name: lease_info
+            .as_ref()
+            .map(|i| i.agent_name.clone())
+            .filter(|s| !s.is_empty()),
+        agent_model: lease_info
+            .as_ref()
+            .map(|i| i.model.clone())
+            .filter(|s| !s.is_empty()),
+        agent_version: lease_info
+            .as_ref()
+            .map(|i| i.model_version.clone())
+            .filter(|s| !s.is_empty()),
         ..Default::default()
     };
     let knot = app.step_annotate(&args.id, &actor)?;

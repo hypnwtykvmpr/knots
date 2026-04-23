@@ -5,7 +5,7 @@ use uuid::Uuid;
 use super::{
     claim_knot, list_queue_candidates, peek_knot, poll_queue, run_claim, run_poll, run_ready,
 };
-use crate::app::{App, CreateKnotOptions, StateActorMetadata};
+use crate::app::{App, CreateKnotOptions};
 use crate::cli::{ClaimArgs, PollArgs, ReadyArgs};
 use crate::domain::gate::{GateData, GateOwnerKind};
 use crate::domain::invariant::{Invariant, InvariantType};
@@ -98,7 +98,7 @@ fn peek_and_claim_gate_follow_gate_workflow_states() {
         .completion_cmd
         .contains("--expected-state evaluating"));
 
-    let claimed = claim_knot(&app, &gate.id, StateActorMetadata::default(), None, 600)
+    let claimed = claim_knot(&app, &gate.id, Some("agent".to_string()), None, 600)
         .expect("claim should succeed");
     assert_eq!(claimed.knot.state, crate::workflow_runtime::EVALUATING);
     assert!(claimed.skill.contains("# Evaluating"));
@@ -296,7 +296,7 @@ fn claim_prompt_for_gate_surfaces_acceptance_context_and_evaluation_rules() {
         )
         .expect("invariants should be added");
 
-    let claimed = claim_knot(&app, &gate.id, StateActorMetadata::default(), None, 600)
+    let claimed = claim_knot(&app, &gate.id, Some("agent".to_string()), None, 600)
         .expect("claim should succeed");
     let prompt = claimed.skill;
     let full_prompt = crate::prompt::render_prompt(&claimed.knot, &prompt, &claimed.completion_cmd);

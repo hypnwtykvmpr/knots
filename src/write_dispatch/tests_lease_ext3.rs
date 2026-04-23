@@ -1,4 +1,3 @@
-use crate::app::StateActorMetadata;
 use crate::poll_claim;
 use crate::write_queue::{UpdateOperation, WriteOperation};
 
@@ -47,13 +46,8 @@ fn update_operation(id: &str, title: &str, lease_id: Option<String>) -> WriteOpe
     })
 }
 
-fn claim_actor(with_agent_name: bool) -> StateActorMetadata {
-    StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: with_agent_name.then(|| "test-agent".to_string()),
-        agent_model: with_agent_name.then(|| "test-model".to_string()),
-        agent_version: with_agent_name.then(|| "1.0".to_string()),
-    }
+fn claim_actor_kind() -> Option<String> {
+    Some("agent".to_string())
 }
 
 #[test]
@@ -71,7 +65,7 @@ fn update_with_matching_lease_succeeds_without_rebinding() {
         )
         .expect("create knot");
     let claimed =
-        poll_claim::claim_knot(&app, &knot.id, claim_actor(true), None, 600).expect("claim");
+        poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600).expect("claim");
     let lease_id = claimed
         .knot
         .lease_id
@@ -110,7 +104,7 @@ fn update_with_wrong_lease_fails_without_mutating() {
         )
         .expect("create knot");
     let claimed =
-        poll_claim::claim_knot(&app, &knot.id, claim_actor(true), None, 600).expect("claim");
+        poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600).expect("claim");
     let lease_id = claimed
         .knot
         .lease_id
@@ -140,7 +134,11 @@ fn update_with_wrong_lease_fails_without_mutating() {
 }
 
 #[test]
-fn claimed_without_lease_then_update_cannot_bind() {
+fn unleased_knot_rejects_update_with_lease_flag() {
+    // Claim always auto-creates a lease now, so to exercise the "no bound
+    // lease" path we claim, terminate the auto-created lease, and then try
+    // to attach a different lease via `kno update --lease` (which is not
+    // a claim operation and must be rejected).
     let root = unique_workspace();
     setup_repo(&root);
     let app = open_app(&root);
@@ -154,10 +152,19 @@ fn claimed_without_lease_then_update_cannot_bind() {
         )
         .expect("create knot");
     let claimed =
-        poll_claim::claim_knot(&app, &knot.id, claim_actor(false), None, 600).expect("claim");
+        poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600).expect("claim");
+    let auto_lease = claimed
+        .knot
+        .lease_id
+        .clone()
+        .expect("auto-created lease should exist");
+    crate::lease::terminate_lease(&app, &auto_lease).expect("terminate");
+    app.set_lease_id(&knot.id, None)
+        .expect("unbind lease from knot");
+    let after = app.show_knot(&knot.id).expect("show").expect("knot");
     assert!(
-        claimed.knot.lease_id.is_none(),
-        "claim should not create a lease"
+        after.lease_id.is_none(),
+        "knot should have no bound lease after unbind"
     );
 
     let lease_id = create_test_lease(&app);

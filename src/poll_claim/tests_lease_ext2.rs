@@ -1,5 +1,3 @@
-use crate::app::StateActorMetadata;
-
 use super::claim_knot;
 use super::tests_lease_ext::{create_agent_info, open_app, setup_repo, unique_workspace};
 
@@ -27,12 +25,13 @@ fn claim_with_active_external_lease_rejects() {
     .expect("create lease");
     crate::lease::activate_lease(&app, &lease.id).expect("activate lease");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        ..Default::default()
-    };
-    let err = match claim_knot(&app, &work.id, actor, Some(&lease.id), 600) {
+    let err = match claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&lease.id),
+        600,
+    ) {
         Err(err) => err.to_string(),
         Ok(_) => panic!("claim should reject active external lease"),
     };

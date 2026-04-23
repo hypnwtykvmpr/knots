@@ -1,4 +1,3 @@
-use crate::app::StateActorMetadata;
 use crate::lease_guard::materialize_expired_lease;
 use crate::poll_claim;
 use crate::write_queue::{UpdateOperation, WriteOperation};
@@ -6,13 +5,8 @@ use crate::write_queue::{UpdateOperation, WriteOperation};
 use super::execute_operation;
 use super::tests_lease_ext::{open_app, setup_repo, unique_workspace};
 
-fn claim_actor() -> StateActorMetadata {
-    StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    }
+fn claim_actor_kind() -> Option<String> {
+    Some("agent".to_string())
 }
 
 fn update_op_with_lease(id: &str, lease_id: &str) -> WriteOperation {
@@ -66,7 +60,7 @@ fn claim_work_knot(app: &crate::app::App, timeout: u64) -> (String, String) {
             Some("default"),
         )
         .expect("create work knot");
-    let claimed = poll_claim::claim_knot(app, &work.id, claim_actor(), None, timeout)
+    let claimed = poll_claim::claim_knot(app, &work.id, claim_actor_kind(), None, timeout)
         .expect("claim should succeed");
     let lease_id = claimed.knot.lease_id.clone().expect("should have lease");
     (work.id, lease_id)

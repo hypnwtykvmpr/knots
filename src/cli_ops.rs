@@ -95,13 +95,25 @@ pub struct GateEvaluateArgs {
     #[arg(long = "actor-kind", help = "Actor kind for the step: human or agent.")]
     pub actor_kind: Option<String>,
 
-    #[arg(long = "agent-name", help = "Agent name for step metadata.")]
+    #[arg(
+        long = "agent-name",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_name: Option<String>,
 
-    #[arg(long = "agent-model", help = "Agent model for step metadata.")]
+    #[arg(
+        long = "agent-model",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_model: Option<String>,
 
-    #[arg(long = "agent-version", help = "Agent version for step metadata.")]
+    #[arg(
+        long = "agent-version",
+        help = "[DEPRECATED \u{2014} IGNORED] Agent identity is declared by the bound lease; \
+                create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
+    )]
     pub agent_version: Option<String>,
 }
 

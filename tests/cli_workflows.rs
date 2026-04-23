@@ -262,12 +262,25 @@ fn custom_workflow_install_use_and_runtime_flow() {
     assert!(prompt.contains("Perform the work."));
     assert!(prompt.contains("Working change"));
     assert_eq!(claim_json["state"], "work");
+    // Claim now always auto-binds a lease; subsequent writes must carry it.
+    let lease_id = claim_json["lease_id"]
+        .as_str()
+        .expect("claim should auto-bind a lease")
+        .to_string();
 
     let next = run_knots(
         &root,
         &db,
         &home,
-        &["next", &knot_id, "--expected-state", "work", "--json"],
+        &[
+            "next",
+            &knot_id,
+            "--expected-state",
+            "work",
+            "--lease",
+            &lease_id,
+            "--json",
+        ],
     );
     assert_success(&next);
     let next_json: Value = serde_json::from_slice(&next.stdout).expect("next json");

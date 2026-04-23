@@ -297,14 +297,8 @@ fn compat_harness_claim_resolves_loom_body_for_builtin_profile() {
     let knot = app
         .create_knot("Compat claim loom", None, Some("work_item"), None)
         .expect("create");
-    let actor = crate::app::StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: None,
-        agent_model: None,
-        agent_version: None,
-    };
-    let claimed =
-        poll_claim::claim_knot(&app, &knot.id, actor, None, 600).expect("claim should succeed");
+    let claimed = poll_claim::claim_knot(&app, &knot.id, Some("agent".to_string()), None, 600)
+        .expect("claim should succeed");
 
     assert!(
         claimed.skill.contains("# Implementation"),

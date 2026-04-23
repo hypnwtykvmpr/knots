@@ -77,7 +77,7 @@ impl fmt::Display for ParseLeaseTypeError {
 
 impl Error for ParseLeaseTypeError {}
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AgentInfo {
     pub agent_type: String,
     pub provider: String,

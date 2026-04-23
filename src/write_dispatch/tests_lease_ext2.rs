@@ -1,12 +1,13 @@
+use super::tests_lease_ext::{create_test_lease, open_app, parse, setup_repo, unique_workspace};
 use super::{execute_operation, operation_from_command};
-use crate::app::StateActorMetadata;
 use crate::poll_claim;
 use crate::write_queue::{NextOperation, UpdateOperation, WriteOperation};
 
-use super::tests_lease_ext::{create_test_lease, open_app, parse, setup_repo, unique_workspace};
-
 #[test]
-fn explicit_note_flags_override_lease_agent_info() {
+fn explicit_note_agent_flags_are_ignored_lease_wins() {
+    // Lease is the declared source of note agent identity. Deprecated
+    // --note-* agent flags on `kno update` are ignored; the lease wins.
+    // The non-agent --note-username override is preserved.
     let root = unique_workspace();
     setup_repo(&root);
     let app = open_app(&root);
@@ -60,10 +61,13 @@ fn explicit_note_flags_override_lease_agent_info() {
 
     let updated = app.show_knot(&knot.id).expect("show").expect("knot exists");
     let note = updated.notes.last().expect("should have a note");
+    // Username is not agent identity and still flows from the caller.
     assert_eq!(note.username, "custom-user");
-    assert_eq!(note.agentname, "custom-agent");
-    assert_eq!(note.model, "custom-model");
-    assert_eq!(note.version, "9.9");
+    // Agent-identity fields come from the bound lease's agent_info, not the
+    // deprecated per-note flags.
+    assert_eq!(note.agentname, "claude");
+    assert_eq!(note.model, "opus");
+    assert_eq!(note.version, "4.6");
 
     let _ = std::fs::remove_dir_all(root);
 }
@@ -194,7 +198,11 @@ fn handoff_capsule_auto_fills_from_lease_agent_info() {
 }
 
 #[test]
-fn explicit_handoff_flags_override_lease_agent_info() {
+fn explicit_handoff_agent_flags_are_ignored_lease_wins() {
+    // Lease is the declared source of handoff agent identity. Deprecated
+    // --handoff-agentname / --handoff-model / --handoff-version values on
+    // `kno update` must be ignored; the lease's agent_info wins. The
+    // non-agent --handoff-username override is preserved.
     let root = unique_workspace();
     setup_repo(&root);
     let app = open_app(&root);
@@ -252,9 +260,9 @@ fn explicit_handoff_flags_override_lease_agent_info() {
         .last()
         .expect("should have handoff");
     assert_eq!(hc.username, "custom-user");
-    assert_eq!(hc.agentname, "custom-agent");
-    assert_eq!(hc.model, "custom-model");
-    assert_eq!(hc.version, "9.9");
+    assert_eq!(hc.agentname, "claude");
+    assert_eq!(hc.model, "opus");
+    assert_eq!(hc.version, "4.6");
 
     let _ = std::fs::remove_dir_all(root);
 }
@@ -342,13 +350,8 @@ fn next_with_matching_lease_succeeds() {
         )
         .expect("create knot");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let claimed = poll_claim::claim_knot(&app, &work.id, actor, None, 600).expect("claim");
+    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim");
     let lease_id = claimed.knot.lease_id.clone().expect("should have lease");
 
     let next_op = WriteOperation::Next(NextOperation {
@@ -378,13 +381,8 @@ fn next_with_wrong_lease_fails() {
         .create_knot("Wrong lease next", None, Some("work_item"), Some("default"))
         .expect("create knot");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let claimed = poll_claim::claim_knot(&app, &work.id, actor, None, 600).expect("claim");
+    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim");
 
     let next_op = WriteOperation::Next(NextOperation {
         id: work.id.clone(),
@@ -419,13 +417,8 @@ fn next_without_lease_fails_when_knot_has_bound_lease() {
         .create_knot("No lease next", None, Some("work_item"), Some("default"))
         .expect("create knot");
 
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let claimed = poll_claim::claim_knot(&app, &work.id, actor, None, 600).expect("claim");
+    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim");
 
     let next_op = WriteOperation::Next(NextOperation {
         id: work.id.clone(),
@@ -454,6 +447,8 @@ fn next_without_lease_fails_when_knot_has_bound_lease() {
 
 #[test]
 fn next_with_lease_on_unleasedknot_fails() {
+    // Claim now always auto-creates a lease, so to reach the "knot has no
+    // active lease" branch we must release the lease before running `next`.
     let root = unique_workspace();
     setup_repo(&root);
     let app = open_app(&root);
@@ -462,19 +457,28 @@ fn next_with_lease_on_unleasedknot_fails() {
         .create_knot("No lease on knot", None, Some("work_item"), Some("default"))
         .expect("create knot");
 
-    // Claim without creating a lease (no agent_name)
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: None,
-        agent_model: None,
-        agent_version: None,
-    };
-    let claimed = poll_claim::claim_knot(&app, &work.id, actor, None, 600).expect("claim");
-    assert!(claimed.knot.lease_id.is_none(), "should not have a lease");
+    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim");
+    let lease_id = claimed
+        .knot
+        .lease_id
+        .clone()
+        .expect("auto-created lease should exist");
+    crate::lease::terminate_lease(&app, &lease_id).expect("terminate lease");
+    app.set_lease_id(&work.id, None)
+        .expect("unbind lease from knot");
+    let after = app
+        .show_knot(&work.id)
+        .expect("show")
+        .expect("knot should exist");
+    assert!(
+        after.lease_id.is_none(),
+        "knot should have no bound lease after unbind"
+    );
 
     let next_op = WriteOperation::Next(NextOperation {
         id: work.id.clone(),
-        expected_state: Some(claimed.knot.state.clone()),
+        expected_state: Some(after.state.clone()),
         json: false,
         approve_terminal_cascade: false,
         actor_kind: None,

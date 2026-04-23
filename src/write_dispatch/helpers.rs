@@ -20,6 +20,91 @@ pub(crate) fn resolve_lease_agent_info(
     lease_knot.lease.as_ref()?.agent_info.clone()
 }
 
+/// Emit the standard three-line deprecation warning for agent metadata flags
+/// that are now declared by the lease. Callers pass the CLI subcommand name
+/// (e.g. "next", "update", "gate evaluate"), the list of flag names the user
+/// actually supplied (empty = no warning), and whether a lease is currently
+/// bound to the target knot.
+///
+/// Per the lease-as-declared-identity contract, these flags are still parsed
+/// by clap but their values are ignored at runtime; identity comes from the
+/// bound lease's agent_info.
+pub(crate) fn warn_deprecated_agent_metadata(
+    command: &str,
+    supplied_flags: &[&str],
+    lease_bound: bool,
+) {
+    if supplied_flags.is_empty() {
+        return;
+    }
+    let joined = supplied_flags
+        .iter()
+        .map(|f| format!("--{f}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    eprintln!(
+        "warning: {joined} are deprecated on `kno {command}` and will be rejected as an error \
+         in a future release"
+    );
+    eprintln!(
+        "these values are ignored; agent identity is taken from the active lease on the knot"
+    );
+    if !lease_bound {
+        eprintln!(
+            "no lease is bound to this knot \u{2014} create one with `kno lease create` and \
+             pass `--lease <id>` on `kno claim`"
+        );
+    }
+}
+
+/// Build a `StateActorMetadata` that carries lease-sourced identity. When the
+/// knot has no bound lease, agent fields are `None`; callers must rely on the
+/// deprecation warning to tell the user why.
+pub(crate) fn lease_state_actor(
+    app: &App,
+    knot_id: &str,
+    actor_kind: Option<String>,
+) -> crate::app::StateActorMetadata {
+    state_actor_from_agent_info(actor_kind, resolve_lease_agent_info(app, knot_id).as_ref())
+}
+
+/// Translate a lease's `agent_info` into a `StateActorMetadata`. When no
+/// `agent_info` is available (no lease, or a lease without agent identity)
+/// the returned metadata has unset agent fields.
+pub(crate) fn state_actor_from_agent_info(
+    actor_kind: Option<String>,
+    info: Option<&crate::domain::lease::AgentInfo>,
+) -> crate::app::StateActorMetadata {
+    crate::app::StateActorMetadata {
+        actor_kind,
+        agent_name: info.map(|i| i.agent_name.clone()).filter(|s| !s.is_empty()),
+        agent_model: info.map(|i| i.model.clone()).filter(|s| !s.is_empty()),
+        agent_version: info
+            .map(|i| i.model_version.clone())
+            .filter(|s| !s.is_empty()),
+    }
+}
+
+/// Return the list of deprecated agent metadata flag names the caller
+/// actually supplied, using the standard `--agent-*` spelling.
+pub(crate) fn supplied_agent_flag_names<'a>(
+    agent_name: Option<&str>,
+    agent_model: Option<&str>,
+    agent_version: Option<&str>,
+) -> Vec<&'a str> {
+    let mut flags = Vec::new();
+    if agent_name.is_some() {
+        flags.push("agent-name");
+    }
+    if agent_model.is_some() {
+        flags.push("agent-model");
+    }
+    if agent_version.is_some() {
+        flags.push("agent-version");
+    }
+    flags
+}
+
 pub(crate) fn reject_non_claim_lease_binding(lease_id: Option<&str>) -> Result<(), AppError> {
     if let Some(provided_lease) = lease_id {
         return Err(AppError::InvalidArgument(format!(

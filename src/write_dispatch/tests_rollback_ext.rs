@@ -139,19 +139,9 @@ fn rollback_releases_bound_lease() {
             Some("default"),
         )
         .expect("knot should be created");
-    let claimed = crate::poll_claim::claim_knot(
-        &app,
-        &created.id,
-        StateActorMetadata {
-            actor_kind: Some("agent".to_string()),
-            agent_name: Some("test-agent".to_string()),
-            agent_model: Some("test-model".to_string()),
-            agent_version: Some("1.0".to_string()),
-        },
-        None,
-        600,
-    )
-    .expect("claim should succeed");
+    let claimed =
+        crate::poll_claim::claim_knot(&app, &created.id, Some("agent".to_string()), None, 600)
+            .expect("claim should succeed");
     let lease_id = claimed
         .knot
         .lease_id

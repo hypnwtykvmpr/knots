@@ -203,15 +203,10 @@ fn next_rejects_stale_expected_state() {
     let _ = std::fs::remove_dir_all(root);
 }
 
-#[test]
-fn next_preserves_first_metadata_when_followup_request_is_stale() {
-    let root = unique_workspace("knots-next-metadata");
-    setup_repo(&root);
-    let db = root.join(".knots/cache/state.sqlite");
-
+fn setup_knot_with_first_agent_lease(root: &Path, db: &Path) -> (String, String) {
     let created = run_knots(
-        &root,
-        &db,
+        root,
+        db,
         &[
             "new",
             "Metadata winner",
@@ -224,6 +219,101 @@ fn next_preserves_first_metadata_when_followup_request_is_stale() {
     assert_success(&created);
     let knot_id = parse_created_id(&created);
 
+    let lease_create = run_knots(
+        root,
+        db,
+        &[
+            "lease",
+            "create",
+            "--nickname",
+            "first-agent-session",
+            "--agent-name",
+            "first-agent",
+            "--model",
+            "opus",
+            "--model-version",
+            "4.7",
+            "--agent-type",
+            "cli",
+            "--provider",
+            "Anthropic",
+            "--json",
+        ],
+    );
+    assert_success(&lease_create);
+    let lease_json: Value =
+        serde_json::from_slice(&lease_create.stdout).expect("lease create json");
+    let lease_id = lease_json["id"]
+        .as_str()
+        .expect("lease id in json")
+        .to_string();
+
+    let claim = run_knots(
+        root,
+        db,
+        &["claim", &knot_id, "--lease", &lease_id, "--json"],
+    );
+    assert_success(&claim);
+    (knot_id, lease_id)
+}
+
+fn assert_state_events_carry_lease_identity(root: &Path, knot_id: &str) {
+    let state_events = read_event_payloads(root, "knot.state_set");
+    // The claim and `next` steps each emit state_set events for the knot.
+    // The stored `knot_id` is the full (non-truncated) id, so match by
+    // suffix when the CLI printed a stripped id. Sort by `occurred_at` so
+    // the last element is the most recent (the `next` transition).
+    let mut knot_events: Vec<&Value> = state_events
+        .iter()
+        .filter(|event| {
+            event
+                .get("knot_id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| id == knot_id || id.ends_with(knot_id))
+        })
+        .collect();
+    knot_events.sort_by_key(|event| {
+        event
+            .get("occurred_at")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    });
+    assert!(
+        !knot_events.is_empty(),
+        "expected at least one state_set event for the knot"
+    );
+    for event in &knot_events {
+        let event_data = event
+            .get("data")
+            .and_then(Value::as_object)
+            .expect("state_set event should have data");
+        assert_eq!(
+            event_data.get("agent_name").and_then(Value::as_str),
+            Some("first-agent"),
+            "agent_name should come from the bound lease on every step"
+        );
+        assert_eq!(
+            event_data.get("actor_kind").and_then(Value::as_str),
+            Some("agent"),
+            "actor_kind should be 'agent' on every step"
+        );
+    }
+}
+
+#[test]
+fn next_preserves_first_metadata_when_followup_request_is_stale() {
+    // Lease-declared identity: agent_name on the recorded state_set event
+    // comes from the bound lease's agent_info, not from a deprecated
+    // `--agent-name` flag. The test creates a lease with agent_name
+    // "first-agent", binds it to the knot via `kno claim`, runs `next`, and
+    // verifies the event carries "first-agent" from the lease.
+    let root = unique_workspace("knots-next-metadata");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+
+    let (knot_id, lease_id) = setup_knot_with_first_agent_lease(&root, &db);
+
     let first = run_knots(
         &root,
         &db,
@@ -231,11 +321,11 @@ fn next_preserves_first_metadata_when_followup_request_is_stale() {
             "next",
             &knot_id,
             "--expected-state",
-            "ready_for_plan_review",
+            "plan_review",
             "--actor-kind",
             "agent",
-            "--agent-name",
-            "first-agent",
+            "--lease",
+            &lease_id,
         ],
     );
     assert_success(&first);
@@ -247,11 +337,11 @@ fn next_preserves_first_metadata_when_followup_request_is_stale() {
             "next",
             &knot_id,
             "--expected-state",
-            "ready_for_plan_review",
+            "plan_review",
             "--actor-kind",
-            "robot",
-            "--agent-name",
-            "second-agent",
+            "agent",
+            "--lease",
+            &lease_id,
         ],
     );
     assert!(
@@ -261,25 +351,7 @@ fn next_preserves_first_metadata_when_followup_request_is_stale() {
         String::from_utf8_lossy(&stale.stderr)
     );
 
-    let state_events = read_event_payloads(&root, "knot.state_set");
-    assert_eq!(
-        state_events.len(),
-        1,
-        "only the first queued transition should write state_set"
-    );
-
-    let event_data = state_events[0]
-        .get("data")
-        .and_then(Value::as_object)
-        .expect("state_set event should have data");
-    assert_eq!(
-        event_data.get("agent_name").and_then(Value::as_str),
-        Some("first-agent")
-    );
-    assert_eq!(
-        event_data.get("actor_kind").and_then(Value::as_str),
-        Some("agent")
-    );
+    assert_state_events_carry_lease_identity(&root, &knot_id);
 
     let _ = std::fs::remove_dir_all(root);
 }

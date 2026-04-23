@@ -158,11 +158,9 @@ fn map_rollback(args: &crate::cli::RollbackArgs) -> WriteOperation {
 }
 
 fn map_claim(args: &crate::cli::ClaimArgs) -> WriteOperation {
-    crate::poll_claim::warn_deprecated_claim_agent_metadata(
-        args.agent_name.as_deref(),
-        args.agent_model.as_deref(),
-        args.agent_version.as_deref(),
-    );
+    // Deprecation warning is emitted by `execute_claim` once the operation
+    // runs against the lease binding. Keeping it there (rather than at map
+    // time) ensures the "no lease bound" branch reflects the actual state.
     WriteOperation::Claim(ClaimOperation {
         id: args.id.clone(),
         json: args.json,

@@ -214,12 +214,25 @@ fn assert_claim_and_advance(root: &Path, db: &Path, home: &Path, knot_id: &str) 
         .as_str()
         .expect("prompt should exist")
         .contains("# Build"));
+    // Claim always auto-binds a lease; pass it to subsequent writes.
+    let lease_id = claim_json["lease_id"]
+        .as_str()
+        .expect("claim should auto-bind a lease")
+        .to_string();
 
     let next = run_knots(
         root,
         db,
         home,
-        &["next", knot_id, "--expected-state", "build", "--json"],
+        &[
+            "next",
+            knot_id,
+            "--expected-state",
+            "build",
+            "--lease",
+            &lease_id,
+            "--json",
+        ],
     );
     assert_success(&next);
     let next_json: Value = serde_json::from_slice(&next.stdout).expect("next json");

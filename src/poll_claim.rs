@@ -7,6 +7,9 @@ use crate::lease_guard::validate_claim_external_lease;
 use crate::prompt;
 use crate::workflow::{OwnerKind, ProfileRegistry};
 use crate::workflow_runtime;
+use crate::write_dispatch::helpers::{
+    state_actor_from_agent_info, supplied_agent_flag_names, warn_deprecated_agent_metadata,
+};
 
 #[path = "poll_claim/ready.rs"]
 mod ready;
@@ -17,12 +20,10 @@ use ready::normalize_ready_type;
 use ready::parse_owner_filter;
 pub use ready::{list_queue_candidates, run_ready};
 
-const AGENT_COMPLETION_METADATA_FLAGS: &str = concat!(
-    "--actor-kind agent ",
-    "--agent-name <AGENT_NAME> ",
-    "--agent-model <AGENT_MODEL> ",
-    "--agent-version <AGENT_VERSION>"
-);
+// Agent identity is declared by the lease, not by flags on `kno next`. The
+// completion command advertised to the claiming agent only carries
+// state-orienting tokens (expected state, bound lease).
+const AGENT_COMPLETION_METADATA_FLAGS: &str = "--actor-kind agent";
 
 pub struct PollResult {
     pub knot: KnotView,
@@ -45,16 +46,24 @@ pub fn run_poll(app: &App, args: PollArgs) -> Result<(), AppError> {
         }
         Some(result) => {
             if args.claim {
-                let actor = StateActorMetadata {
-                    actor_kind: Some("agent".to_string()),
-                    agent_name: args.agent_name,
-                    agent_model: args.agent_model,
-                    agent_version: args.agent_version,
-                };
+                let flags = supplied_agent_flag_names(
+                    args.agent_name.as_deref(),
+                    args.agent_model.as_deref(),
+                    args.agent_version.as_deref(),
+                );
+                // --claim always auto-creates a lease (no external lease), so
+                // no lease is bound yet at the moment of the warning.
+                warn_deprecated_agent_metadata("poll --claim", &flags, false);
                 let timeout = args
                     .timeout_seconds
                     .unwrap_or(DEFAULT_LEASE_TIMEOUT_SECONDS);
-                let claimed = claim_knot(app, &result.knot.id, actor, None, timeout)?;
+                let claimed = claim_knot(
+                    app,
+                    &result.knot.id,
+                    Some("agent".to_string()),
+                    None,
+                    timeout,
+                )?;
                 print_result(&claimed, args.json);
             } else {
                 print_result(&result, args.json);
@@ -66,43 +75,33 @@ pub fn run_poll(app: &App, args: PollArgs) -> Result<(), AppError> {
 
 pub fn run_claim(app: &App, args: ClaimArgs) -> Result<(), AppError> {
     use crate::lease_expiry::DEFAULT_LEASE_TIMEOUT_SECONDS;
-    warn_deprecated_claim_agent_metadata(
+    // The non-peek path is routed through the write queue and warns in
+    // `execute_claim`. This function also covers direct test callers and the
+    // peek path, so it must warn independently.
+    let flags = supplied_agent_flag_names(
         args.agent_name.as_deref(),
         args.agent_model.as_deref(),
         args.agent_version.as_deref(),
     );
+    warn_deprecated_agent_metadata("claim", &flags, args.lease.is_some());
     let result = crate::trace::measure("claim", || {
         if args.peek {
             peek_knot(app, &args.id)
         } else {
-            let actor = StateActorMetadata {
-                actor_kind: Some("agent".to_string()),
-                agent_name: args.agent_name.clone(),
-                agent_model: args.agent_model.clone(),
-                agent_version: args.agent_version.clone(),
-            };
             let timeout = args
                 .timeout_seconds
                 .unwrap_or(DEFAULT_LEASE_TIMEOUT_SECONDS);
-            claim_knot(app, &args.id, actor, args.lease.as_deref(), timeout)
+            claim_knot(
+                app,
+                &args.id,
+                Some("agent".to_string()),
+                args.lease.as_deref(),
+                timeout,
+            )
         }
     })?;
     print_result_verbose(&result, args.json, args.verbose);
     Ok(())
-}
-
-pub fn warn_deprecated_claim_agent_metadata(
-    agent_name: Option<&str>,
-    agent_model: Option<&str>,
-    agent_version: Option<&str>,
-) {
-    if agent_name.is_none() && agent_model.is_none() && agent_version.is_none() {
-        return;
-    }
-    eprintln!(
-        "warning: --agent-name/--agent-model/--agent-version on `kno claim` are deprecated. \
-         Create a lease with `kno lease create` and pass `--lease <id>` instead."
-    );
 }
 
 pub fn peek_knot(app: &App, id: &str) -> Result<PollResult, AppError> {
@@ -166,7 +165,7 @@ pub fn poll_queue(
 pub fn claim_knot(
     app: &App,
     id: &str,
-    actor: StateActorMetadata,
+    actor_kind: Option<String>,
     external_lease: Option<&str>,
     timeout_seconds: u64,
 ) -> Result<PollResult, AppError> {
@@ -195,14 +194,15 @@ pub fn claim_knot(
         ))
     })?;
     let skill = prompt_body_for_state(registry, &profile_id, &next_action)?;
-    let claim_actor = StateActorMetadata {
-        actor_kind: Some(actor.actor_kind.unwrap_or_else(|| "agent".to_string())),
-        ..actor
-    };
-    let agent_info = build_agent_info_from_actor(&claim_actor);
+    let kind = Some(actor_kind.unwrap_or_else(|| "agent".to_string()));
     if let Some(lease_id) = external_lease {
         validate_claim_external_lease(app, lease_id)?;
     }
+    // Agent identity on the claim step comes from the lease that will bind to
+    // this knot — the external one if provided, or the auto-created one
+    // otherwise. For the auto-created path there is no agent_info source yet,
+    // so agent fields stay unset.
+    let claim_actor = resolve_claim_lease_actor(app, kind, external_lease);
     let claimed = app.set_state_with_actor_and_options(
         &knot.id,
         &next_action,
@@ -216,10 +216,8 @@ pub fn claim_knot(
     // Lease handling: use external lease or create a new one
     let bound_lease_id = if let Some(lid) = external_lease {
         bind_external_lease(app, &claimed.id, lid, timeout_seconds)?
-    } else if let Some(info) = agent_info {
-        create_and_bind_lease(app, &claimed.id, info, timeout_seconds)?
     } else {
-        None
+        create_and_bind_lease(app, &claimed.id, timeout_seconds)?
     };
 
     let bound = app
@@ -231,6 +229,18 @@ pub fn claim_knot(
         skill,
         completion_cmd,
     })
+}
+
+fn resolve_claim_lease_actor(
+    app: &App,
+    actor_kind: Option<String>,
+    external_lease: Option<&str>,
+) -> StateActorMetadata {
+    let info = external_lease
+        .and_then(|lid| app.show_knot(lid).ok().flatten())
+        .and_then(|lease_knot| lease_knot.lease.clone())
+        .and_then(|data| data.agent_info);
+    state_actor_from_agent_info(actor_kind, info.as_ref())
 }
 
 fn bind_external_lease(
@@ -249,14 +259,19 @@ fn bind_external_lease(
 fn create_and_bind_lease(
     app: &App,
     knot_id: &str,
-    info: crate::domain::lease::AgentInfo,
     timeout_seconds: u64,
 ) -> Result<Option<String>, AppError> {
+    // Auto-created lease for a claim that did not pass `--lease`. Agent
+    // identity is unknown at this point (the CLI metadata flags that once
+    // declared it are deprecated), so the lease is created with a blank
+    // agent_info. Callers can still record the claim; downstream steps on
+    // this lease will simply carry unset agent fields until the user
+    // creates a real lease with `kno lease create` and re-binds.
     let lease = crate::lease::create_lease(
         app,
         &format!("claim-{}", knot_id),
         crate::domain::lease::LeaseType::Agent,
-        Some(info),
+        Some(crate::domain::lease::AgentInfo::default()),
         timeout_seconds,
     )?;
     crate::lease::activate_lease(app, &lease.id)?;
@@ -319,19 +334,6 @@ fn match_pollable(
         skill,
         completion_cmd,
     }))
-}
-
-fn build_agent_info_from_actor(
-    actor: &StateActorMetadata,
-) -> Option<crate::domain::lease::AgentInfo> {
-    let name = actor.agent_name.as_deref()?;
-    Some(crate::domain::lease::AgentInfo {
-        agent_type: "cli".to_string(),
-        provider: String::new(),
-        agent_name: name.to_string(),
-        model: actor.agent_model.clone().unwrap_or_default(),
-        model_version: actor.agent_version.clone().unwrap_or_default(),
-    })
 }
 
 fn require_queue_state(registry: &ProfileRegistry, knot: &KnotView) -> Result<(), AppError> {
@@ -435,14 +437,17 @@ mod tests {
     }
 
     #[test]
-    fn completion_command_includes_agent_metadata_flags() {
+    fn completion_command_omits_deprecated_agent_metadata_flags() {
         let cmd = completion_command("knots-27ef", "implementation", None);
+        // Lease is the declared source of agent identity; the completion
+        // prompt must not instruct agents to pass deprecated identity flags.
         assert_eq!(
             cmd,
-            "kno next knots-27ef --expected-state implementation --actor-kind agent \
-             --agent-name <AGENT_NAME> --agent-model <AGENT_MODEL> \
-             --agent-version <AGENT_VERSION>"
+            "kno next knots-27ef --expected-state implementation --actor-kind agent"
         );
+        assert!(!cmd.contains("--agent-name"));
+        assert!(!cmd.contains("--agent-model"));
+        assert!(!cmd.contains("--agent-version"));
     }
 }
 

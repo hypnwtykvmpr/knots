@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::app::{App, AppError, StateActorMetadata, UpdateKnotPatch};
+use crate::app::{App, AppError, UpdateKnotPatch};
 use crate::dispatch::{knot_ref, resolve_next_state};
 use crate::domain::execution_plan::ExecutionPlanData;
 use crate::domain::knot_type::KnotType;
@@ -12,8 +12,9 @@ use crate::write_queue::NextOperation;
 
 use crate::write_dispatch::helpers::{
     execute_with_terminal_cascade_prompt, format_next_output, format_rollback_output,
-    normalize_expected_state, parse_gate_failure_modes_option, parse_gate_owner_kind_arg,
-    resolve_lease_agent_info, validate_non_claim_lease,
+    lease_state_actor, normalize_expected_state, parse_gate_failure_modes_option,
+    parse_gate_owner_kind_arg, resolve_lease_agent_info, state_actor_from_agent_info,
+    supplied_agent_flag_names, validate_non_claim_lease, warn_deprecated_agent_metadata,
 };
 
 pub(super) fn execute_update(
@@ -75,8 +76,10 @@ fn build_update_patch(
     use crate::domain::invariant::parse_invariant_spec;
 
     let lease_agent = resolve_lease_agent_info(app, &args.id);
+    warn_deprecated_update_agent_metadata(args, lease_agent.is_some());
     let add_note = build_note_input(args, lease_agent.as_ref());
     let add_handoff_capsule = build_handoff_input(args, lease_agent.as_ref());
+    let state_actor = state_actor_from_agent_info(args.actor_kind.clone(), lease_agent.as_ref());
     Ok(UpdateKnotPatch {
         title: args.title.clone(),
         description: args.description.clone(),
@@ -113,13 +116,38 @@ fn build_update_patch(
         add_handoff_capsule,
         expected_profile_etag: args.if_match.clone(),
         force: args.force,
-        state_actor: StateActorMetadata {
-            actor_kind: args.actor_kind.clone(),
-            agent_name: args.agent_name.clone(),
-            agent_model: args.agent_model.clone(),
-            agent_version: args.agent_version.clone(),
-        },
+        state_actor,
     })
+}
+
+fn warn_deprecated_update_agent_metadata(
+    args: &crate::write_queue::UpdateOperation,
+    lease_bound: bool,
+) {
+    let mut flags = supplied_agent_flag_names(
+        args.agent_name.as_deref(),
+        args.agent_model.as_deref(),
+        args.agent_version.as_deref(),
+    );
+    if args.note_agentname.is_some() {
+        flags.push("note-agentname");
+    }
+    if args.note_model.is_some() {
+        flags.push("note-model");
+    }
+    if args.note_version.is_some() {
+        flags.push("note-version");
+    }
+    if args.handoff_agentname.is_some() {
+        flags.push("handoff-agentname");
+    }
+    if args.handoff_model.is_some() {
+        flags.push("handoff-model");
+    }
+    if args.handoff_version.is_some() {
+        flags.push("handoff-version");
+    }
+    warn_deprecated_agent_metadata("update", &flags, lease_bound);
 }
 
 fn load_execution_plan_data(path: Option<&str>) -> Result<Option<ExecutionPlanData>, AppError> {
@@ -148,6 +176,11 @@ fn build_note_input(
     args: &crate::write_queue::UpdateOperation,
     lai: Option<&crate::domain::lease::AgentInfo>,
 ) -> Option<MetadataEntryInput> {
+    // Lease is the declared source of agent identity. Per-note agent flags
+    // (--note-agentname, --note-model, --note-version) are deprecated and
+    // ignored; the deprecation warning is emitted by
+    // `warn_deprecated_update_agent_metadata`. `--note-username` remains a
+    // caller-supplied override because it is not agent identity.
     args.add_note.clone().map(|content| MetadataEntryInput {
         content,
         username: args
@@ -155,18 +188,9 @@ fn build_note_input(
             .clone()
             .or_else(|| lai.map(|i| i.provider.clone())),
         datetime: args.note_datetime.clone(),
-        agentname: args
-            .note_agentname
-            .clone()
-            .or_else(|| lai.map(|i| i.agent_name.clone())),
-        model: args
-            .note_model
-            .clone()
-            .or_else(|| lai.map(|i| i.model.clone())),
-        version: args
-            .note_version
-            .clone()
-            .or_else(|| lai.map(|i| i.model_version.clone())),
+        agentname: lai.map(|i| i.agent_name.clone()),
+        model: lai.map(|i| i.model.clone()),
+        version: lai.map(|i| i.model_version.clone()),
     })
 }
 
@@ -174,6 +198,10 @@ fn build_handoff_input(
     args: &crate::write_queue::UpdateOperation,
     lai: Option<&crate::domain::lease::AgentInfo>,
 ) -> Option<MetadataEntryInput> {
+    // Lease is the declared source of agent identity. Per-handoff agent flags
+    // (--handoff-agentname, --handoff-model, --handoff-version) are deprecated
+    // and ignored. `--handoff-username` remains a caller-supplied override
+    // because it is not agent identity.
     args.add_handoff_capsule
         .clone()
         .map(|content| MetadataEntryInput {
@@ -183,18 +211,9 @@ fn build_handoff_input(
                 .clone()
                 .or_else(|| lai.map(|i| i.provider.clone())),
             datetime: args.handoff_datetime.clone(),
-            agentname: args
-                .handoff_agentname
-                .clone()
-                .or_else(|| lai.map(|i| i.agent_name.clone())),
-            model: args
-                .handoff_model
-                .clone()
-                .or_else(|| lai.map(|i| i.model.clone())),
-            version: args
-                .handoff_version
-                .clone()
-                .or_else(|| lai.map(|i| i.model_version.clone())),
+            agentname: lai.map(|i| i.agent_name.clone()),
+            model: lai.map(|i| i.model.clone()),
+            version: lai.map(|i| i.model_version.clone()),
         })
 }
 
@@ -203,8 +222,19 @@ pub(super) fn execute_next(app: &App, args: &NextOperation) -> Result<String, Ap
         .show_knot(&args.id)?
         .ok_or_else(|| AppError::NotFound(args.id.clone()))?;
     validate_next_preconditions(app, &knot, args)?;
+    let lease_bound = knot.lease_id.is_some();
+    warn_deprecated_agent_metadata(
+        "next",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        lease_bound,
+    );
     let (knot, next, owner_kind) = resolve_next_state(app, &knot.id)?;
     let previous_state = knot.state.clone();
+    let actor = lease_state_actor(app, &knot.id, args.actor_kind.clone());
     let updated = execute_with_terminal_cascade_prompt(
         args.approve_terminal_cascade,
         |approve_terminal_cascade| {
@@ -213,12 +243,7 @@ pub(super) fn execute_next(app: &App, args: &NextOperation) -> Result<String, Ap
                 &next,
                 false,
                 None,
-                StateActorMetadata {
-                    actor_kind: args.actor_kind.clone(),
-                    agent_name: args.agent_name.clone(),
-                    agent_model: args.agent_model.clone(),
-                    agent_version: args.agent_version.clone(),
-                },
+                actor.clone(),
                 approve_terminal_cascade,
                 false,
             )
@@ -258,6 +283,16 @@ pub(super) fn execute_rollback(
     args: &crate::write_queue::RollbackOperation,
 ) -> Result<String, AppError> {
     let resolution = resolve_rollback_state(app, &args.id)?;
+    let lease_bound = resolution.knot.lease_id.is_some();
+    warn_deprecated_agent_metadata(
+        "rollback",
+        &supplied_agent_flag_names(
+            args.agent_name.as_deref(),
+            args.agent_model.as_deref(),
+            args.agent_version.as_deref(),
+        ),
+        lease_bound,
+    );
     if args.dry_run {
         return Ok(format_rollback_output(
             &resolution.knot,
@@ -267,17 +302,13 @@ pub(super) fn execute_rollback(
             true,
         ));
     }
+    let actor = lease_state_actor(app, &resolution.knot.id, args.actor_kind.clone());
     let updated = app.set_state_with_actor_and_options(
         &resolution.knot.id,
         &resolution.target_state,
         resolution.requires_force,
         None,
-        StateActorMetadata {
-            actor_kind: args.actor_kind.clone(),
-            agent_name: args.agent_name.clone(),
-            agent_model: args.agent_model.clone(),
-            agent_version: args.agent_version.clone(),
-        },
+        actor,
         false,
         false,
     )?;

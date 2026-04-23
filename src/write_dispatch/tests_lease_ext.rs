@@ -6,7 +6,7 @@ use uuid::Uuid;
 use clap::Parser;
 
 use super::{execute_operation, operation_from_command};
-use crate::app::{App, StateActorMetadata};
+use crate::app::App;
 use crate::cli::Cli;
 use crate::poll_claim;
 use crate::write_queue::{
@@ -61,15 +61,10 @@ fn next_terminates_lease() {
         .create_knot("Lease next test", None, Some("work_item"), Some("default"))
         .expect("work knot should be created");
 
-    // Claim it (which creates a lease via Phase 9c)
-    let actor = StateActorMetadata {
-        actor_kind: Some("agent".to_string()),
-        agent_name: Some("test-agent".to_string()),
-        agent_model: Some("test-model".to_string()),
-        agent_version: Some("1.0".to_string()),
-    };
-    let claimed =
-        poll_claim::claim_knot(&app, &work.id, actor, None, 600).expect("claim should succeed");
+    // Claim it (which creates a lease). Identity comes from the lease
+    // being auto-created here; the CLI can no longer declare it.
+    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+        .expect("claim should succeed");
 
     // Verify lease was created and bound
     let knot_after_claim = app
