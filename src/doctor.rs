@@ -6,6 +6,7 @@ use std::process::Command;
 use serde::Serialize;
 
 use crate::locks::{FileLock, LockError};
+use crate::progress::{emit_progress, ProgressKind, ProgressReporter};
 use crate::project::{DistributionMode, StorePaths};
 use crate::release_version::{fetch_latest_tag, is_outdated, strip_v_prefix, RELEASES_LATEST_URL};
 use crate::state_hierarchy::find_terminal_parent_resolutions;
@@ -135,22 +136,30 @@ pub fn run_doctor_with_fix(repo_root: &Path, fix: bool) -> Result<DoctorReport, 
     )
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn run_doctor_with_fix_at(
     repo_root: &Path,
     store_root: &Path,
     distribution: DistributionMode,
     fix: bool,
 ) -> Result<DoctorReport, DoctorError> {
-    let report = run_doctor_at(repo_root, store_root, distribution)?;
+    run_doctor_with_fix_at_with_progress(repo_root, store_root, distribution, fix, &mut None)
+}
+
+pub(crate) fn run_doctor_with_fix_at_with_progress(
+    repo_root: &Path,
+    store_root: &Path,
+    distribution: DistributionMode,
+    fix: bool,
+    reporter: &mut Option<&mut dyn ProgressReporter>,
+) -> Result<DoctorReport, DoctorError> {
     if !fix {
-        return Ok(report);
+        return run_doctor_at(repo_root, store_root, distribution);
     }
-    if distribution == DistributionMode::Git {
-        let outcome = crate::doctor_fix::apply_fixes(repo_root, &report.checks);
-        if outcome.event_log_touched {
-            crate::doctor_fix::sync_after_fixes(repo_root);
-        }
-    }
+
+    let _ = emit_progress(reporter, ProgressKind::Stage, "Running diagnostics...");
+    let report = run_doctor_at(repo_root, store_root, distribution)?;
+    crate::doctor_fix::announce_and_apply_fixes(repo_root, distribution, &report, reporter);
     run_doctor_at(repo_root, store_root, distribution)
 }
 
@@ -475,3 +484,7 @@ mod tests;
 #[cfg(test)]
 #[path = "doctor_tests_ext.rs"]
 mod tests_ext;
+
+#[cfg(test)]
+#[path = "doctor_progress_tests.rs"]
+mod progress_tests;

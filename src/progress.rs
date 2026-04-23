@@ -23,3 +23,7 @@ pub(crate) fn emit_progress(
         Ok(())
     }
 }
+
+pub(crate) fn as_dyn<R: ProgressReporter>(reporter: &mut R) -> &mut dyn ProgressReporter {
+    reporter
+}
