@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4511-7432-9e06-35ed93ad4f9c",
+  "occurred_at": "2026-04-23T05:17:09.265159623Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-23b0",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W5.3 Docs and migration notes update",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.686868Z",
+    "workflow_id": "work_sdlc"
+  }
+}

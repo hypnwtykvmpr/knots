@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-451e-7741-8d0e-2ebbe98d7e42",
+  "occurred_at": "2026-04-23T05:17:09.278696314Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-642d",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add terminal cascade approval and descendant termination",
+    "type": "work",
+    "updated_at": "2026-03-11T06:05:01.433311Z",
+    "workflow_id": "work_sdlc"
+  }
+}

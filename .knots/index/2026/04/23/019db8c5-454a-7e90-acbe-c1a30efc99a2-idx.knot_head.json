@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-454a-7e90-acbe-c1a30efc99a2",
+  "occurred_at": "2026-04-23T05:17:09.322641922Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.4.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement git command adapter",
+    "type": "work",
+    "updated_at": "2026-02-22T22:24:10Z",
+    "workflow_id": "work_sdlc"
+  }
+}

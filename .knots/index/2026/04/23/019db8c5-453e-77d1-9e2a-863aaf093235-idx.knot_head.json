@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-453e-77d1-9e2a-863aaf093235",
+  "occurred_at": "2026-04-23T05:17:09.310810017Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.1.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Scaffold Rust crate and module layout",
+    "type": "work",
+    "updated_at": "2026-02-22T17:28:23Z",
+    "workflow_id": "work_sdlc"
+  }
+}

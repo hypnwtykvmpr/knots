@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4522-75b0-9a25-1ef9b7095b08",
+  "occurred_at": "2026-04-23T05:17:09.282635671Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-7aba",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W5 Test matrix + docs + rollout notes",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.915439Z",
+    "workflow_id": "work_sdlc"
+  }
+}

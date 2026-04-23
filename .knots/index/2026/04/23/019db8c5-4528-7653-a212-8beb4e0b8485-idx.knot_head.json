@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4528-7653-a212-8beb4e0b8485",
+  "occurred_at": "2026-04-23T05:17:09.288657305Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-a2f4",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "update kno state output to have same color coding as kno ls",
+    "type": "work",
+    "updated_at": "2026-02-26T15:44:35.890098Z",
+    "workflow_id": "work_sdlc"
+  }
+}

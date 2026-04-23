@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4538-7a22-bf3b-78c58c7e8ac1",
+  "occurred_at": "2026-04-23T05:17:09.304773254Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-e750",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Integrate hooks into kno doctor check",
+    "type": "work",
+    "updated_at": "2026-03-03T13:31:11.3773Z",
+    "workflow_id": "work_sdlc"
+  }
+}

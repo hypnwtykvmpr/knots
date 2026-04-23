@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4544-7680-8367-0de2e9a93614",
+  "occurred_at": "2026-04-23T05:17:09.316638964Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.13.6",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add install/release smoke tests and docs",
+    "type": "work",
+    "updated_at": "2026-02-23T07:18:52Z",
+    "workflow_id": "work_sdlc"
+  }
+}

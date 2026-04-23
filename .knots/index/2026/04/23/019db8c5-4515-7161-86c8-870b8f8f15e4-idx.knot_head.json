@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4515-7161-86c8-870b8f8f15e4",
+  "occurred_at": "2026-04-23T05:17:09.269519763Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-3ede",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W5.2 Integration tests for app/sync/import multi-workflow paths",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.703251Z",
+    "workflow_id": "work_sdlc"
+  }
+}

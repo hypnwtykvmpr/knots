@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-453b-7a30-917b-8e81e1c84468",
+  "occurred_at": "2026-04-23T05:17:09.307192016Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-f353",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno ls should not show abandoned or deferred knots unless explicitly specified by the user",
+    "type": "work",
+    "updated_at": "2026-02-26T14:08:30.037251Z",
+    "workflow_id": "work_sdlc"
+  }
+}

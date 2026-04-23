@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4521-7f90-b157-d8d944126228",
+  "occurred_at": "2026-04-23T05:17:09.28103349Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-7012",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "skill prompts: fix short commit hash prompt",
+    "type": "work",
+    "updated_at": "2026-03-03T23:02:20.079743Z",
+    "workflow_id": "work_sdlc"
+  }
+}

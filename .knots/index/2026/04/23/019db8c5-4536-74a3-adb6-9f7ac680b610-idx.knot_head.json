@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4536-74a3-adb6-9f7ac680b610",
+  "occurred_at": "2026-04-23T05:17:09.302723829Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-dd5f",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W2.2 Implement profile-conditioned transition policy (required|optional|skipped)",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:19.246514Z",
+    "workflow_id": "work_sdlc"
+  }
+}

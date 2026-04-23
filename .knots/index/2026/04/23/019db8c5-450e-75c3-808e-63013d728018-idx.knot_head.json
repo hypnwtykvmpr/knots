@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-450e-75c3-808e-63013d728018",
+  "occurred_at": "2026-04-23T05:17:09.262206861Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-06b1",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "'kno next' should support json, and show the new state and the owner type of the new state.",
+    "type": "work",
+    "updated_at": "2026-03-03T05:55:45.024942Z",
+    "workflow_id": "work_sdlc"
+  }
+}

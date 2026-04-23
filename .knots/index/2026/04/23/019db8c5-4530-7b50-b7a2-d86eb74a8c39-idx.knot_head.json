@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4530-7b50-b7a2-d86eb74a8c39",
+  "occurred_at": "2026-04-23T05:17:09.296299085Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-c2e7",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W4.2 Add workflow inspection CLI commands",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.750216Z",
+    "workflow_id": "work_sdlc"
+  }
+}

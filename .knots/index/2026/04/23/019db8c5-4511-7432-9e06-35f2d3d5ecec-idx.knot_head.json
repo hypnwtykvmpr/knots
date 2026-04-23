@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4511-7432-9e06-35f2d3d5ecec",
+  "occurred_at": "2026-04-23T05:17:09.265558785Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-27ef",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Augment kno claim state markdown files",
+    "type": "work",
+    "updated_at": "2026-03-03T06:29:18.867331Z",
+    "workflow_id": "work_sdlc"
+  }
+}

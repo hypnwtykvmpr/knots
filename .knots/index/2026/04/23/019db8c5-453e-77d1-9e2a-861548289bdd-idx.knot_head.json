@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-453e-77d1-9e2a-861548289bdd",
+  "occurred_at": "2026-04-23T05:17:09.310014798Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.1.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Initialize git repository (main) and ignore strategy",
+    "type": "work",
+    "updated_at": "2026-02-22T17:23:01Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-450f-72f3-9966-86cc59ca28fa",
+  "occurred_at": "2026-04-23T05:17:09.263520631Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-0fc6",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno doctor: identify parents whose children are all in terminal state and resolve them",
+    "type": "work",
+    "updated_at": "2026-03-18T07:20:46.950533Z",
+    "workflow_id": "work_sdlc"
+  }
+}

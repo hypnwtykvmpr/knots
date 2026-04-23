@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-451d-71d1-b5b9-7753acdab30e",
+  "occurred_at": "2026-04-23T05:17:09.277110384Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-5985",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "Tighten Knots skill prompt boundaries",
+    "type": "work",
+    "updated_at": "2026-03-09T14:18:31.514577Z",
+    "workflow_id": "work_sdlc"
+  }
+}

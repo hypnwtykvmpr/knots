@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4547-71a1-a908-18d3deddaa64",
+  "occurred_at": "2026-04-23T05:17:09.319033509Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.2.5",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Configure rusqlite bundled and SQLite speed PRAGMAs",
+    "type": "work",
+    "updated_at": "2026-02-22T17:28:23Z",
+    "workflow_id": "work_sdlc"
+  }
+}

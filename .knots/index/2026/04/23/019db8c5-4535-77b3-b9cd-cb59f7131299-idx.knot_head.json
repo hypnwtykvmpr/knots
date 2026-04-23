@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4535-77b3-b9cd-cb59f7131299",
+  "occurred_at": "2026-04-23T05:17:09.301496063Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-d5ef",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "add `kno rollback` and `kno rb` (as alias) to rollback from action to ready state.",
+    "type": "work",
+    "updated_at": "2026-03-10T09:02:05.843385Z",
+    "workflow_id": "work_sdlc"
+  }
+}

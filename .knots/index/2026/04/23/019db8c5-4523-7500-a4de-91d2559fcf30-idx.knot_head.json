@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4523-7500-a4de-91d2559fcf30",
+  "occurred_at": "2026-04-23T05:17:09.283811978Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-87cf",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "if knots is not initialized in the current directory, don't create a local .knot dir",
+    "type": "work",
+    "updated_at": "2026-02-28T04:27:03.025663Z",
+    "workflow_id": "work_sdlc"
+  }
+}

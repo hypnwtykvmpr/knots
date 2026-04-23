@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4543-7ef3-a396-0cc6cbf59f32",
+  "occurred_at": "2026-04-23T05:17:09.315093421Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.13.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add Cargo/package version sync automation",
+    "type": "work",
+    "updated_at": "2026-02-23T07:18:52Z",
+    "workflow_id": "work_sdlc"
+  }
+}

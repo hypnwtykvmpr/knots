@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4524-7403-b5e5-e9eccb28ad63",
+  "occurred_at": "2026-04-23T05:17:09.284201472Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-8840",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Skills: Review skills should have code write constraints.",
+    "type": "work",
+    "updated_at": "2026-03-05T08:15:06.73344Z",
+    "workflow_id": "work_sdlc"
+  }
+}

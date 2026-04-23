@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-4550-7312-90aa-c336a0b43cb6",
+  "occurred_at": "2026-04-23T05:17:09.32868633Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.7.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add perf regression harness",
+    "type": "work",
+    "updated_at": "2026-02-24T12:14:49.10716Z",
+    "workflow_id": "work_sdlc"
+  }
+}

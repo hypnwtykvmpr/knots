@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-453f-71f0-b012-8148a47b8642",
+  "occurred_at": "2026-04-23T05:17:09.3115862Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.11",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add AGENTS.md and CLAUDE.md style guide",
+    "type": "work",
+    "updated_at": "2026-02-22T18:57:45Z",
+    "workflow_id": "work_sdlc"
+  }
+}

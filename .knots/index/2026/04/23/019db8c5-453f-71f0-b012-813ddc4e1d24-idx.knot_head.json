@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8c5-453f-71f0-b012-813ddc4e1d24",
+  "occurred_at": "2026-04-23T05:17:09.311189813Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.10",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Optional: partial clone / cold blob optimization",
+    "type": "work",
+    "updated_at": "2026-02-24T12:14:49.143124Z",
+    "workflow_id": "work_sdlc"
+  }
+}
