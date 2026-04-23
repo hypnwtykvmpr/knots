@@ -1,0 +1,21 @@
+{
+  "event_id": "019db98c-d59a-70a0-9699-b363da6b1a94",
+  "occurred_at": "2026-04-23T08:55:07.930309Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-dc20",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Lease-driven agent identity: make lease the single source, deprecate agent flags on other commands",
+    "type": "work",
+    "updated_at": "2026-04-23T08:55:07.930309Z",
+    "workflow_id": "work_sdlc"
+  }
+}

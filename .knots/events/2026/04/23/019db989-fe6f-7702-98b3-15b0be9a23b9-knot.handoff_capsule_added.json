@@ -1,0 +1,15 @@
+{
+  "event_id": "019db989-fe6f-7702-98b3-15b0be9a23b9",
+  "occurred_at": "2026-04-23T08:52:01.775324Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment complete. All 6 commits are already on origin/main of their respective repos; no merge action was needed.\n\nCI verification:\n- knots @ d5ecb30: CI=success, Release=success, Repo Hygiene=success, Changesets Version PR=success\n- knots @ b8b9759: CI=success, Release=success\n- foolery @ 68a3a881: CI=success, Coverage Badge=success\n\nInvariants held post-merge: no changes to lease lifecycle, SQLite concurrency, or workflow state machine; deprecation warnings emit to stderr only.\n\nArtifact: commits tagged on this knot via commit:* tags; branch:main tag recorded.\n\nDownstream: a knots release (via Changesets workflow) is needed to distribute the new binary to hosts running Foolery, so that V5/V6 can be executed end-to-end from the Foolery UI. That release is outside this knot's scope — dc20 ships the contract implementation; distribution is a separate release cut.",
+    "datetime": "2026-04-23T08:52:01.775324Z",
+    "entry_id": "019db989-fe6f-7702-98b3-15a69c732177",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

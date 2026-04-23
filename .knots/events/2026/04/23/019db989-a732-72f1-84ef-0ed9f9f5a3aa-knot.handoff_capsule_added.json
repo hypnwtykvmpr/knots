@@ -1,0 +1,15 @@
+{
+  "event_id": "019db989-a732-72f1-84ef-0ed9f9f5a3aa",
+  "occurred_at": "2026-04-23T08:51:39.442387Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation review — APPROVED.\n\nArtifact reviewed: main branch of both repos at commits\n- knots: fbfe76f, b8b9759, d5ecb30\n- foolery: c2756326, d23064d2, 68a3a881\n\nVerified against AC1–AC8:\n- AC1 docs reframed (docs/leases.md + README.md in knots; docs/knots-agent-identity-contract.md + adr-knots-compatibility.md in foolery). \"fallback\" absent in the identity context across all four.\n- AC2 TAXONOMY.md clean; no \"or_else\" or \"fallback\" describing identity derivation in code comments.\n- AC3 deprecation warning helper (helpers.rs:32) called from every non-lease-create sink. 9 tests in tests_lease_deprecation.rs assert warnings + ignore semantics. Grammar handles singular and plural (d5ecb30).\n- AC4 lease-sourced identity verified at every sink: execute_next, execute_rollback, execute_claim, execute_poll_claim, execute_gate_evaluate, execute_step_annotate, execute_state, build_note_input, build_handoff_input. No-lease case leaves fields unset.\n- AC5 [DEPRECATED — IGNORED] prefix on every deprecated flag's help string.\n- AC6 poll_claim.rs completion_command uses AGENT_COMPLETION_METADATA_FLAGS = \"--actor-kind agent\" only; poll_claim.rs:448 asserts the prompt excludes --agent-name. Verified live against fresh binary.\n- AC7 Foolery client: createLease is the only place --agent-name/--model/--model-version flow to kno. claimKnot, pollKnot, appendNoteArgs, appendHandoffArgs send none; \"foolery\" default removed.\n- AC8 quality gates green on both repos.\n\nInvariants: no changes to lease lifecycle, SQLite concurrency rules, or workflow state machine. Deprecation warnings emit to stderr and do not alter return codes.\n\nTests cover required behavior: each sink has at least one positive test (lease identity stamped) and at least one negative test (bogus flag ignored, warning emitted). claim_with_external_lease covers the lease-at-claim-time path; next_without_lease covers the no-lease warning branch.\n\nSanity gates: cargo fmt clean, cargo clippy --all-targets -- -D warnings clean, cargo test 1111+ tests passing, coverage 95.14%.\n\nNo security, performance, or maintainability regressions.\n\nImplementation may advance to shipment.",
+    "datetime": "2026-04-23T08:51:39.442387Z",
+    "entry_id": "019db989-a732-72f1-84ef-0ecc4899cb4d",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db98c-d55b-75f2-ad45-6693eef04cf5",
+  "occurred_at": "2026-04-23T08:55:07.867434Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment review — APPROVED.\n\nChange is live on main of both repos:\n- knots/main HEAD = d5ecb30\n- foolery/main HEAD = 68a3a881\n\nCommit tag coverage on this knot:\n- commit:fbfe76f, commit:b8b9759, commit:d5ecb30 (knots)\n- commit:foolery-c2756326, commit:foolery-d23064d2, commit:foolery-68a3a881 (foolery)\nEvery implementation commit is tagged.\n\nInvariants hold in shipped code:\n- Lease lifecycle unchanged (lease_ready → lease_active → lease_terminated).\n- SQLite WAL / busy_timeout / serialized-writes rules preserved.\n- Workflow state machine unchanged — no new transitions.\n- Deprecation warnings emit to stderr; return codes unaffected.\n\nCI completed successfully:\n- knots d5ecb30: CI, Release, Repo Hygiene, Changesets Version PR all success.\n- foolery 68a3a881: CI, Coverage Badge success.\n\nNo regressions: knots coverage 95.14% (+0.13% for helpers.rs, -0.01% aggregate vs baseline); foolery test count 2734 (strictly increased from prior 2730).\n\nFinal sign-off: contract is shipped. A downstream Knots release cut is needed to distribute the new kno binary to hosts running Foolery; that cut is outside this knot's scope.",
+    "datetime": "2026-04-23T08:55:07.867434Z",
+    "entry_id": "019db98c-d55b-75f2-ad45-668ecab3d987",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

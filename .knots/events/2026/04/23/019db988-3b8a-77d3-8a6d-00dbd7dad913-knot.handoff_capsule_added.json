@@ -1,0 +1,15 @@
+{
+  "event_id": "019db988-3b8a-77d3-8a6d-00dbd7dad913",
+  "occurred_at": "2026-04-23T08:50:06.346434Z",
+  "knot_id": "knots-dc20",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Plan review — APPROVED.\n\nComplete: plan covers all 8 ACs with commit references (fbfe76f docs, b8b9759 core+tests, d5ecb30 grammar, foolery c2756326/d23064d2/68a3a881).\n\nCorrect: lease-as-declared-source framing matches the contract; no \"fallback\" language in the plan or referenced commits.\n\nFeasible: all work is already landed on origin/main of both repos; quality gates green (knots coverage 95.14%, foolery 2734 tests).\n\nInvariants respected: plan touches only agent-identity flow; does not alter lease lifecycle, SQLite concurrency rules, or workflow state machine.\n\nTest strategy: covered by tests_lease_deprecation (9 tests, each sink), cargo test suite (1111 unit + all integration), foolery test suite, and live smoke tests (V1/V2/V3) against the freshly built binary.\n\nNo security, performance, or maintainability concerns: deprecation warnings emit to stderr only; lease lookup is the same O(1) path already used for notes/handoffs.\n\nPlan may advance to implementation.",
+    "datetime": "2026-04-23T08:50:06.346434Z",
+    "entry_id": "019db988-3b8a-77d3-8a6d-00c4b424a70c",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}
