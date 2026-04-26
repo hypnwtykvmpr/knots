@@ -97,7 +97,7 @@ pub fn format_knot_row(row: &DisplayKnot, palette: &Palette) -> String {
     let indent = indentation_prefix(row.depth, palette);
     let sid = crate::knot_id::display_id(&k.id);
     let did = match k.alias.as_deref() {
-        Some(a) => format!("{a} ({sid})"),
+        Some(a) => format!("{} ({sid})", crate::knot_id::display_alias(a)),
         None => sid.to_string(),
     };
     let mut line = format!(
@@ -211,7 +211,7 @@ fn older_item_hint(count: usize, singular: &str, plural: &str) -> String {
 fn knot_show_fields(knot: &KnotView, verbose: bool) -> Vec<ShowField> {
     let mut f = vec![ShowField::new("id", crate::knot_id::display_id(&knot.id))];
     if let Some(a) = knot.alias.as_deref() {
-        f.push(ShowField::new("alias", a));
+        f.push(ShowField::new("alias", crate::knot_id::display_alias(a)));
     }
     f.push(ShowField::new("title", knot.title.clone()));
     f.push(ShowField::new("state", knot.state.clone()));

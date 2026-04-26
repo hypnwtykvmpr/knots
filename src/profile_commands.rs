@@ -220,7 +220,7 @@ fn run_profile_set(
     )?;
     let short_id = crate::knot_id::display_id(&knot.id);
     let knot_label = match knot.alias.as_deref() {
-        Some(alias) => format!("{alias} ({short_id})"),
+        Some(alias) => format!("{} ({short_id})", crate::knot_id::display_alias(alias)),
         None => short_id.to_string(),
     };
     println!(

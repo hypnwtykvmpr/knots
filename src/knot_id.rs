@@ -88,12 +88,18 @@ pub fn display_id(id: &str) -> &str {
     id.rsplit_once('-').map_or(id, |(_, suffix)| suffix)
 }
 
+pub fn display_alias(alias: &str) -> &str {
+    alias.rsplit_once('-').map_or(alias, |(_, suffix)| suffix)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
     use std::path::Path;
 
-    use super::{display_id, generate_knot_id, generate_knot_id_from_slug, repo_slug};
+    use super::{
+        display_alias, display_id, generate_knot_id, generate_knot_id_from_slug, repo_slug,
+    };
 
     #[test]
     fn slug_fallbacks_to_repo_name_when_git_remote_missing() {
@@ -133,6 +139,14 @@ mod tests {
         assert_eq!(display_id("knots-19dc"), "19dc");
         assert_eq!(display_id("my-repo-a1b2"), "a1b2");
         assert_eq!(display_id("nohyphen"), "nohyphen");
+    }
+
+    #[test]
+    fn display_alias_strips_prefix_from_root_and_hierarchy() {
+        assert_eq!(display_alias("knots-19dc"), "19dc");
+        assert_eq!(display_alias("knots-19dc.1.2"), "19dc.1.2");
+        assert_eq!(display_alias("my-repo-abc1.1"), "abc1.1");
+        assert_eq!(display_alias("abc1.1"), "abc1.1");
     }
 
     #[test]
