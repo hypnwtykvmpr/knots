@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8431-7a53-a65c-98d42c03795b",
+  "occurred_at": "2026-04-23T05:03:13.457106893Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.2.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement SQLite schema + migrations",
+    "type": "work",
+    "updated_at": "2026-02-22T18:57:46Z",
+    "workflow_id": "work_sdlc"
+  }
+}

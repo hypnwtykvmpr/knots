@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-837b-7ad3-8fa6-6b0cfc1099ab",
+  "occurred_at": "2026-04-23T05:03:13.275566081Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-56b2",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno next -> require current state for \"optimistic\"/idempotent progression",
+    "type": "work",
+    "updated_at": "2026-03-03T16:14:56.627318Z",
+    "workflow_id": "work_sdlc"
+  }
+}

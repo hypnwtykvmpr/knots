@@ -1,0 +1,9 @@
+{
+  "event_id": "019db4dc-59d4-7320-8e2e-e06514a32d51",
+  "occurred_at": "2026-04-22T11:03:53.044670096Z",
+  "knot_id": "knots-347f",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Running `kno prompt` (or equivalent CLI entrypoint) executes the command without error.\n2. Running `kno skill` either shows a deprecation notice pointing to `prompt`, or returns a 'command not found' error — no silent mismatch.\n3. `kno --help` (or `kno help`) lists `prompt`, not `skill`, in the command list.\n4. All in-tree references to the old command name (source files, help strings, tests, docs) have been updated.\n5. Existing tests that exercised `skill` are updated to use `prompt` and pass.\n6. `make sanity` passes with no failures."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019db8b5-1ab0-7713-84e2-4f86b3dbafd8",
+  "occurred_at": "2026-04-23T04:59:29.840251166Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Running `kno doctor --fix` prints at least one progress/status line per fix operation before the operation completes (e.g. 'Fixing <issue>...').\n2. The command does not appear to hang — output appears within 1 second of each fix operation starting.\n3. On completion, a summary line is printed (e.g. 'All fixes applied.' or 'N issues fixed.').\n4. Behavior is unchanged when `--fix` is not passed; `kno doctor` without the flag produces no new output.\n5. Verified manually: run `kno doctor --fix` in a terminal and confirm status lines appear progressively rather than all at once at the end."
+  }
+}

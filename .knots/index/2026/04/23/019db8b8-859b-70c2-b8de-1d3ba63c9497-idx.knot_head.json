@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-859b-70c2-b8de-1d3ba63c9497",
+  "occurred_at": "2026-04-23T05:03:13.819080009Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-6170",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "don't show id prefix in cli commands",
+    "type": "work",
+    "updated_at": "2026-02-26T14:08:30.005265Z",
+    "workflow_id": "work_sdlc"
+  }
+}

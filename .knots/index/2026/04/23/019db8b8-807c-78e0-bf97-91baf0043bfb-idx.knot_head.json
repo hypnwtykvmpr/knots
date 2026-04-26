@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-807c-78e0-bf97-91baf0043bfb",
+  "occurred_at": "2026-04-23T05:03:12.508678717Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-2f55",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W3.1 Refactor transition evaluation API",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.816262Z",
+    "workflow_id": "work_sdlc"
+  }
+}

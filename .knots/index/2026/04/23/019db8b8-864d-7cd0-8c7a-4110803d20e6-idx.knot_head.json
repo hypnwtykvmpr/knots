@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-864d-7cd0-8c7a-4110803d20e6",
+  "occurred_at": "2026-04-23T05:03:13.997427693Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.3.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "JSONL parser + validator + mapper",
+    "type": "work",
+    "updated_at": "2026-02-22T22:11:45Z",
+    "workflow_id": "work_sdlc"
+  }
+}

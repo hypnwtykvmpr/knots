@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-816a-7722-9d9d-34ee1df0e80a",
+  "occurred_at": "2026-04-23T05:03:12.74694269Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.6",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Milestone M4: Concurrency + OCC + Invisible Networking",
+    "type": "work",
+    "updated_at": "2026-02-24T11:59:37.096192Z",
+    "workflow_id": "work_sdlc"
+  }
+}

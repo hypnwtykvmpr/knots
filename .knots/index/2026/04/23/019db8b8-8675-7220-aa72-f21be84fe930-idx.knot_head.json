@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8675-7220-aa72-f21be84fe930",
+  "occurred_at": "2026-04-23T05:03:14.037225664Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.9",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Optional: precondition embedding and stale-event filter",
+    "type": "work",
+    "updated_at": "2026-02-24T12:14:49.131121Z",
+    "workflow_id": "work_sdlc"
+  }
+}

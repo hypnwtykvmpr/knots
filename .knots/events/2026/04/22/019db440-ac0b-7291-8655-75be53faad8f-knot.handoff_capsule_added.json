@@ -1,0 +1,15 @@
+{
+  "event_id": "019db440-ac0b-7291-8655-75be53faad8f",
+  "occurred_at": "2026-04-22T08:13:50.475569007Z",
+  "knot_id": "knots-93d9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Implementation complete. Branch worktree-knots-93d9-objective-required pushed to origin (commit a6369df0). Validates top-level objective for execution_plan knots at write time (create, update, type conversion), while keeping legacy {} payloads readable. New --objective CLI flag plumbed through new/update paths. Tests/docs updated. make sanity passed in prior session before push; reruns blocked by tmpfs exhaustion.",
+    "datetime": "2026-04-22T08:13:50.475569007Z",
+    "entry_id": "019db440-ac0b-7291-8655-75a164ed14b3",
+    "model": "opus/claude",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-80b1-75c2-a912-b181d4b1d297",
+  "occurred_at": "2026-04-23T05:03:12.561817835Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-6b18",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Step History Model",
+    "type": "work",
+    "updated_at": "2026-03-06T11:14:49.852184Z",
+    "workflow_id": "work_sdlc"
+  }
+}

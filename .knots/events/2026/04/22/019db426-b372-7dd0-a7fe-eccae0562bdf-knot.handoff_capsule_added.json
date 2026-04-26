@@ -1,0 +1,15 @@
+{
+  "event_id": "019db426-b372-7dd0-a7fe-eccae0562bdf",
+  "occurred_at": "2026-04-22T07:45:28.434859117Z",
+  "knot_id": "knots-93d9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Plan recorded: add write-time validation plus first-class top-level objective plumbing for `execution_plan` knots; reject missing objective on create, update, and type conversion; keep legacy reads permissive; extend CLI/docs/tests. No child knots created. Main risk is breaking legacy replay by validating during deserialize instead of at write time.",
+    "datetime": "2026-04-22T07:45:28.434859117Z",
+    "entry_id": "019db426-b372-7dd0-a7fe-ecb0e76c5786",
+    "model": "gpt",
+    "username": "Codex",
+    "version": "5.4"
+  }
+}

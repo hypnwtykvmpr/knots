@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8139-7fc0-b23d-bf9eb60fa6c4",
+  "occurred_at": "2026-04-23T05:03:12.697603419Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.12.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add SECURITY.md and vulnerability reporting policy",
+    "type": "work",
+    "updated_at": "2026-02-23T07:33:23Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-83ea-74f0-9fa5-44c773ec8e2d",
+  "occurred_at": "2026-04-23T05:03:13.386962851Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-d5f9",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W5.1 Update sync applier for old/new payload key compatibility",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:14.777752Z",
+    "workflow_id": "work_sdlc"
+  }
+}

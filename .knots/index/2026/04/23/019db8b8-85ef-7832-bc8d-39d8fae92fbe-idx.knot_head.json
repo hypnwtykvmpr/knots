@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-85ef-7832-bc8d-39d8fae92fbe",
+  "occurred_at": "2026-04-23T05:03:13.903627847Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-c8ee",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W5.3 Update rehydrate paths for old/new keys and remapped states",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:13.6031Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "event_id": "019db8b5-1ab0-7713-84e2-4f6c27199fa3",
+  "occurred_at": "2026-04-23T04:59:29.840251166Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.title_set",
+  "data": {
+    "from": "kno doctor --fix should provide progressive feedback",
+    "to": "kno doctor --fix: show progressive status during fix operations"
+  }
+}

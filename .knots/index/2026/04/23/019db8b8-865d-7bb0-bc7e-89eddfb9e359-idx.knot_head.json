@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-865d-7bb0-bc7e-89eddfb9e359",
+  "occurred_at": "2026-04-23T05:03:14.013666193Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.5",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Milestone M3: Hot/Warm/Cold Tiering",
+    "type": "work",
+    "updated_at": "2026-02-24T11:59:37.031798Z",
+    "workflow_id": "work_sdlc"
+  }
+}

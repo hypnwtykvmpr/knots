@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-863a-75f3-8b88-074b8fb383a5",
+  "occurred_at": "2026-04-23T05:03:13.978770143Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.13.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Build release binaries for macOS arm64 + Linux x86_64",
+    "type": "work",
+    "updated_at": "2026-02-23T07:18:52Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-80a4-7012-9108-667a61f29dc7",
+  "occurred_at": "2026-04-23T05:03:12.548098455Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-585c",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W3.2 Rename event/precondition/profile fields + compatibility aliases",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:18.196913Z",
+    "workflow_id": "work_sdlc"
+  }
+}

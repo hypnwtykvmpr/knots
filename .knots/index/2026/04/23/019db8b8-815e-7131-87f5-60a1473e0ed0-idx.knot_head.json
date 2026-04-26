@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-815e-7131-87f5-60a1473e0ed0",
+  "occurred_at": "2026-04-23T05:03:12.734351465Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.4.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement knots worktree manager",
+    "type": "work",
+    "updated_at": "2026-02-22T22:24:10Z",
+    "workflow_id": "work_sdlc"
+  }
+}

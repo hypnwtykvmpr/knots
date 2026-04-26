@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-80ee-7ed3-bc2c-85f87c38ef03",
+  "occurred_at": "2026-04-23T05:03:12.622058314Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-bc91",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W2.2 Carry workflow_id in write paths and projections",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.848436Z",
+    "workflow_id": "work_sdlc"
+  }
+}

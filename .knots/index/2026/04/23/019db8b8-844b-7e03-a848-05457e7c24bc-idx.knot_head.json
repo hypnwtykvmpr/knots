@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-844b-7e03-a848-05457e7c24bc",
+  "occurred_at": "2026-04-23T05:03:13.483638149Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.5.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement hot/warm/cold classification engine",
+    "type": "work",
+    "updated_at": "2026-02-24T11:59:37.050662Z",
+    "workflow_id": "work_sdlc"
+  }
+}

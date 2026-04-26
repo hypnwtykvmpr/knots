@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8650-7443-a8fc-8b70a08bfe46",
+  "occurred_at": "2026-04-23T05:03:14.000576196Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.3.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Canonical event emitter + index-head emission",
+    "type": "work",
+    "updated_at": "2026-02-22T22:11:45Z",
+    "workflow_id": "work_sdlc"
+  }
+}

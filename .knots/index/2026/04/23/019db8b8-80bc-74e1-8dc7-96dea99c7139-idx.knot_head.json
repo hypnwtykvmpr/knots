@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-80bc-74e1-8dc7-96dea99c7139",
+  "occurred_at": "2026-04-23T05:03:12.57297466Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-78d5",
+    "profile_id": "autopilot_with_pr",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno push/pull: provide immediate feedback to user, describing what you are doing.  use nice colors",
+    "type": "work",
+    "updated_at": "2026-03-12T10:23:49.722049Z",
+    "workflow_id": "work_sdlc"
+  }
+}

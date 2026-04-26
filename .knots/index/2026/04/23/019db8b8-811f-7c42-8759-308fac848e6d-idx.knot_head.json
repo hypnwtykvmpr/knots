@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-811f-7c42-8759-308fac848e6d",
+  "occurred_at": "2026-04-23T05:03:12.671827345Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-efb8",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W2 Persist workflow identity across model/events",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.979549Z",
+    "workflow_id": "work_sdlc"
+  }
+}

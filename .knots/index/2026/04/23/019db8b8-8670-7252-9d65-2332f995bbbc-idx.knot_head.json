@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8670-7252-9d65-2332f995bbbc",
+  "occurred_at": "2026-04-23T05:03:14.032338781Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.7.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement doctor command",
+    "type": "work",
+    "updated_at": "2026-02-24T12:14:49.09471Z",
+    "workflow_id": "work_sdlc"
+  }
+}

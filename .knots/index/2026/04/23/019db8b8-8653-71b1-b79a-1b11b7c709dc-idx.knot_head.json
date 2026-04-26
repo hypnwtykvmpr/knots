@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8653-71b1-b79a-1b11b7c709dc",
+  "occurred_at": "2026-04-23T05:03:14.00368905Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.3.5",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Import progress/status command",
+    "type": "work",
+    "updated_at": "2026-02-22T22:11:46Z",
+    "workflow_id": "work_sdlc"
+  }
+}

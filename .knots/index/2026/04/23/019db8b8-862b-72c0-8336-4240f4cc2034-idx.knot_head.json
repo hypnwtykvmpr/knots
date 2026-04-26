@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-862b-72c0-8336-4240f4cc2034",
+  "occurred_at": "2026-04-23T05:03:13.963802079Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.12",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Milestone M2.5: Public Repo Readiness",
+    "type": "work",
+    "updated_at": "2026-02-23T07:32:52Z",
+    "workflow_id": "work_sdlc"
+  }
+}

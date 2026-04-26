@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-862f-79b1-a9cd-e22a8487a4f6",
+  "occurred_at": "2026-04-23T05:03:13.967292825Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.12.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add MIT LICENSE and repository metadata",
+    "type": "work",
+    "updated_at": "2026-02-23T07:18:51Z",
+    "workflow_id": "work_sdlc"
+  }
+}

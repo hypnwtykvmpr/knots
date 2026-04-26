@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b9-3759-72a0-9a21-ffb6030322a2",
+  "occurred_at": "2026-04-23T05:03:59.32127884Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete for `knots-03c9`.\n\nChosen direction: add progress reporting inside the `doctor --fix` fix pipeline, not in the final report printer. Emit each `Fixing <check>...` line and the completion summary on stderr so `--json --fix` remains parseable on stdout.\n\nExpected touch points: `src/doctor_fix.rs` for operation labels/reporter/counts, `src/doctor.rs` for wiring the reporter through the fix pass and preserving sync/recheck behavior, and doctor unit/CLI tests for ordered progress output plus unchanged plain `kno doctor` behavior.\n\nRisks: avoid stdout pollution for JSON mode; avoid claiming success before a best-effort fix actually finishes.\n\nChild knots: `knots-37d9` and `knots-4e88`.",
+    "datetime": "2026-04-23T05:03:59.32127884Z",
+    "entry_id": "019db8b9-3759-72a0-9a21-ffad09faefe5",
+    "model": "gpt",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

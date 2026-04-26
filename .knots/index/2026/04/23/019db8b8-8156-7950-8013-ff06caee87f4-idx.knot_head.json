@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8156-7950-8013-ff06caee87f4",
+  "occurred_at": "2026-04-23T05:03:12.726501154Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.3.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Dolt extractor adapter",
+    "type": "work",
+    "updated_at": "2026-02-22T22:11:45Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8073-73f3-b8d4-7f27dada05de",
+  "occurred_at": "2026-04-23T05:03:12.499054257Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-19dc",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "change kno new -b --body to -d --desc",
+    "type": "work",
+    "updated_at": "2026-02-26T14:08:29.969699Z",
+    "workflow_id": "work_sdlc"
+  }
+}

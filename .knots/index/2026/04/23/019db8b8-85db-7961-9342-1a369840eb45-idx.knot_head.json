@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-85db-7961-9342-1a369840eb45",
+  "occurred_at": "2026-04-23T05:03:13.883686596Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-b779",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno skill PLANNING shows 'PLANNING' not found in local cache.  probably true for all skills.",
+    "type": "work",
+    "updated_at": "2026-02-26T15:44:35.906664Z",
+    "workflow_id": "work_sdlc"
+  }
+}

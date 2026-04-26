@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-841b-7ec2-abab-52c5dad0188d",
+  "occurred_at": "2026-04-23T05:03:13.43561965Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.12.4",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add public GitHub publish bootstrap script (gh CLI)",
+    "type": "work",
+    "updated_at": "2026-02-23T07:32:52Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019db4dc-59d4-7320-8e2e-e05f8dff6792",
+  "occurred_at": "2026-04-22T11:03:53.044670096Z",
+  "knot_id": "knots-347f",
+  "type": "knot.description_set",
+  "data": {
+    "description": "The CLI command currently named 'skill' should be renamed to 'prompt' across the codebase. This includes the command definition, all internal references, help text, and any documentation that references the old name. The 'skill' alias may be retained for backwards compatibility if existing usage warrants it."
+  }
+}

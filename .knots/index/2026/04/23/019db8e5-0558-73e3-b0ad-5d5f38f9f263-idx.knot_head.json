@@ -1,0 +1,21 @@
+{
+  "event_id": "019db8e5-0558-73e3-b0ad-5d5f38f9f263",
+  "occurred_at": "2026-04-23T05:51:50.104698541Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-03c9",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno doctor --fix: emit per-operation progress lines",
+    "type": "work",
+    "updated_at": "2026-04-23T05:51:50.104698541Z",
+    "workflow_id": "work_sdlc"
+  }
+}

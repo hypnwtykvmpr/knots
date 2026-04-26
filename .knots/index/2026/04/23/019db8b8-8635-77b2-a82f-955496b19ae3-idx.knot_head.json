@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8635-77b2-a82f-955496b19ae3",
+  "occurred_at": "2026-04-23T05:03:13.973973303Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.13",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Milestone M2.6: Release + Curl Install",
+    "type": "work",
+    "updated_at": "2026-02-23T07:32:52Z",
+    "workflow_id": "work_sdlc"
+  }
+}

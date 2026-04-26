@@ -1,0 +1,9 @@
+{
+  "event_id": "019db8b5-1ab0-7713-84e2-4f77020f63d8",
+  "occurred_at": "2026-04-23T04:59:29.840251166Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Running `kno doctor --fix` silently hangs for 5–10 seconds with no output, which worries users who cannot tell if the command is working or stuck. Each fix operation should emit a status line as it begins (and optionally on completion), so users have continuous feedback about what is happening and roughly how long to expect."
+  }
+}

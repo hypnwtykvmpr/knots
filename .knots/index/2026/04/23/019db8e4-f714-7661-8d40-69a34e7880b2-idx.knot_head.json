@@ -1,0 +1,34 @@
+{
+  "event_id": "019db8e4-f714-7661-8d40-69a34e7880b2",
+  "occurred_at": "2026-04-23T05:51:46.450190296Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-03c9",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "kno doctor --fix: emit per-operation progress lines",
+    "type": "work",
+    "updated_at": "2026-04-23T05:51:46.450190296Z",
+    "workflow_id": "work_sdlc"
+  }
+}

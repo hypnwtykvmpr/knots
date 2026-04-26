@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-844d-7801-9e0c-30f42a795453",
+  "occurred_at": "2026-04-23T05:03:13.485429149Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.5.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement rehydrate flow",
+    "type": "work",
+    "updated_at": "2026-02-24T11:59:37.06734Z",
+    "workflow_id": "work_sdlc"
+  }
+}

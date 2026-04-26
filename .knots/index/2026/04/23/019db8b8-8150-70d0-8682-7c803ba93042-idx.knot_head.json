@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8150-70d0-8682-7c803ba93042",
+  "occurred_at": "2026-04-23T05:03:12.720060094Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.2.4",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement local CLI core commands",
+    "type": "work",
+    "updated_at": "2026-02-22T21:57:35Z",
+    "workflow_id": "work_sdlc"
+  }
+}

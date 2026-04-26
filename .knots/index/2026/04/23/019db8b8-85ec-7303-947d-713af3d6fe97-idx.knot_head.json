@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-85ec-7303-947d-713af3d6fe97",
+  "occurred_at": "2026-04-23T05:03:13.900051538Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-c4bf",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add kno hooks CLI subcommand (install/uninstall/status)",
+    "type": "work",
+    "updated_at": "2026-03-03T13:31:13.615209Z",
+    "workflow_id": "work_sdlc"
+  }
+}

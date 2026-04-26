@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-838f-77d2-aba4-d48098877ebe",
+  "occurred_at": "2026-04-23T05:03:13.295949217Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-6f07",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W4.3 Implement interactive/non-interactive kno profile set state-selection behavior",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:16.027932Z",
+    "workflow_id": "work_sdlc"
+  }
+}

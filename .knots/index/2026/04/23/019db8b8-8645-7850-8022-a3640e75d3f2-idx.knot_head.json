@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8645-7850-8022-a3640e75d3f2",
+  "occurred_at": "2026-04-23T05:03:13.989335259Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.2.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement event schema + append-only writers",
+    "type": "work",
+    "updated_at": "2026-02-22T18:41:59Z",
+    "workflow_id": "work_sdlc"
+  }
+}

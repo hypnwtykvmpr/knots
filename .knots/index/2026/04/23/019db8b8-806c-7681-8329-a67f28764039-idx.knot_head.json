@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-806c-7681-8329-a67f28764039",
+  "occurred_at": "2026-04-23T05:03:12.492552311Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-07ac",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W4.2 Implement kno profile set-default at ~/.config/knots/config.toml",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:16.55211Z",
+    "workflow_id": "work_sdlc"
+  }
+}

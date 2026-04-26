@@ -1,0 +1,17 @@
+{
+  "event_id": "019db8b8-55db-7c42-bc75-537da45eec46",
+  "occurred_at": "2026-04-23T05:03:01.595752893Z",
+  "knot_id": "knots-4e88",
+  "type": "knot.created",
+  "data": {
+    "body": "Add or update unit and CLI tests for doctor --fix progress reporting. Cover ordered per-fix status lines, final summary output, and no new output for plain kno doctor without --fix. Keep a manual terminal verification step in the implementation notes because automated tests cannot prove real-time flush timing on their own.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "doctor --fix: cover progressive output with tests",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

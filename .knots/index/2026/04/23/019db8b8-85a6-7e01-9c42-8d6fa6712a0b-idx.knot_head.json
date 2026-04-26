@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-85a6-7e01-9c42-8d6fa6712a0b",
+  "occurred_at": "2026-04-23T05:03:13.830001015Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-700e",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "verify color formatting",
+    "type": "work",
+    "updated_at": "2026-02-26T12:59:07.336104Z",
+    "workflow_id": "work_sdlc"
+  }
+}

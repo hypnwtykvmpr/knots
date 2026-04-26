@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-812a-7521-93ac-442db81d49ec",
+  "occurred_at": "2026-04-23T05:03:12.682757618Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Milestone M0: Workspace/Tracking Initialized",
+    "type": "work",
+    "updated_at": "2026-02-22T17:28:42Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db439-1ab7-7190-92f7-899f0f3f7ae8",
+  "occurred_at": "2026-04-22T08:05:34.51911979Z",
+  "knot_id": "knots-99d4",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "codex",
+    "content": "Pass evaluation evidence for the `implementation` step:\n- Commit: 10ce3af8d51bc21e3a6ac1f68f9f5c875dd42d34\n- Branch: worktree-knots-99d4-gate-eval-prompt\n- Expected: the gate evaluating claim prompt must carry knot Context, Acceptance Criteria, explicit gate metadata, evidence-first evaluation guidance, and the Foolery override before any completion transition.\n- Actual: the builtin gate prompt and live gate claim prompt now render `## Context`, `## Acceptance Criteria`, `gate.owner_kind`, `gate.failure_modes[...]`, `## Your job`, `## Exit conditions`, and `## Override of Foolery preamble`.\n- Regression checks:\n  - cargo test render_gate_prompt_uses_context_heading_and_explicit_metadata_labels -- --nocapture\n  - cargo test gate_evaluate_render_for_profile_contains_required_evaluation_guidance -- --nocapture\n  - cargo test claim_prompt_for_gate_surfaces_acceptance_context_and_evaluation_rules -- --nocapture\n- Repo verification:\n  - make lint\n  - make test\n  - pre-push hook make coverage passed at 95.15% coverage\n- Coverage artifact: /tmp/knots-99d4/coverage/cobertura.xml",
+    "datetime": "2026-04-22T08:05:34.51911979Z",
+    "entry_id": "019db439-1ab7-7190-92f7-8985abbe48f5",
+    "model": "gpt-5",
+    "username": "unknown",
+    "version": "1.0.0"
+  }
+}

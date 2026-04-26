@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-83ab-7f02-996f-8eec37e24890",
+  "occurred_at": "2026-04-23T05:03:13.323011556Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-9962",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W4.4 Add actor metadata flags to state/update --status",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:15.397447Z",
+    "workflow_id": "work_sdlc"
+  }
+}

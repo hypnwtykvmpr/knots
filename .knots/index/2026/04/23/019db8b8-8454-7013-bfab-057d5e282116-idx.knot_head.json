@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8454-7013-bfab-057d5e282116",
+  "occurred_at": "2026-04-23T05:03:13.492105559Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.6.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement local-first write with push retry budget",
+    "type": "work",
+    "updated_at": "2026-02-24T11:59:37.126294Z",
+    "workflow_id": "work_sdlc"
+  }
+}

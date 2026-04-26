@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-83d8-7222-bcb3-ad8239fce93b",
+  "occurred_at": "2026-04-23T05:03:13.368805147Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-c8e0",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "add kno skill <knot-id>",
+    "type": "work",
+    "updated_at": "2026-02-26T14:08:30.150445Z",
+    "workflow_id": "work_sdlc"
+  }
+}

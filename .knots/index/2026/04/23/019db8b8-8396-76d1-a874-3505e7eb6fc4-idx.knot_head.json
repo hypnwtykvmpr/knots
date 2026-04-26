@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8396-76d1-a874-3505e7eb6fc4",
+  "occurred_at": "2026-04-23T05:03:13.302585229Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-715a",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "README.md images",
+    "type": "work",
+    "updated_at": "2026-03-09T08:27:50.662559Z",
+    "workflow_id": "work_sdlc"
+  }
+}

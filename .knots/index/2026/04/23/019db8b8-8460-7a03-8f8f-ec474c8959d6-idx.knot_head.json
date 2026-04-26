@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8460-7a03-8f8f-ec474c8959d6",
+  "occurred_at": "2026-04-23T05:03:13.504386461Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.8",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Optional: snapshot compaction/read path",
+    "type": "work",
+    "updated_at": "2026-02-24T12:14:49.119378Z",
+    "workflow_id": "work_sdlc"
+  }
+}

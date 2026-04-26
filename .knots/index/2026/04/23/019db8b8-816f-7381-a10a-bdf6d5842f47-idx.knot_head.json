@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-816f-7381-a10a-bdf6d5842f47",
+  "occurred_at": "2026-04-23T05:03:12.751692661Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.6.3",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement auto-sync policy and try-lock behavior",
+    "type": "work",
+    "updated_at": "2026-02-24T11:59:37.140127Z",
+    "workflow_id": "work_sdlc"
+  }
+}

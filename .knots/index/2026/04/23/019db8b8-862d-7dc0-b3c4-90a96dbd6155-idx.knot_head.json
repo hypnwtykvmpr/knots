@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-862d-7dc0-b3c4-90a96dbd6155",
+  "occurred_at": "2026-04-23T05:03:13.965421111Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.12.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add robust public README with install/usage/release docs",
+    "type": "work",
+    "updated_at": "2026-02-23T07:18:51Z",
+    "workflow_id": "work_sdlc"
+  }
+}

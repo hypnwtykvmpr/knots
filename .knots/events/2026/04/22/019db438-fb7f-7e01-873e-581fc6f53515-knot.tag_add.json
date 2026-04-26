@@ -1,0 +1,9 @@
+{
+  "event_id": "019db438-fb7f-7e01-873e-581fc6f53515",
+  "occurred_at": "2026-04-22T08:05:26.526807116Z",
+  "knot_id": "knots-93d9",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-93d9-objective-required"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8459-7192-af55-48b7f74fb374",
+  "occurred_at": "2026-04-23T05:03:13.49718029Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.7",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Milestone M5: Integrity + Operability",
+    "type": "work",
+    "updated_at": "2026-02-24T12:14:49.064924Z",
+    "workflow_id": "work_sdlc"
+  }
+}

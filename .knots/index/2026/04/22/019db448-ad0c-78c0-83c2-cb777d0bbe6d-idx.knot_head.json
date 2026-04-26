@@ -1,0 +1,34 @@
+{
+  "event_id": "019db448-ad0c-78c0-83c2-cb777d0bbe6d",
+  "occurred_at": "2026-04-22T08:22:35.01911317Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-93d9",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "make objective a required field for execution_plan knots",
+    "type": "work",
+    "updated_at": "2026-04-22T08:22:35.01911317Z",
+    "workflow_id": "work_sdlc"
+  }
+}

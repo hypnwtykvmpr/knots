@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-808e-7e13-88e3-fe39740d38ac",
+  "occurred_at": "2026-04-23T05:03:12.526431118Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-49a0",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Skills: Implementation Review:  Enhance agent guidance to focus on code and specification drift",
+    "type": "work",
+    "updated_at": "2026-03-08T18:47:24.615709Z",
+    "workflow_id": "work_sdlc"
+  }
+}

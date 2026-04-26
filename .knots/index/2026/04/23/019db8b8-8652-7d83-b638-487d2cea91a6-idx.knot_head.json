@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8652-7d83-b638-487d2cea91a6",
+  "occurred_at": "2026-04-23T05:03:14.002122509Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.3.4",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Idempotency/checkpoint/retry handling",
+    "type": "work",
+    "updated_at": "2026-02-22T22:11:45Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019db8d3-b550-7963-b3af-362bbec2d33b",
+  "occurred_at": "2026-04-23T05:32:55.504171597Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-03c9-doctor-progress"
+  }
+}

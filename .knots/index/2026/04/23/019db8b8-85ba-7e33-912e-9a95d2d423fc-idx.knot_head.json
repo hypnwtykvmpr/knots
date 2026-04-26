@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-85ba-7e33-912e-9a95d2d423fc",
+  "occurred_at": "2026-04-23T05:03:13.85047341Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-8c0d",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Implement gate failure reopen flow and coverage",
+    "type": "work",
+    "updated_at": "2026-03-11T06:20:33.10971Z",
+    "workflow_id": "work_sdlc"
+  }
+}

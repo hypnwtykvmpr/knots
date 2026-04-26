@@ -1,0 +1,10 @@
+{
+  "event_id": "019db8ba-f899-7a22-bb3e-d740d09087b7",
+  "occurred_at": "2026-04-23T05:05:54.329041073Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.title_set",
+  "data": {
+    "from": "kno doctor --fix: show progressive status during fix operations",
+    "to": "kno doctor --fix: emit per-operation progress lines"
+  }
+}

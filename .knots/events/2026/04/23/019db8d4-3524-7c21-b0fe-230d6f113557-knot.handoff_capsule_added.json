@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8d4-3524-7c21-b0fe-230d6f113557",
+  "occurred_at": "2026-04-23T05:33:28.22871227Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude Code",
+    "content": "Implementation complete.\n\nBranch: worktree-knots-03c9-doctor-progress\nCommit: 5b695f45461a15f19eaaf227bcdf8a86442c3478\n\nChanges:\n- `kno doctor --fix` now emits per-operation progress lines via the\n  existing `ProgressReporter` trait and `StdoutProgressReporter`:\n    • `Running diagnostics...` before the initial checks run\n    • `Fixing <check>...` for each non-pass check as its fix starts\n    • `Syncing fix events...` when the event log was touched\n    • `N issue(s) fixed.` or `No issues found.` as the final summary\n- Plain `kno doctor` (no --fix) and `--json` mode are unchanged: the\n  reporter is only instantiated when both `args.fix` and `!args.json`\n  are true, so JSON output stays clean.\n- Extracted `doctor_fix::announce_and_apply_fixes` to keep doctor.rs\n  small and to give tests a pure entry point for the Git vs local-only\n  branch and the no-issues-found path.\n- New tests:\n    • `apply_fixes_with_progress_emits_line_per_non_pass_check`\n    • `apply_fixes_with_progress_none_matches_silent_apply_fixes`\n    • `run_doctor_with_fix_progress_is_silent_when_fix_false`\n    • `run_doctor_with_fix_progress_announces_diagnostics_then_per_fix_and_summary`\n    • `announce_and_apply_fixes_reports_no_issues_when_all_checks_pass`\n    • `announce_and_apply_fixes_local_only_reports_count_without_fixing`\n\nVerification:\n- `make sanity` green: 1102 tests pass, coverage 95.11% (+0.02%).\n- Manually ran the release binary in this worktree: first output\n  (\"Running diagnostics...\") appears immediately, followed by a fix\n  line per non-pass check and the final summary — satisfies acceptance\n  criteria 1–6.\n- `kno doctor` without `--fix` and `kno doctor --fix --json` verified\n  to produce no new progress output.",
+    "datetime": "2026-04-23T05:33:28.22871227Z",
+    "entry_id": "019db8d4-3524-7c21-b0fe-22f3db9ff888",
+    "model": "claude-opus-4-7",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

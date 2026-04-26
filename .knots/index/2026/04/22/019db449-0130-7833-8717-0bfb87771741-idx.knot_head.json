@@ -1,0 +1,21 @@
+{
+  "event_id": "019db449-0130-7833-8717-0bfb87771741",
+  "occurred_at": "2026-04-22T08:22:56.560109692Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-93d9",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "make objective a required field for execution_plan knots",
+    "type": "work",
+    "updated_at": "2026-04-22T08:22:56.560109692Z",
+    "workflow_id": "work_sdlc"
+  }
+}

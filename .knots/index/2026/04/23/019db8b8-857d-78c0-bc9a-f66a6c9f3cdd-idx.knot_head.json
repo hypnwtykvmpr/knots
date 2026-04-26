@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-857d-78c0-bc9a-f66a6c9f3cdd",
+  "occurred_at": "2026-04-23T05:03:13.789659356Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-4be6",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "update skills with proper directions for tagging knots with commits",
+    "type": "work",
+    "updated_at": "2026-03-03T15:18:43.91852Z",
+    "workflow_id": "work_sdlc"
+  }
+}

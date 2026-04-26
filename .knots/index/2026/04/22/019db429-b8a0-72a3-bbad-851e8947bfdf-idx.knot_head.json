@@ -1,0 +1,48 @@
+{
+  "event_id": "019db429-b8a0-72a3-bbad-851e8947bfdf",
+  "occurred_at": "2026-04-22T07:48:46.366020777Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-99d4",
+    "next_step_metadata": {
+      "action_kind": "gate",
+      "action_state": "plan_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "autopilot",
+    "state": "planning",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "planning",
+      "output": {
+        "access_hint": "kno show",
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Gate workflow claim prompt does not carry acceptance criteria — agents auto-ship without evaluating",
+    "type": "work",
+    "updated_at": "2026-04-22T07:48:46.366020777Z",
+    "workflow_id": "work_sdlc"
+  }
+}

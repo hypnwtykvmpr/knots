@@ -1,0 +1,17 @@
+{
+  "event_id": "019db8b8-55c7-70e1-a7f0-dca34c6ae7a3",
+  "occurred_at": "2026-04-23T05:03:01.575211806Z",
+  "knot_id": "knots-37d9",
+  "type": "knot.created",
+  "data": {
+    "body": "Implement progressive status output for each non-pass doctor fix. Likely touch src/doctor_fix.rs plus the doctor command path so each fix emits a start line immediately and the run ends with a concise summary. Preserve parseable JSON output by keeping progress off stdout when doctor is run with --json.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "doctor --fix: emit per-check progress and summary",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8358-7fc1-950d-8e070b6d250f",
+  "occurred_at": "2026-04-23T05:03:13.240815069Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-2f5e",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "add new -f and kno q as alias to kno new -f",
+    "type": "work",
+    "updated_at": "2026-02-26T15:44:35.9368Z",
+    "workflow_id": "work_sdlc"
+  }
+}

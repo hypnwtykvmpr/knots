@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-873a-7322-b186-d3958c87e164",
+  "occurred_at": "2026-04-23T05:03:14.234198195Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete for .\n\nChosen direction: add progress reporting inside the  fix pipeline, not in the final report printer. Emit each  line and the completion summary on stderr so  remains parseable on stdout.\n\nExpected touch points:  for operation labels/reporter/counts,  for wiring the reporter through the fix pass and preserving sync/recheck behavior, and doctor unit/CLI tests for ordered progress output plus unchanged plain Doctor\n        lock_health:  ✓ repo/cache locks are acquirable\n           worktree:  ✓ knots worktree is clean\n             remote:  ✗ origin is not reachable: Bad owner or permissions on /etc/ssh/ssh_config.d/20-systemd-ssh-proxy.conf\r\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n            version:  ⚠ v0.15.3 (unable to check for updates)\n              hooks:  ⚠ missing sync hooks: post-merge (run `kno doctor --fix`)\n  workflow_registry:  ✓ work=work_sdlc, gate=gate_sdlc, lease=lease_sdlc, explore=explore_sdlc, execution_plan=execution_plan_sdlc\n     schema_version:  ✓ schema version 17 is current\n       stuck_leases:  ✓ no stuck leases\n   terminal_parents:  ✓ no parent knots require terminal reconciliation\ncold_tier_imbalance:  ✓ 100 hot / 522 cold\n workflow_id_parity:  ⚠ 171 knot(s) have a latest idx.knot_head event missing workflow_id; run doctor --fix to publish repair events\n knot_type_backfill:  ✓ all hot cache rows have knot_type populated\n       skills_codex:  ⚠ Codex missing managed skills at /home/cartine/knots/.agents/skills: /home/cartine/knots/.agents/skills/knots/SKILL.md, /home/cartine/knots/.agents/skills/knots-e2e/SKILL.md, /home/cartine/knots/.agents/skills/knots-create/SKILL.md, /home/cartine/knots/.agents/skills/knots-plan-orchestrator/SKILL.md; run `kno skills install codex`\n      skills_claude:  ✓ Claude managed skills installed at /home/cartine/knots/.claude/skills\n    skills_opencode:  ⚠ OpenCode missing managed skills at /home/cartine/knots/.agents/skills: /home/cartine/knots/.agents/skills/knots/SKILL.md, /home/cartine/knots/.agents/skills/knots-e2e/SKILL.md, /home/cartine/knots/.agents/skills/knots-create/SKILL.md, /home/cartine/knots/.agents/skills/knots-plan-orchestrator/SKILL.md; run `kno skills install opencode` behavior.\n\nRisks: avoid stdout pollution for JSON mode; avoid claiming success before a best-effort fix actually finishes.\n\nChild knots: 37d9 and 4e88.",
+    "datetime": "2026-04-23T05:03:14.234198195Z",
+    "entry_id": "019db8b8-873a-7322-b186-d380ab963cfe",
+    "model": "gpt",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

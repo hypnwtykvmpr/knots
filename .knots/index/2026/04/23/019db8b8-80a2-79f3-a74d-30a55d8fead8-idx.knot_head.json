@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-80a2-79f3-a74d-30a55d8fead8",
+  "occurred_at": "2026-04-23T05:03:12.546486477Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-57f1",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "Investigate orphaned lock files on macOS",
+    "type": "work",
+    "updated_at": "2026-03-08T13:48:22.378763Z",
+    "workflow_id": "work_sdlc"
+  }
+}

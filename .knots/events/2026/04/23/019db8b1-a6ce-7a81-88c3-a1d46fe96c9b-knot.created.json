@@ -1,0 +1,17 @@
+{
+  "event_id": "019db8b1-a6ce-7a81-88c3-a1d46fe96c9b",
+  "occurred_at": "2026-04-23T04:55:43.566295444Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.created",
+  "data": {
+    "body": "when you run kno doctor --fix it appears to hang for 5-10 seconds and can be worrisome to the user.  provide feedback about what's happening and how long it may take.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "kno doctor --fix should provide progressive feedback",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

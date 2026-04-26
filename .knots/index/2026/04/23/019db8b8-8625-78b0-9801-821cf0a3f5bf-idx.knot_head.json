@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8625-78b0-9801-821cf0a3f5bf",
+  "occurred_at": "2026-04-23T05:03:13.957117785Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.1.2",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Initialize beads stealth tracking",
+    "type": "work",
+    "updated_at": "2026-02-22T17:23:01Z",
+    "workflow_id": "work_sdlc"
+  }
+}

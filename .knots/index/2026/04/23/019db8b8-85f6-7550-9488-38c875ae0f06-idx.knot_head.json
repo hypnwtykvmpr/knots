@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-85f6-7550-9488-38c875ae0f06",
+  "occurred_at": "2026-04-23T05:03:13.910543353Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-cfe1",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "AC27/W1 Workflow schema and registry",
+    "type": "work",
+    "updated_at": "2026-02-26T10:04:58.997042Z",
+    "workflow_id": "work_sdlc"
+  }
+}

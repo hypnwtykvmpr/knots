@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-83b7-7373-8209-3dafdddee475",
+  "occurred_at": "2026-04-23T05:03:13.335956497Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-a81d",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "add kno doctor --fix",
+    "type": "work",
+    "updated_at": "2026-03-03T08:17:14.722899Z",
+    "workflow_id": "work_sdlc"
+  }
+}

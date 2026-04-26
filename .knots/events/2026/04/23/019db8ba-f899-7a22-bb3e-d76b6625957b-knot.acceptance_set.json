@@ -1,0 +1,9 @@
+{
+  "event_id": "019db8ba-f899-7a22-bb3e-d76b6625957b",
+  "occurred_at": "2026-04-23T05:05:54.329041073Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Each fix operation prints a status line before it begins, e.g. `Fixing <issue>...`.\n2. First output appears within 1 second of the command starting (no silent hang).\n3. A summary line is printed on completion, e.g. `All fixes applied.` or `N issue(s) fixed.`.\n4. `kno doctor` (without `--fix`) produces no new output — existing behavior is unchanged.\n5. If there are no issues to fix, the command prints an appropriate message (e.g. `No issues found.`) and exits cleanly.\n6. Verified by running `kno doctor --fix` in a terminal and observing that status lines appear progressively, not all at once after a delay."
+  }
+}

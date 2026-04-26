@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b9-a2ae-79c3-935e-79acf8e8d1be",
+  "occurred_at": "2026-04-23T05:04:26.798853283Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Correction to the planning record: I briefly created child knots `knots-37d9` and `knots-4e88` while decomposing the work, but direct `parent_of` edges block moving the parent knot to `plan_review` until those children are advanced separately. Because this session is authorized only for the parent planning step, I removed those edges and kept the implementation plan flat on `knots-03c9`.",
+    "datetime": "2026-04-23T05:04:26.798853283Z",
+    "entry_id": "019db8b9-a2ae-79c3-935e-7995a43372ff",
+    "model": "gpt",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8095-72d2-94a7-690c86019bbe",
+  "occurred_at": "2026-04-23T05:03:12.533193272Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-4d48",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "W3.3 Add knot.profile_set event + projection support",
+    "type": "work",
+    "updated_at": "2026-02-26T10:17:17.664121Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8643-7451-91b5-690128c50edd",
+  "occurred_at": "2026-04-23T05:03:13.987655882Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-q3e.2.1",
+    "profile_id": "default",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Define domain state machine",
+    "type": "work",
+    "updated_at": "2026-02-22T17:34:15Z",
+    "workflow_id": "work_sdlc"
+  }
+}

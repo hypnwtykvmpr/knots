@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b9-a2ae-79c3-935e-79c3dda89e77",
+  "occurred_at": "2026-04-23T05:04:26.798853283Z",
+  "knot_id": "knots-03c9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Final planning state for `knots-03c9`: keep execution flat on the parent knot. The detailed plan above is the source of truth; do not rely on the briefly created child-knot hierarchy, because those edges were removed to allow the parent to progress to `plan_review` within this single-step session boundary.",
+    "datetime": "2026-04-23T05:04:26.798853283Z",
+    "entry_id": "019db8b9-a2ae-79c3-935e-79bf4bdfe8b1",
+    "model": "gpt",
+    "username": "unknown",
+    "version": "5.4"
+  }
+}

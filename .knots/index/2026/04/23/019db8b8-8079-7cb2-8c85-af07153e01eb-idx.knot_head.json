@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8079-7cb2-8c85-af07153e01eb",
+  "occurred_at": "2026-04-23T05:03:12.505577695Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-27f3",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Create src/git_hooks.rs module with hook install/uninstall/detect/status logic",
+    "type": "work",
+    "updated_at": "2026-03-03T13:31:11.398645Z",
+    "workflow_id": "work_sdlc"
+  }
+}

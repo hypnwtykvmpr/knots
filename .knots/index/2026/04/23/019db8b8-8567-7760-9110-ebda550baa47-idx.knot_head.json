@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8567-7760-9110-ebda550baa47",
+  "occurred_at": "2026-04-23T05:03:13.767837293Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-2b62",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno show should list relationships, grouping them by type",
+    "type": "work",
+    "updated_at": "2026-03-12T09:55:51.411137Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019db8b8-8570-7b42-868c-b8ef0769e990",
+  "occurred_at": "2026-04-23T05:03:13.776819827Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-35a4",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "generate skill files for each action state",
+    "type": "work",
+    "updated_at": "2026-02-26T14:08:30.092939Z",
+    "workflow_id": "work_sdlc"
+  }
+}
