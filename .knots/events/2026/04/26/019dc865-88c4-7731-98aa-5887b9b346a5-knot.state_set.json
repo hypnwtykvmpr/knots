@@ -1,0 +1,20 @@
+{
+  "event_id": "019dc865-88c4-7731-98aa-5887b9b346a5",
+  "occurred_at": "2026-04-26T06:06:30.596844Z",
+  "knot_id": "knots-9530",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "sonnet/claude",
+    "agent_name": "Claude",
+    "agent_version": "4.6",
+    "force": false,
+    "from": "ready_for_shipment_review",
+    "profile_id": "autopilot",
+    "to": "shipment_review",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019dc865-65a9-73b3-95e4-29d81e7ec3c1"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "event_id": "019dc866-3b60-77b0-8de5-589a4b4369fa",
+  "occurred_at": "2026-04-26T06:07:16.320445Z",
+  "knot_id": "knots-347f",
+  "type": "knot.title_set",
+  "data": {
+    "from": "Rename CLI command 'skill' to 'prompt'",
+    "to": "cli: rename `kno skill <id>` to `kno prompt <id>`"
+  }
+}

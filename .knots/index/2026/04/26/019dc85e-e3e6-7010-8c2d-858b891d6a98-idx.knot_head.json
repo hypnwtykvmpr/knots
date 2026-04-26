@@ -1,0 +1,50 @@
+{
+  "event_id": "019dc85e-e3e6-7010-8c2d-858b891d6a98",
+  "occurred_at": "2026-04-26T05:59:15.174105Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-9530",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "shipment",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "autopilot",
+    "state": "implementation_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "implementation_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "kno ls and similar commands correctly uses hierarchical aliases, but incorrectly includes project prefix in front of the alias.  for display the prefix should be stripped from the alias as well.",
+    "type": "work",
+    "updated_at": "2026-04-26T05:59:15.174105Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019dc85e-b572-7400-bc71-b624aeca8612"
+  }
+}

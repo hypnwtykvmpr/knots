@@ -1,0 +1,27 @@
+{
+  "event_id": "019dc85d-52aa-7fd2-abbd-96f137b55605",
+  "occurred_at": "2026-04-26T05:57:32.458845Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-93d9",
+    "profile_id": "autopilot_no_planning",
+    "state": "ready_for_planning",
+    "step_metadata": {
+      "action_state": "ready_for_planning"
+    },
+    "terminal": false,
+    "title": "make objective a required field for execution_plan knots",
+    "type": "work",
+    "updated_at": "2026-04-26T05:57:32.458845Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019da497-a125-7de2-b289-8b999f94faf5"
+  }
+}
