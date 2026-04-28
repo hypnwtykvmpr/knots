@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd46d-75d9-7d93-b9a2-0677a15cd7a1",
+  "occurred_at": "2026-04-28T14:10:36.633715426Z",
+  "knot_id": "knots-f6bf",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-f6bf-cold-tier-invariants (pushed). Commits: 1f1ef1bc (core fix), ce81baa0 (changeset). All sanity gates pass: fmt, clippy -D warnings, file-size check, full test suite (14 new unit tests + 3 CLI tests for cold_tier_imbalance, plus 1112 existing), tarpaulin coverage 95.11% > threshold. Worktree at /tmp/worktree-knots-f6bf-cold-tier-invariants. Reviewer: confirm the three new tier invariants in src/doctor_cold_tier.rs match the description in docs/tier-balance.md (already on main).",
+    "datetime": "2026-04-28T14:10:36.633715426Z",
+    "entry_id": "019dd46d-75d9-7d93-b9a2-066980bf68cb",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

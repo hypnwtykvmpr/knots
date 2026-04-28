@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd46e-62a3-7313-ae3c-fd8ca9a0a4ca",
+  "occurred_at": "2026-04-28T14:11:37.251249737Z",
+  "knot_id": "knots-f6bf",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation review: APPROVED. All 10 acceptance criteria met, verified by tests:\n1. PASS for cold=old-terminal-only — covered by check_passes_when_cold_holds_only_old_terminal_knots (unit + CLI).\n2. Idempotency — covered by fix_is_idempotent_after_clearing_violations.\n3. Three invariants detected — covered by check_warns_on_{shadow,non_terminal_cold,stale_terminal_hot}_rows + combined.\n4. Detail format + JSON data fields — verified in tests; data carries shadow, non_terminal_cold, stale_terminal_hot, hot_count, cold_count.\n5. --fix resolves each invariant — fix_{prunes_shadow,rehydrates_non_terminal,drops_cold_pointer_when_events_missing,demotes_stale_terminal} tests.\n6. Steady-state regression — fix_passes_again_after_simulated_steady_state_cycle.\n7. COLD_TIER_HOT_TARGET removed; no rehydrate-up-to-100 path remains.\n8. CLI test replaced (passes_when_cold_holds_only_old_terminal_knots), rehydrate-up-to-100 test removed, shadow CLI test updated for new detail format.\n9. make sanity passes (fmt + clippy -D warnings + file-size + 1112 unit tests + tarpaulin 95.11% > threshold).\n10. docs/tier-balance.md on main with two Mermaid diagrams.",
+    "datetime": "2026-04-28T14:11:37.251249737Z",
+    "entry_id": "019dd46e-62a3-7313-ae3c-fd7a531947a7",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

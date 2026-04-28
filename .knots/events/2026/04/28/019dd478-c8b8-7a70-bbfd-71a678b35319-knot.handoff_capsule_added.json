@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd478-c8b8-7a70-bbfd-71a678b35319",
+  "occurred_at": "2026-04-28T14:22:58.744410076Z",
+  "knot_id": "knots-f6bf",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment: merge commit 8d7dfeb3 on main; CI green (Repo Hygiene, Release, Changesets, CI sanity all success at 25058228408).",
+    "datetime": "2026-04-28T14:22:58.744410076Z",
+    "entry_id": "019dd478-c8b8-7a70-bbfd-71964386b9f0",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

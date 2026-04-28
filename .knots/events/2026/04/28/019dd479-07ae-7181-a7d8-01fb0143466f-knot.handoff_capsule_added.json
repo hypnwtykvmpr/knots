@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd479-07ae-7181-a7d8-01fb0143466f",
+  "occurred_at": "2026-04-28T14:23:14.86290942Z",
+  "knot_id": "knots-f6bf",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment review: APPROVED. All commits tagged (1f1ef1bc, ce81baa0, 8d7dfeb3 merge). Three tier invariants live on main. CI green. No regressions: existing 1112 unit tests, 1098+ integration tests pass; coverage 95.14%.",
+    "datetime": "2026-04-28T14:23:14.86290942Z",
+    "entry_id": "019dd479-07ae-7181-a7d8-01ed69fcec4b",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

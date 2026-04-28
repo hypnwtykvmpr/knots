@@ -1,0 +1,21 @@
+{
+  "event_id": "019dd463-adbf-7612-829c-9143a3c0531c",
+  "occurred_at": "2026-04-28T13:59:55.583886903Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-638b",
+    "profile_id": "lease",
+    "state": "lease_terminated",
+    "terminal": true,
+    "title": "Lease: claim-knots-f6bf",
+    "type": "lease",
+    "updated_at": "2026-04-28T13:59:55.583886903Z",
+    "workflow_id": "lease_sdlc"
+  }
+}

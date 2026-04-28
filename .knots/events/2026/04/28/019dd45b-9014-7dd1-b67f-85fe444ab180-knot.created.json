@@ -1,0 +1,17 @@
+{
+  "event_id": "019dd45b-9014-7dd1-b67f-85fe444ab180",
+  "occurred_at": "2026-04-28T13:51:03.700854072Z",
+  "knot_id": "knots-83b1",
+  "type": "knot.created",
+  "data": {
+    "body": "After the sync-description-regression-fix lands (knot creates emit a separate `knot.description_set` event), three places fall back to reading the inline `body` field on `knot.created` events for backward compat:\n\n- src/sync/apply.rs (sync apply path)\n- src/app/rehydrate/apply_event.rs (rehydrate path)\n- the new test `apply_full_event_legacy_knot_created_populates_description_from_body` in src/sync/apply_tests_event_paths.rs and `rehydrate_uses_body_from_legacy_knot_created_when_no_description_set` in src/app/tests_legacy_create_compat.rs (these pin the compat behavior).\n\nOnce the pre-fix event cohort has aged out of all live workspaces, remove these compat reads and drop the pinning tests. The companion 'does not overwrite existing description' test should stay since it documents the desired ordering between knot.created and knot.description_set.\n\nAcceptance criteria:\n- src/sync/apply.rs no longer special-cases `knot.created` to populate description from body\n- src/app/rehydrate/apply_event.rs no longer reads `body` to populate description in apply_created\n- The two compat-pinning tests are removed; the 'does not overwrite' guard remains\n- All comments referencing 'post-description-sync-fix' are removed\n- `make sanity` passes",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Remove knot.created body compat reads after sync-description-fix cohort ages out",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

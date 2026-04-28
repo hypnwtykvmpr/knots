@@ -1,0 +1,21 @@
+{
+  "event_id": "019dd479-17ed-7711-8efe-9ce9f60d956c",
+  "occurred_at": "2026-04-28T14:23:19.021252615Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-f6bf",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "doctor: fix permanent cold_tier_imbalance warn by using real tier invariants",
+    "type": "work",
+    "updated_at": "2026-04-28T14:23:19.021252615Z",
+    "workflow_id": "work_sdlc"
+  }
+}
