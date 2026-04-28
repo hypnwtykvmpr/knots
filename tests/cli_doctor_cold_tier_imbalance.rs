@@ -149,9 +149,8 @@ fn bootstrap_workflows(repo_root: &Path, db_path: &Path) {
     }
 }
 
-fn demote_to_cold(db: &Path, id: &str, title: &str, updated_at: &str) {
+fn demote_to_cold_with_state(db: &Path, id: &str, title: &str, state: &str, updated_at: &str) {
     let conn = Connection::open(db).expect("db should open");
-    // Read the existing hot row so we can reconstruct a warm + cold entry.
     conn.execute("DELETE FROM knot_hot WHERE id = ?1", rusqlite::params![id])
         .expect("delete hot should succeed");
     conn.execute(
@@ -161,10 +160,24 @@ fn demote_to_cold(db: &Path, id: &str, title: &str, updated_at: &str) {
     .expect("insert warm should succeed");
     conn.execute(
         "INSERT OR REPLACE INTO cold_catalog (id, title, state, updated_at) \
-         VALUES (?1, ?2, 'implementation', ?3)",
-        rusqlite::params![id, title, updated_at],
+         VALUES (?1, ?2, ?3, ?4)",
+        rusqlite::params![id, title, state, updated_at],
     )
     .expect("insert cold should succeed");
+}
+
+fn demote_to_cold_terminal(db: &Path, id: &str, title: &str, updated_at: &str) {
+    demote_to_cold_with_state(db, id, title, "shipped", updated_at);
+}
+
+fn insert_stale_terminal_hot(db: &Path, id: &str, title: &str, updated_at: &str) {
+    let conn = Connection::open(db).expect("db should open");
+    conn.execute(
+        "UPDATE knot_hot SET state = 'shipped', updated_at = ?2 WHERE id = ?1",
+        rusqlite::params![id, updated_at],
+    )
+    .expect("update hot should succeed");
+    let _ = title; // unused here; kept for symmetry with other helpers
 }
 
 fn count_cold_catalog(db: &Path) -> i64 {
@@ -191,84 +204,79 @@ fn find_check<'a>(report: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
-fn doctor_warns_when_cold_catalog_present_below_hot_target() {
-    let root = unique_workspace("knots-cli-cold-tier-warn");
+fn doctor_passes_when_cold_holds_only_old_terminal_knots() {
+    // The exact configuration the user reported as a permanent warn: a small
+    // hot tier and a non-empty cold tier of legitimately-old terminal knots.
+    // Under the invariant-based check this is healthy steady state.
+    let root = unique_workspace("knots-cli-cold-tier-healthy");
     setup_repo_with_remote(&root);
     let db = root.join(".knots/cache/state.sqlite");
     bootstrap_workflows(&root, &db);
 
-    // Seed three knots, then archive two into cold.
     let hot_id = create_knot(&root, &db, "Hot one");
-    let cold_a = create_knot(&root, &db, "Cold A");
-    let cold_b = create_knot(&root, &db, "Cold B");
-    demote_to_cold(&db, &cold_a, "Cold A", "2026-04-09T00:00:00Z");
-    demote_to_cold(&db, &cold_b, "Cold B", "2026-04-10T00:00:00Z");
+    let cold_a = create_knot(&root, &db, "Old shipped A");
+    let cold_b = create_knot(&root, &db, "Old shipped B");
+    demote_to_cold_terminal(&db, &cold_a, "Old shipped A", "2024-01-01T00:00:00Z");
+    demote_to_cold_terminal(&db, &cold_b, "Old shipped B", "2024-02-01T00:00:00Z");
 
     let doctor = run_knots(&root, &db, &["doctor", "--json"]);
     assert_success(&doctor);
     let report: Value = serde_json::from_slice(&doctor.stdout).expect("doctor json should parse");
     let check = find_check(&report, "cold_tier_imbalance");
-    assert_eq!(check["status"], "warn");
+    assert_eq!(
+        check["status"], "pass",
+        "old terminal knots in cold are healthy steady state, got: {}",
+        check["detail"]
+    );
     let data = check
         .get("data")
         .expect("cold_tier_imbalance should carry data");
-    let hot_count = data["hot_count"].as_i64().expect("hot_count should be int");
-    let cold_count = data["cold_count"]
-        .as_i64()
-        .expect("cold_count should be int");
-    assert!(
-        hot_count >= 1,
-        "hot should include at least the seeded knot"
-    );
-    assert_eq!(cold_count, 2, "both archived knots should be in cold");
-    let detail = check["detail"].as_str().expect("detail should be a string");
-    assert!(
-        detail.contains(&format!("{hot_count} hot / {cold_count} cold")),
-        "detail should describe counts: {detail}"
-    );
+    assert_eq!(data["cold_count"], 2);
+    assert_eq!(data["shadow"], 0);
+    assert_eq!(data["non_terminal_cold"], 0);
+    assert_eq!(data["stale_terminal_hot"], 0);
 
-    // Sanity: the "hot" knot is still reachable via kno show.
+    // Sanity: the hot knot is still reachable.
     let show = run_knots(&root, &db, &["show", &hot_id, "--json"]);
     assert_success(&show);
 }
 
 #[test]
-fn doctor_fix_rehydrates_cold_catalog_back_to_hot() {
-    let root = unique_workspace("knots-cli-cold-tier-fix");
+fn doctor_fix_demotes_stale_terminal_hot_to_cold() {
+    let root = unique_workspace("knots-cli-cold-tier-stale-hot");
     setup_repo_with_remote(&root);
     let db = root.join(".knots/cache/state.sqlite");
     bootstrap_workflows(&root, &db);
 
-    let hot_id = create_knot(&root, &db, "Hot one");
-    let cold_a = create_knot(&root, &db, "Cold A");
-    let cold_b = create_knot(&root, &db, "Cold B");
-    demote_to_cold(&db, &cold_a, "Cold A", "2026-04-08T00:00:00Z");
-    demote_to_cold(&db, &cold_b, "Cold B", "2026-04-09T00:00:00Z");
+    let id = create_knot(&root, &db, "Stale shipped");
+    insert_stale_terminal_hot(&db, &id, "Stale shipped", "2024-01-01T00:00:00Z");
 
-    assert_eq!(count_knot_hot(&db), 1);
-    assert_eq!(count_cold_catalog(&db), 2);
+    let before = run_knots(&root, &db, &["doctor", "--json"]);
+    assert_success(&before);
+    let before_report: Value =
+        serde_json::from_slice(&before.stdout).expect("doctor json should parse");
+    let before_check = find_check(&before_report, "cold_tier_imbalance");
+    assert_eq!(before_check["status"], "warn");
+    assert!(
+        before_check["detail"]
+            .as_str()
+            .expect("detail")
+            .contains("stale_terminal_hot=1"),
+        "detail should surface stale-terminal hot count: {}",
+        before_check["detail"]
+    );
 
     let fix = run_knots(&root, &db, &["doctor", "--fix"]);
     assert_success(&fix);
 
-    assert_eq!(
-        count_knot_hot(&db),
-        3,
-        "all cold knots should be rehydrated"
-    );
-    assert_eq!(count_cold_catalog(&db), 0, "cold catalog should be drained");
+    assert_eq!(count_knot_hot(&db), 0, "stale hot row demoted out");
+    assert_eq!(count_cold_catalog(&db), 1, "demoted row landed in cold");
 
     let after = run_knots(&root, &db, &["doctor", "--json"]);
     assert_success(&after);
     let report: Value = serde_json::from_slice(&after.stdout).expect("doctor json should parse");
     let check = find_check(&report, "cold_tier_imbalance");
     assert_eq!(check["status"], "pass");
-
-    // Rehydrated knots should be visible via kno show.
-    for id in [&hot_id, &cold_a, &cold_b] {
-        let show = run_knots(&root, &db, &["show", id, "--json"]);
-        assert_success(&show);
-    }
 }
 
 fn insert_shadow_cold(db: &Path, id: &str, title: &str, updated_at: &str) {
@@ -314,8 +322,8 @@ fn doctor_fix_prunes_cold_row_shadowed_by_hot() {
         .as_str()
         .expect("detail should be a string");
     assert!(
-        before_detail.contains("shadowed"),
-        "pre-fix detail should mention shadowed rows: {before_detail}"
+        before_detail.contains("shadow=1"),
+        "pre-fix detail should report shadow count: {before_detail}"
     );
 
     let fix = run_knots(&root, &db, &["doctor", "--fix"]);
