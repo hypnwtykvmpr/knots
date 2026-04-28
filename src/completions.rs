@@ -172,6 +172,16 @@ pub(crate) fn run_completions_command_with_home(
     install: bool,
     home_override: Option<&std::path::Path>,
 ) -> Result<(), crate::app::AppError> {
+    let mut stdout = io::stdout().lock();
+    run_completions_command_inner(shell_arg, install, home_override, &mut stdout)
+}
+
+pub(crate) fn run_completions_command_inner(
+    shell_arg: Option<&str>,
+    install: bool,
+    home_override: Option<&std::path::Path>,
+    out: &mut dyn Write,
+) -> Result<(), crate::app::AppError> {
     let shell = if let Some(name) = shell_arg {
         parse_shell(name).ok_or_else(|| {
             crate::app::AppError::InvalidArgument(format!("unknown shell '{name}'"))
@@ -189,10 +199,10 @@ pub(crate) fn run_completions_command_with_home(
             Some(home) => install_completions_to(shell, home)?,
             None => install_completions(shell)?,
         };
-        println!("completions installed to {}", path.display());
+        writeln!(out, "completions installed to {}", path.display())
+            .map_err(crate::app::AppError::Io)?;
     } else {
-        let mut stdout = io::stdout().lock();
-        generate_completions(shell, &mut stdout);
+        generate_completions(shell, out);
     }
     Ok(())
 }
@@ -299,11 +309,15 @@ mod tests {
 
     #[test]
     fn run_completions_command_print_and_error_modes() {
-        let result = run_completions_command(Some("bash"), false);
+        let mut buf = Vec::new();
+        let result = run_completions_command_inner(Some("bash"), false, None, &mut buf);
         assert!(result.is_ok());
-        let result2 = run_completions_command(None, false);
+        assert!(!buf.is_empty(), "bash completions should be written");
+        let mut buf2 = Vec::new();
+        let result2 = run_completions_command_inner(None, false, None, &mut buf2);
         assert!(result2.is_ok());
-        let result3 = run_completions_command(Some("nonsense"), false);
+        let mut buf3 = Vec::new();
+        let result3 = run_completions_command_inner(Some("nonsense"), false, None, &mut buf3);
         assert!(result3.is_err());
     }
 
