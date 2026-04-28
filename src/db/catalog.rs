@@ -136,20 +136,39 @@ ORDER BY updated_at DESC, id ASC
     Ok(result)
 }
 
-/// Returns cold-catalog records whose id is not already present in `knot_hot`.
-/// Used by the `cold_tier_imbalance` doctor check / fix so stale duplicate
-/// rows (knots that live in both tiers at once) do not produce a permanent
-/// warning the fix can never clear.
-pub fn list_cold_catalog_not_in_hot(conn: &Connection) -> Result<Vec<ColdCatalogRecord>> {
-    let mut stmt = conn.prepare(
-        r#"
-SELECT c.id, c.title, c.state, c.updated_at
-FROM cold_catalog c
-WHERE NOT EXISTS (SELECT 1 FROM knot_hot h WHERE h.id = c.id)
-ORDER BY c.updated_at DESC, c.id ASC
-"#,
-    )?;
-    let mut rows = stmt.query([])?;
+/// Count cold_catalog rows whose `state` is not in `terminal_states`. Real
+/// healthy cold rows are always terminal — the sweep filters by terminal,
+/// and sync only routes to cold on terminal events. A non-terminal cold row
+/// is therefore a misclassification that doctor should surface.
+pub fn count_non_terminal_in_cold(conn: &Connection, terminal_states: &[&str]) -> Result<i64> {
+    let placeholders = vec!["?"; terminal_states.len()].join(",");
+    let sql = format!("SELECT COUNT(*) FROM cold_catalog WHERE state NOT IN ({placeholders})");
+    let params: Vec<&dyn rusqlite::ToSql> = terminal_states
+        .iter()
+        .map(|s| s as &dyn rusqlite::ToSql)
+        .collect();
+    conn.query_row(&sql, params.as_slice(), |row| row.get(0))
+}
+
+/// Cold_catalog rows whose `state` is not terminal. Used by doctor --fix to
+/// rehydrate the row back to hot (or, if events are missing, drop the cold
+/// pointer so the warning can clear).
+pub fn list_non_terminal_in_cold(
+    conn: &Connection,
+    terminal_states: &[&str],
+) -> Result<Vec<ColdCatalogRecord>> {
+    let placeholders = vec!["?"; terminal_states.len()].join(",");
+    let sql = format!(
+        "SELECT id, title, state, updated_at FROM cold_catalog \
+         WHERE state NOT IN ({placeholders}) \
+         ORDER BY updated_at DESC, id ASC"
+    );
+    let params: Vec<&dyn rusqlite::ToSql> = terminal_states
+        .iter()
+        .map(|s| s as &dyn rusqlite::ToSql)
+        .collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let mut rows = stmt.query(params.as_slice())?;
     let mut result = Vec::new();
     while let Some(row) = rows.next()? {
         result.push(ColdCatalogRecord {
@@ -158,6 +177,58 @@ ORDER BY c.updated_at DESC, c.id ASC
             state: row.get(2)?,
             updated_at: row.get(3)?,
         });
+    }
+    Ok(result)
+}
+
+/// Count `knot_hot` rows that are simultaneously terminal AND older than the
+/// archive cutoff. The cold sweep handles these when hot exceeds HOT_HIGH_WATER,
+/// but if hot is below HOT_HIGH_WATER they can persist — for example after
+/// `doctor --fix` rehydrated stale-terminal rows in a prior version. Doctor
+/// surfaces and demotes them so steady state holds the invariant.
+pub fn count_stale_terminal_in_hot(
+    conn: &Connection,
+    terminal_states: &[&str],
+    cutoff_rfc3339: &str,
+) -> Result<i64> {
+    let placeholders = vec!["?"; terminal_states.len()].join(",");
+    let sql = format!(
+        "SELECT COUNT(*) FROM knot_hot \
+         WHERE state IN ({placeholders}) AND updated_at < ?"
+    );
+    let mut params: Vec<&dyn rusqlite::ToSql> = terminal_states
+        .iter()
+        .map(|s| s as &dyn rusqlite::ToSql)
+        .collect();
+    params.push(&cutoff_rfc3339);
+    conn.query_row(&sql, params.as_slice(), |row| row.get(0))
+}
+
+/// Knot_hot rows that should have been swept to cold by archival. Returns the
+/// minimal fields needed to perform an `upsert_cold_catalog` + `delete_knot_hot`
+/// pair (mirroring the sweep's `move_candidates_in_tx`).
+#[allow(clippy::type_complexity)]
+pub fn list_stale_terminal_in_hot(
+    conn: &Connection,
+    terminal_states: &[&str],
+    cutoff_rfc3339: &str,
+) -> Result<Vec<(String, String, String, String)>> {
+    let placeholders = vec!["?"; terminal_states.len()].join(",");
+    let sql = format!(
+        "SELECT id, title, state, updated_at FROM knot_hot \
+         WHERE state IN ({placeholders}) AND updated_at < ? \
+         ORDER BY updated_at ASC, id ASC"
+    );
+    let mut params: Vec<&dyn rusqlite::ToSql> = terminal_states
+        .iter()
+        .map(|s| s as &dyn rusqlite::ToSql)
+        .collect();
+    params.push(&cutoff_rfc3339);
+    let mut stmt = conn.prepare(&sql)?;
+    let mut rows = stmt.query(params.as_slice())?;
+    let mut result = Vec::new();
+    while let Some(row) = rows.next()? {
+        result.push((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?));
     }
     Ok(result)
 }

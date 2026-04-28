@@ -7,7 +7,7 @@ use crate::domain::state::normalize_state_input;
 /// regardless of which profile a knot belongs to. These are the terminal
 /// markers emitted by every built-in workflow today; per-profile
 /// terminal-state questions go through `ProfileDefinition::is_terminal_state`.
-const TERMINAL_STATES: &[&str] = &["shipped", "abandoned", "lease_terminated"];
+pub(crate) const TERMINAL_STATES: &[&str] = &["shipped", "abandoned", "lease_terminated"];
 
 /// Terminal knots are held in hot tier for this many hours after the most recent
 /// `updated_at` before they are eligible to be swept to cold storage. This gives
