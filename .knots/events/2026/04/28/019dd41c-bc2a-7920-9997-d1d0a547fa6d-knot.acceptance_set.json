@@ -1,0 +1,9 @@
+{
+  "event_id": "019dd41c-bc2a-7920-9997-d1d0a547fa6d",
+  "occurred_at": "2026-04-28T12:42:26.206029Z",
+  "knot_id": "knots-a08a",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno ls --json` never returns an empty `data` page with a positive `total` and `has_more: true` for a query whose filtered result set has no matches.\n2. Text-query pagination totals are computed from the filtered query result set, not from an unfiltered or pre-query count.\n3. A regression test fails on the observed inconsistent output and passes after the fix."
+  }
+}

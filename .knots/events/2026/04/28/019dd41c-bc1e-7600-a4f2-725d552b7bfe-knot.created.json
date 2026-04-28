@@ -1,0 +1,17 @@
+{
+  "event_id": "019dd41c-bc1e-7600-a4f2-725d552b7bfe",
+  "occurred_at": "2026-04-28T12:42:26.206029Z",
+  "knot_id": "knots-a08a",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nMake `kno ls --json` report internally consistent pagination metadata when a text query returns no rows on the requested page. The observed bug is that, from `/Users/cartine/foolery`, `kno ls -q escalation --all --json --limit 50` and `kno ls -q approval --all --json --limit 50` returned `data: []` while also reporting `total: 50` and `has_more: true`, which makes consumers believe more matching results exist even though the page is empty.\n\nVerification:\n1. From `/Users/cartine/foolery`, run `kno ls -q escalation --all --json --limit 50` and confirm empty matches report `data: []`, `total: 0`, and `has_more: false`, unless matching knots actually exist.\n2. Run `kno ls -q approval --all --json --limit 50` with the same expectation.\n3. Add or update a regression test in the Knots CLI suite that covers a text query with no matching rows and asserts `data`, `total`, and `has_more` agree.\n\nConstraints:\nUse `-C` when reproducing across repos. Preserve correct totals for real multi-page result sets; only fix the inconsistent empty-query metadata.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Fix kno ls JSON totals for empty query pages",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
