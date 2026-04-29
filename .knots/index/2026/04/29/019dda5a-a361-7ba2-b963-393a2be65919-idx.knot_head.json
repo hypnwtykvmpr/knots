@@ -1,0 +1,21 @@
+{
+  "event_id": "019dda5a-a361-7ba2-b963-393a2be65919",
+  "occurred_at": "2026-04-29T17:47:46.39509Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-1b0d",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Write knots-architecture-v5.md replacing v4 with current design",
+    "type": "work",
+    "updated_at": "2026-04-29T17:47:46.39509Z",
+    "workflow_id": "work_sdlc"
+  }
+}
