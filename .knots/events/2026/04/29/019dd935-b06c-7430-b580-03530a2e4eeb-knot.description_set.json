@@ -1,0 +1,9 @@
+{
+  "event_id": "019dd935-b06c-7430-b580-03530a2e4eeb",
+  "occurred_at": "2026-04-29T12:27:47.68227Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Observed while cleaning Foolery approval-harness knots on 2026-04-29. In /Users/cartine/foolery, matching knots exist for tag approval-harness, but 'kno ls --tag approval-harness --json --limit 1' reports total 110 and returns an empty data array. Larger limits and offsets return inconsistent subsets, suggesting limit/offset may be applied before tag filtering or total may ignore filters. Expected: filtered list pages should be stable, limit 1 should return one matching knot when at least one match exists, and total should reflect the filtered result set. Repro: run 'kno -C /Users/cartine/foolery ls --tag approval-harness --json --limit 1 | jq {total,ids:(.data|map(.id))}' and compare with 'kno -C /Users/cartine/foolery ls --tag approval-harness --json --limit 1000 | jq -r .data[].id | wc -l'."
+  }
+}
