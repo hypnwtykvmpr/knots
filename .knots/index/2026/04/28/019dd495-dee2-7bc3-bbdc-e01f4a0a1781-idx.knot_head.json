@@ -1,0 +1,21 @@
+{
+  "event_id": "019dd495-dee2-7bc3-bbdc-e01f4a0a1781",
+  "occurred_at": "2026-04-28T14:54:44.960554902Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": "ready_for_planning",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-83b1",
+    "profile_id": "autopilot",
+    "state": "deferred",
+    "terminal": false,
+    "title": "Remove knot.created body compat reads after sync-description-fix cohort ages out",
+    "type": "work",
+    "updated_at": "2026-04-28T14:54:44.960554902Z",
+    "workflow_id": "work_sdlc"
+  }
+}
