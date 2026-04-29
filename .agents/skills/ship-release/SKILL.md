@@ -32,7 +32,24 @@ Ship a new Knots release.
    exists or was recently merged. For local version consistency, run:
    `npm run check-cargo-version`
 
-3. **Decide the path** —
+3. **Audit changeset coverage** — Walk every commit since the last tag
+   (`git log "$(git tag --sort=-version:refname | head -n 1)"..HEAD --oneline`)
+   and classify each one:
+   - **User-facing** (CLI flags, commands, output format, defaults, errors,
+     config, deprecations, bug fixes users would notice) → must be covered by
+     a changeset in `.changeset/` or be folded into an existing changeset's
+     body.
+   - **Internal-only** (refactors, test-only changes, CI, docs, comments, dep
+     bumps with no behavior change) → no changeset required.
+
+   If any user-facing commit lacks a changeset, **stop and surface the gap to
+   the user before proceeding**. Offer to author the missing changesets,
+   commit+push them, and let the Changesets workflow refresh the Version
+   Packages PR. Do not ship a release that silently omits user-facing changes
+   from the changelog. Re-run this audit against the refreshed PR before
+   continuing to step 4.
+
+4. **Decide the path** —
    - If user-facing changes are on `main` and no version PR exists yet, let the
      Changesets workflow create or update the `Version Packages` PR.
    - If the `Version Packages` PR exists, review the bump, changelog, and
@@ -43,7 +60,7 @@ Ship a new Knots release.
    - If the version PR is already merged and the GitHub release is missing or
      incomplete, move to release verification or recovery.
 
-4. **Run required quality gates** — Before merging a version PR or retrying a
+5. **Run required quality gates** — Before merging a version PR or retrying a
    release, run:
    - `make sanity`
    - `npm run check-cargo-version`
@@ -53,21 +70,21 @@ Ship a new Knots release.
 
    Stop on any failure. Do not ship a release with failing sanity checks.
 
-5. **Trigger or watch the release** —
+6. **Trigger or watch the release** —
    - Normal path: merge the `Version Packages` PR into `main`. The `Release`
      GitHub Actions workflow should trigger automatically on the push.
    - Recovery path: if the version bump is already on `main` but the release is
      missing or incomplete, inspect the `Release` workflow and re-run it or
      trigger it with `workflow_dispatch`.
 
-6. **Verify published outputs** — Confirm the GitHub Release exists for
+7. **Verify published outputs** — Confirm the GitHub Release exists for
    `v<version>` and that these assets are attached:
    - `knots-v<semver>-darwin-arm64.tar.gz`
    - `knots-v<semver>-linux-x86_64.tar.gz`
    - `knots-v<semver>-linux-aarch64.tar.gz`
    - `knots-v<semver>-checksums.txt`
 
-7. **Report** — Tell the user the released version, whether the release was
+8. **Report** — Tell the user the released version, whether the release was
    newly published or recovered, link the GitHub Release, and call out any
    follow-up work if verification found a problem.
 
