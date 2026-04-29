@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use uuid::Uuid;
 
@@ -248,4 +249,52 @@ fn project_id_validation_and_git_root_search_cover_edge_cases() {
     assert!(find_git_root(Path::new("/definitely/not/a/repo")).is_none());
 
     let _ = fs::remove_dir_all(git_root);
+}
+
+fn run_git(root: &Path, args: &[&str]) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(args)
+        .output()
+        .expect("git command should run");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: {}",
+        args,
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn resolve_context_in_linked_worktree_uses_primary_store() {
+    let workspace = temp_home("knots-linked-worktree-store");
+    let primary = workspace.join("primary");
+    fs::create_dir_all(&primary).expect("primary dir");
+    run_git(&primary, &["init"]);
+    run_git(&primary, &["config", "user.email", "knots@example.com"]);
+    run_git(&primary, &["config", "user.name", "Knots Test"]);
+    run_git(&primary, &["config", "commit.gpgsign", "false"]);
+    fs::write(primary.join("README.md"), "x").expect("seed file");
+    run_git(&primary, &["add", "README.md"]);
+    run_git(&primary, &["commit", "-m", "init"]);
+    let linked = workspace.join("linked");
+    run_git(
+        &primary,
+        &[
+            "worktree",
+            "add",
+            linked.to_str().expect("utf8 linked path"),
+            "-b",
+            "feature",
+        ],
+    );
+
+    let context = resolve_context(None, None, &linked, Some(&workspace)).expect("git context");
+    let expected_repo = canonical_or_original(&linked);
+    let expected_store = canonical_or_original(&primary).join(".knots");
+    assert_eq!(context.repo_root, expected_repo);
+    assert_eq!(context.store_paths.root, expected_store);
+
+    let _ = fs::remove_dir_all(workspace);
 }

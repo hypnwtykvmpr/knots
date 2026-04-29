@@ -397,11 +397,10 @@ fn named_project_context(home_override: Option<&Path>, id: &str) -> Result<Proje
 
 fn git_context(repo_root: &Path) -> ProjectContext {
     let repo_root = canonical_or_original(repo_root);
+    let store_root = crate::project_worktree::store_root_base_for(&repo_root).join(".knots");
     ProjectContext {
         project_id: None,
-        store_paths: StorePaths {
-            root: repo_root.join(".knots"),
-        },
+        store_paths: StorePaths { root: store_root },
         repo_root,
         distribution: DistributionMode::Git,
     }
