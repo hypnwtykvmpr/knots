@@ -1,0 +1,21 @@
+{
+  "event_id": "019dd9cc-65cc-7360-a1a3-796640af876a",
+  "occurred_at": "2026-04-29T15:12:24.524426Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-37d9",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "doctor --fix: emit per-check progress and summary",
+    "type": "work",
+    "updated_at": "2026-04-29T15:12:24.524426Z",
+    "workflow_id": "work_sdlc"
+  }
+}

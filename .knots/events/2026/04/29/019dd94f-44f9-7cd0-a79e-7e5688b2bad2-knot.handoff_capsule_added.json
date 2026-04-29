@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd94f-44f9-7cd0-a79e-7e5688b2bad2",
+  "occurred_at": "2026-04-29T12:55:44.120791Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan attached as note. Fix path: in run_ls_paginated (src/run_commands.rs), fetch full app.list_knots(), apply listing::apply_filters with the complete KnotListFilter, set total = filtered.len(), then slice by offset/limit. Delete dead app::list_knots_paginated, db::list_knot_hot_paginated, ListHotParams, count_knot_hot_filtered, build_hot_where. Tests: extract a small filter+slice helper and unit-test it (listing_tests_ext.rs); add CLI integration tests in tests/cli_dispatch.rs covering tag-filtered pagination stability across offsets, --limit 1 yielding exactly one match, total = filtered count, and --state shipped paginated regression. Verify with the repro command and make sanity. Risks: full-Vec scan replaces SQL LIMIT/OFFSET — same cost as the existing run_ls_full path, hot table is bounded by cold sweep.",
+    "datetime": "2026-04-29T12:55:44.120791Z",
+    "entry_id": "019dd94f-44f9-7cd0-a79e-7e4ed91cd5e5",
+    "model": "opus/claude",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

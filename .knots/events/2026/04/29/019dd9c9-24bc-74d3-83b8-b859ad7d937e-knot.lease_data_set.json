@@ -1,0 +1,20 @@
+{
+  "event_id": "019dd9c9-24bc-74d3-83b8-b859ad7d937e",
+  "occurred_at": "2026-04-29T15:08:51.260457Z",
+  "knot_id": "knots-6f3b",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "OpenCode",
+        "agent_type": "cli",
+        "model": "openrouter/moonshotai/kimi-k2.6",
+        "model_version": "",
+        "provider": "OpenCode"
+      },
+      "lease_type": "agent",
+      "nickname": "foolery:terminal_manager_take:term-1777475208978-illfvo",
+      "timeout_seconds": 600
+    }
+  }
+}

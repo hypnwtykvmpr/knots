@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd9c8-0781-7e03-9301-bfca78ccb0c4",
+  "occurred_at": "2026-04-29T15:07:38.241871Z",
+  "knot_id": "knots-a08a",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Plan ready for implementation. Focus on paginated `kno ls --json` query filtering: compute totals from the post-query filtered set before slicing, add a CLI regression for a no-match `-q` query asserting empty data/zero total/no has_more, preserve positive multi-page totals, then verify with `-C /Users/cartine/foolery` for `escalation` and `approval`.",
+    "datetime": "2026-04-29T15:07:38.241871Z",
+    "entry_id": "019dd9c8-0781-7e03-9301-bfb028013835",
+    "model": "gpt",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}
