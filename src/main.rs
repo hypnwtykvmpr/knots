@@ -68,6 +68,7 @@ mod project_commands;
 mod project_commands_tests;
 #[cfg(test)]
 mod project_tests_ext;
+mod project_worktree;
 mod prompt;
 #[cfg(test)]
 mod prompt_tests;
