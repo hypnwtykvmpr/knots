@@ -1,0 +1,9 @@
+{
+  "event_id": "019dd81c-3836-75d2-ad6e-b2d4994a0924",
+  "occurred_at": "2026-04-29T07:20:21.283386Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "worktree"
+  }
+}

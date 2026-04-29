@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd83b-c7e5-7a33-a03c-396e675050d1",
+  "occurred_at": "2026-04-29T07:54:49.701451Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "[shipment 2026-04-29] Merged via no-ff into main as 477bda65; pushed to origin. CI workflows on 477bda65: CI, Repo Hygiene, Release, Changesets Version PR all completed successfully.",
+    "datetime": "2026-04-29T07:54:49.701451Z",
+    "entry_id": "019dd83b-c7e5-7a33-a03c-39552263be4a",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

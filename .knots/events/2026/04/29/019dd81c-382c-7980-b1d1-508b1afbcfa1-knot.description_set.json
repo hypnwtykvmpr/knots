@@ -1,0 +1,9 @@
+{
+  "event_id": "019dd81c-382c-7980-b1d1-508b1afbcfa1",
+  "occurred_at": "2026-04-29T07:20:21.283386Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.description_set",
+  "data": {
+    "description": "When merging inside a secondary git worktree for /Users/cartine/foolery, the post-merge Knots sync hook failed after a successful merge with: git -C /Users/cartine/foolery/.worktrees/approvals-main-integration/.knots/_worktree checkout knots -> fatal: 'knots' is already used by worktree at '/Users/cartine/foolery/.knots/_worktree'. Expected behavior: Knots commands/hooks invoked from a repo worktree should use the canonical repo root Knots worktree or otherwise avoid trying to check out an already-used branch. Repro: create a secondary worktree, merge a branch, observe post-merge hook importing knots updates then failing during .knots/_worktree checkout."
+  }
+}

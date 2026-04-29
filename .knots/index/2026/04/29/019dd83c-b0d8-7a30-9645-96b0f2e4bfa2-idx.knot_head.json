@@ -1,0 +1,21 @@
+{
+  "event_id": "019dd83c-b0d8-7a30-9645-96b0f2e4bfa2",
+  "occurred_at": "2026-04-29T07:55:49.336705Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-b4df",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Fix Knots post-merge sync in git worktrees",
+    "type": "work",
+    "updated_at": "2026-04-29T07:55:49.336705Z",
+    "workflow_id": "work_sdlc"
+  }
+}

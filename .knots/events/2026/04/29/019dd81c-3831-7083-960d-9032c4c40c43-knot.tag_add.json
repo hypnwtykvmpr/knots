@@ -1,0 +1,9 @@
+{
+  "event_id": "019dd81c-3831-7083-960d-9032c4c40c43",
+  "occurred_at": "2026-04-29T07:20:21.283386Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "bug"
+  }
+}

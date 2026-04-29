@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd832-72c8-7c11-9a52-372a872f6fbe",
+  "occurred_at": "2026-04-29T07:44:38.088556Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "[implementation_review 2026-04-29] Diff against origin/main is +183/-3 across .changeset/linked-worktree-store-share.md, src/main.rs, src/project.rs, src/project_tests_ext.rs, src/project_worktree.rs. project_worktree::store_root_base_for resolves primary worktree via git rev-parse --git-common-dir; git_context derives store_paths.root from it while keeping repo_root at the invoked worktree. Tests cover both linked+primary worktrees and the resolve_context path. make sanity passes at 95.13% coverage. No invariant violations or regressions found. Approved.",
+    "datetime": "2026-04-29T07:44:38.088556Z",
+    "entry_id": "019dd832-72c8-7c11-9a52-3716190f2e81",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

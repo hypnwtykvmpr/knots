@@ -1,0 +1,37 @@
+{
+  "event_id": "019dd83c-6b96-7b52-8751-b81cc6ab1ff4",
+  "occurred_at": "2026-04-29T07:55:31.60611Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-b4df",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Fix Knots post-merge sync in git worktrees",
+    "type": "work",
+    "updated_at": "2026-04-29T07:55:31.60611Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019dd83c-4d6a-7950-a596-c3daf66c78b9"
+  }
+}

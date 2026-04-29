@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd83c-af62-7473-b59e-e4c283f6f5f0",
+  "occurred_at": "2026-04-29T07:55:48.962723Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "[shipment_review 2026-04-29] Verified on main: 477bda65 (merge) + d59ca7d7 (feature) live on origin/main; all 4 CI workflows green; commits both tagged on knot. Final sign-off.",
+    "datetime": "2026-04-29T07:55:48.962723Z",
+    "entry_id": "019dd83c-af62-7473-b59e-e4bf57763852",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

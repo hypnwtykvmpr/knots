@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd81f-8c34-76b1-b1d6-1e4492fbcdfd",
+  "occurred_at": "2026-04-29T07:23:59.412567Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Plan complete for knots-b4df: fix Git linked-worktree store resolution in src/project.rs so hooks/commands from linked worktrees use the canonical repo .knots store instead of creating per-worktree .knots/_worktree checkouts. Add a real git worktree regression test. Then run focused tests and full sanity gates.",
+    "datetime": "2026-04-29T07:23:59.412567Z",
+    "entry_id": "019dd81f-8c34-76b1-b1d6-1e3135495567",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

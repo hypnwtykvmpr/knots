@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd831-88fe-75c0-b81d-4c7c49d69cab",
+  "occurred_at": "2026-04-29T07:43:38.23871Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "[implementation 2026-04-29] Branch worktree-knots-b4df-linked-store pushed at d59ca7d7. project_worktree::store_root_base_for resolves the primary worktree via git --git-common-dir; git_context now derives store_paths.root from it. Added unit tests in src/project_worktree.rs and an integration test in src/project_tests_ext.rs that creates a real linked worktree and asserts resolve_context yields primary .knots while keeping the linked path as repo_root. make sanity passed at 95.13% coverage.",
+    "datetime": "2026-04-29T07:43:38.23871Z",
+    "entry_id": "019dd831-88fe-75c0-b81d-4c643f887812",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

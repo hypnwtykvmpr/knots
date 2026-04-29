@@ -1,0 +1,15 @@
+{
+  "event_id": "019dd81f-8c34-76b1-b1d6-1e2837412775",
+  "occurred_at": "2026-04-29T07:23:59.412567Z",
+  "knot_id": "knots-b4df",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Planning note: The failure happens because Git linked worktrees have their own top-level .git file, so resolve_context/find_git_root returns the linked worktree path and git_context derives store_paths.root as <linked-worktree>/.knots. During post-merge hook sync, Knots then tries to manage <linked-worktree>/.knots/_worktree on branch knots, while the canonical repo already has /Users/cartine/foolery/.knots/_worktree checking out that same branch. Implementation plan: add a helper in src/project.rs that resolves the Git common-dir for a git repo root using git -C <repo_root> rev-parse --git-common-dir; when the common dir resolves to the primary .git directory, derive store_paths.root from the primary worktree parent rather than the linked worktree path. Keep ProjectContext.repo_root as the invoked worktree root so git commands still operate from the caller context, but make StorePaths shared across linked worktrees. Add tests that create a real repo plus git worktree, call resolve_context from the linked worktree, and assert store_paths.root points to the primary repo .knots while repo_root remains the linked worktree. Also keep the existing .knots/_worktree skip test. Verification: cargo test focused project/sync tests, make lint, make sanity if practical.",
+    "datetime": "2026-04-29T07:23:59.412567Z",
+    "entry_id": "019dd81f-8c34-76b1-b1d6-1e1661899dce",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}
