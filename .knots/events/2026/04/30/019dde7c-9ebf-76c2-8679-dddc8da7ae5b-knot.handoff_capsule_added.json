@@ -1,0 +1,15 @@
+{
+  "event_id": "019dde7c-9ebf-76c2-8679-dddc8da7ae5b",
+  "occurred_at": "2026-04-30T13:03:22.30302Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "[Claude 2026-04-30] Implementation complete. Branch: feature/knots-9aa6-fix-tag-filter-pagination (pushed to origin). Commit: b455ced3. Fix: run_ls_paginated now calls listing::filter_and_paginate which applies the full KnotListFilter (state, type, tag, query, profile, --all) before slicing by offset/limit; total = filtered count. Removed dead SQL paths (app::list_knots_paginated, db::list_knot_hot_paginated, ListHotParams, count_knot_hot_filtered, build_hot_where, src/db/tests_pagination.rs). Tests: 6 helper unit tests in listing_tests_ext.rs + 2 CLI integration tests in tests/cli_dispatch_pagination.rs (tag-filtered pagination stability across offsets, --limit 1 returns exactly one match, --state shipped regression). make sanity passes (1117 tests, coverage 95.12%). Reviewer: branch is the artifact (output mode = remote_main).",
+    "datetime": "2026-04-30T13:03:22.30302Z",
+    "entry_id": "019dde7c-9ebf-76c2-8679-ddcc189337a5",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019dde81-aa28-7763-9ea7-12ddda15e498",
+  "occurred_at": "2026-04-30T13:08:52.904256Z",
+  "knot_id": "knots-a08a",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/knots-a08a-fix-empty-query-pagination"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019dde7e-3b4f-7610-bf67-b256e536d0a9",
+  "occurred_at": "2026-04-30T13:05:07.919032Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "[Claude 2026-04-30] Could not run completion command 'kno next knots-9aa6 --expected-state implementation --lease knots-dc90 --actor-kind agent' because the foolery lease knots-dc90 was terminated externally at 13:03:17 (mid-session, likely TTL expiry), which rolled the knot state back from 'implementation' to 'ready_for_implementation'. Implementation work itself is complete and pushed: branch feature/knots-9aa6-fix-tag-filter-pagination, commit b455ced3. The next claim of this knot can re-enter implementation, observe the existing branch tag, and advance directly to implementation_review without redoing the work.",
+    "datetime": "2026-04-30T13:05:07.919032Z",
+    "entry_id": "019dde7e-3b4f-7610-bf67-b24e0a4305ee",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

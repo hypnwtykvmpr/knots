@@ -1,0 +1,15 @@
+{
+  "event_id": "019dde82-234a-7e03-be4f-79c16ba6fa7e",
+  "occurred_at": "2026-04-30T13:09:23.914696Z",
+  "knot_id": "knots-a08a",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation complete. Branch: feature/knots-a08a-fix-empty-query-pagination\n\nFix: text-query and other in-memory filters now run before pagination so\nempty-match pages report total: 0 and has_more: false. The previous\nSQL-side pagination path (list_knot_hot_paginated) was removed because\nit counted unfiltered rows.\n\nVerified from /Users/cartine/foolery:\n- kno ls -q escalation --all --json --limit 50 → data: [], total: 0, has_more: false\n- kno ls -q approval --all --json --limit 50 → data: [], total: 0, has_more: false\n- kno ls --all --json --limit 5 → data has 5 entries, total: 23, has_more: true (multi-page totals preserved)\n\nRegression tests live in src/pagination.rs:\n- empty_match_set_reports_zero_total_and_no_more\n- multi_page_match_set_preserves_totals_and_has_more\n\nmake sanity passes (1113 tests, 95.11% coverage).",
+    "datetime": "2026-04-30T13:09:23.914696Z",
+    "entry_id": "019dde82-234a-7e03-be4f-79b8ffcd3364",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

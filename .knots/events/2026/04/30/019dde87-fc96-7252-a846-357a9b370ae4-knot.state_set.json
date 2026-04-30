@@ -1,0 +1,16 @@
+{
+  "event_id": "019dde87-fc96-7252-a846-357a9b370ae4",
+  "occurred_at": "2026-04-30T13:15:47.221704Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "openrouter/moonshotai/kimi-k2.6",
+    "agent_name": "OpenCode",
+    "force": false,
+    "from": "implementation",
+    "profile_id": "autopilot",
+    "to": "ready_for_implementation_review",
+    "workflow_id": "work_sdlc"
+  }
+}

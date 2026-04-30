@@ -1,0 +1,21 @@
+{
+  "event_id": "019dde90-6383-7790-86d8-f0a6462a9cb5",
+  "occurred_at": "2026-04-30T13:24:57.859517Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-a08a",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Fix kno ls JSON totals for empty query pages",
+    "type": "work",
+    "updated_at": "2026-04-30T13:24:57.859517Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019dde8b-2751-7a82-9e7d-95fec998fd29",
+  "occurred_at": "2026-04-30T13:19:14.768922Z",
+  "knot_id": "knots-a08a",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Shipment review: PR #71 merged to main as commit becf6944. Verified from /Users/cartine/foolery: kno ls -q escalation --all --json --limit 50 → data:[], total:0, has_more:false; kno ls -q approval --all --json --limit 50 → data:[], total:0, has_more:false; unfiltered kno ls --all --json --limit 5 → total:23, has_more:true preserved. CI in progress.",
+    "datetime": "2026-04-30T13:19:14.768922Z",
+    "entry_id": "019dde8b-2751-7a82-9e7d-95e77c35501b",
+    "model": "sonnet/claude",
+    "username": "Claude",
+    "version": "4.6"
+  }
+}
