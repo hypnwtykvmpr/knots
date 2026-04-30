@@ -244,6 +244,42 @@ knot id, Knots reads the knot's currently bound `lease_id`, loads the
 lease, and returns its `agent_info`. If no lease is bound, these fields
 stay unset on the record.
 
+```mermaid
+flowchart LR
+    L[Bound lease<br/>lease.agent_info]
+    L -->|"resolve_lease_agent_info"| S[Step-history entry<br/>agent_name / agent_model / agent_version]
+    L -->|"resolve_lease_agent_info"| N[Note<br/>agentname / model / version]
+    L -->|"resolve_lease_agent_info"| H[Handoff capsule<br/>agentname / model / version]
+    L -->|"resolve_lease_agent_info"| G[Gate decision<br/>agentname / model / version]
+```
+
+Identity travels with the artifact for the rest of its life. Once stamped,
+the fields are part of the record and don't need to be looked up again.
+
+### Contract for clients
+
+Clients (Foolery, scripts, future automation) MUST treat the lease as
+authoritative for the duration of the claim:
+
+1. **Declare once.** Pass the agent identity to `kno lease create` and only
+   to `kno lease create`.
+2. **Refer by id.** Pass `--lease <id>` on `kno claim` / `kno poll --claim`
+   / `kno next` / `kno lease extend`. Never pass `--agent-*` flags on
+   those subcommands.
+3. **Read, don't re-derive.** When a client needs to display "what agent
+   is on this knot right now," it reads the lease (`kno lease show
+   <id> --json`) or the knot's most recent step / note / handoff capsule.
+   It does not re-parse a model string from the environment, the agent's
+   binary version, or any other ambient state.
+4. **No fallbacks.** If `resolve_lease_agent_info` returns `None` for a
+   record, the artifact's agent fields are left unset. Clients must not
+   substitute literals like `"claude"` or `"unknown"`; the absence of
+   identity is itself information.
+
+Foolery's client-side companion contract is at
+[`foolery/docs/knots-agent-identity-contract.md`](https://github.com/acartine/foolery/blob/main/docs/knots-agent-identity-contract.md).
+The two documents must agree.
+
 ## Known limitations
 
 - **Expired lease + reclaimed knot = wasted work.** If a lease expires and
