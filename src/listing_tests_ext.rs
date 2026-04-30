@@ -1,4 +1,4 @@
-use super::{apply_filters, normalize_knot_type_filter, KnotListFilter};
+use super::{apply_filters, filter_and_paginate, normalize_knot_type_filter, KnotListFilter};
 use crate::app::KnotView;
 use crate::domain::knot_type::KnotType;
 
@@ -244,4 +244,122 @@ fn does_not_hide_non_lease_knots() {
     let filtered = apply_filters(knots, &filter);
     assert_eq!(filtered.len(), 1);
     assert_eq!(filtered[0].id, "K-1");
+}
+
+fn tagged_knot(id: &str, tags: &[&str]) -> KnotView {
+    knot(id, id, "implementing", Some("work"), tags, None)
+}
+
+#[test]
+fn filter_and_paginate_total_reflects_filtered_count() {
+    let knots = vec![
+        tagged_knot("K-1", &["release"]),
+        tagged_knot("K-2", &[]),
+        tagged_knot("K-3", &["release"]),
+        tagged_knot("K-4", &[]),
+    ];
+    let filter = KnotListFilter {
+        tags: vec!["release".to_string()],
+        ..KnotListFilter::default()
+    };
+
+    let (page, total) = filter_and_paginate(knots, &filter, 0, 50);
+    assert_eq!(total, 2);
+    assert_eq!(page.len(), 2);
+}
+
+#[test]
+fn filter_and_paginate_limit_one_returns_one_match_when_present() {
+    let knots = vec![
+        tagged_knot("K-1", &[]),
+        tagged_knot("K-2", &["release"]),
+        tagged_knot("K-3", &[]),
+    ];
+    let filter = KnotListFilter {
+        tags: vec!["release".to_string()],
+        ..KnotListFilter::default()
+    };
+
+    let (page, total) = filter_and_paginate(knots, &filter, 0, 1);
+    assert_eq!(total, 1);
+    assert_eq!(page.len(), 1);
+    assert_eq!(page[0].id, "K-2");
+}
+
+#[test]
+fn filter_and_paginate_pages_are_stable_across_offsets() {
+    let knots: Vec<KnotView> = (0..5)
+        .map(|i| tagged_knot(&format!("K-{i}"), &["release"]))
+        .collect();
+    let filter = KnotListFilter {
+        tags: vec!["release".to_string()],
+        ..KnotListFilter::default()
+    };
+
+    let (page0, total0) = filter_and_paginate(knots.clone(), &filter, 0, 2);
+    let (page1, total1) = filter_and_paginate(knots.clone(), &filter, 2, 2);
+    let (page2, total2) = filter_and_paginate(knots, &filter, 4, 2);
+
+    assert_eq!(total0, 5);
+    assert_eq!(total1, 5);
+    assert_eq!(total2, 5);
+    assert_eq!(page0.len(), 2);
+    assert_eq!(page1.len(), 2);
+    assert_eq!(page2.len(), 1);
+
+    let union: Vec<String> = page0
+        .into_iter()
+        .chain(page1)
+        .chain(page2)
+        .map(|k| k.id)
+        .collect();
+    assert_eq!(union.len(), 5);
+    let mut sorted = union.clone();
+    sorted.sort();
+    sorted.dedup();
+    assert_eq!(sorted.len(), 5, "pages overlap or skip rows: {union:?}");
+}
+
+#[test]
+fn filter_and_paginate_offset_beyond_total_returns_empty() {
+    let knots = vec![tagged_knot("K-1", &["release"])];
+    let filter = KnotListFilter {
+        tags: vec!["release".to_string()],
+        ..KnotListFilter::default()
+    };
+
+    let (page, total) = filter_and_paginate(knots, &filter, 100, 10);
+    assert_eq!(total, 1);
+    assert!(page.is_empty());
+}
+
+#[test]
+fn filter_and_paginate_state_filter_paginates_shipped() {
+    let knots = vec![
+        knot("K-1", "K-1", "shipped", Some("work"), &[], None),
+        knot("K-2", "K-2", "implementing", Some("work"), &[], None),
+        knot("K-3", "K-3", "shipped", Some("work"), &[], None),
+    ];
+    let filter = KnotListFilter {
+        state: Some("shipped".to_string()),
+        ..KnotListFilter::default()
+    };
+
+    let (page, total) = filter_and_paginate(knots, &filter, 0, 1);
+    assert_eq!(total, 2);
+    assert_eq!(page.len(), 1);
+    assert_eq!(page[0].state, "shipped");
+}
+
+#[test]
+fn filter_and_paginate_zero_matches_reports_zero_total() {
+    let knots = vec![tagged_knot("K-1", &["release"])];
+    let filter = KnotListFilter {
+        tags: vec!["nonexistent".to_string()],
+        ..KnotListFilter::default()
+    };
+
+    let (page, total) = filter_and_paginate(knots, &filter, 0, 50);
+    assert_eq!(total, 0);
+    assert!(page.is_empty());
 }

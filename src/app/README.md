@@ -15,7 +15,7 @@ Core business logic for knot operations.
 - **`edges.rs`** — `apply_edge_change()`: parent/child and dependency edges
 - **`execution_plan_edit.rs`** — wave/step add, move, remove for execution plans
 - **`archival.rs`** — terminal-state sweep and cold-tier archival
-- **`query.rs`** — `list_knots()`, `list_knots_paginated()`: read operations
+- **`query.rs`** — `list_knots()`: read operations
 - **`rehydrate.rs`** — `rehydrate_from_events()`: rebuild state from event log
 - **`sync_ops.rs`** — push/pull/sync entry points called by the CLI
 - **`helpers.rs`**, **`alias.rs`**, **`profile_config.rs`** — shared utilities

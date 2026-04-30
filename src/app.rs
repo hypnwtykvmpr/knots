@@ -242,10 +242,10 @@ impl App {
         Ok(self.profile_registry.require(&resolved)?)
     }
 
-    /// Take the most recent cold-sweep report (produced by `list_knots` /
-    /// `list_knots_paginated`). Returns `None` when the last listing made
-    /// no moves. Each call consumes the stored report so `kno ls` prints
-    /// the summary only once per invocation.
+    /// Take the most recent cold-sweep report (produced by `list_knots`).
+    /// Returns `None` when the last listing made no moves. Each call
+    /// consumes the stored report so `kno ls` prints the summary only
+    /// once per invocation.
     pub fn take_cold_sweep_report(&self) -> Option<archival::ColdSweepReport> {
         self.last_cold_sweep.borrow_mut().take()
     }
