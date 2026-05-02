@@ -1,0 +1,21 @@
+{
+  "event_id": "019de775-3e9e-7311-9c25-6144ccb0e403",
+  "occurred_at": "2026-05-02T06:51:53.881622Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-44cf",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "Add Copilot CLI to managed skills operations (install/update/uninstall/doctor)",
+    "type": "work",
+    "updated_at": "2026-05-02T06:51:53.881622Z",
+    "workflow_id": "work_sdlc"
+  }
+}

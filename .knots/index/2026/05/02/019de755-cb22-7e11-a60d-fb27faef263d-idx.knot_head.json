@@ -1,0 +1,37 @@
+{
+  "event_id": "019de755-cb22-7e11-a60d-fb27faef263d",
+  "occurred_at": "2026-05-02T06:17:32.706701Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-9aa6",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Fix tag-filter pagination for kno ls",
+    "type": "work",
+    "updated_at": "2026-05-02T06:17:32.706701Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019de74c-543e-7121-b16a-c7c83c383ef9"
+  }
+}

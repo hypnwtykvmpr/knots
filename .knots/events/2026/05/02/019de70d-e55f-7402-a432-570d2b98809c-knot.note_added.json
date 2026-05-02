@@ -1,0 +1,15 @@
+{
+  "event_id": "019de70d-e55f-7402-a432-570d2b98809c",
+  "occurred_at": "2026-05-02T04:59:00.831444Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Rewind correction (fat-finger recovery)",
+    "datetime": "2026-05-02T04:59:00.831444Z",
+    "entry_id": "019de70d-e55f-7402-a432-56f5f70d8125",
+    "model": "unknown",
+    "username": "foolery",
+    "version": "unknown"
+  }
+}

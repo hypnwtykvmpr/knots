@@ -1,0 +1,20 @@
+{
+  "event_id": "019de710-b0db-76d1-9ee2-fe5e1cd4b72e",
+  "occurred_at": "2026-05-02T05:02:03.995757Z",
+  "knot_id": "knots-facc",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "OpenCode",
+        "agent_type": "cli",
+        "model": "openrouter/moonshotai/kimi-k2.6",
+        "model_version": "2.6",
+        "provider": "OpenCode"
+      },
+      "lease_type": "agent",
+      "nickname": "foolery:terminal_manager_take:term-1777697954660-39mzia",
+      "timeout_seconds": 600
+    }
+  }
+}

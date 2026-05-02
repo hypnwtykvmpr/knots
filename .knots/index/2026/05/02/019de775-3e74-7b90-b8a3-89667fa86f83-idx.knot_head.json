@@ -1,0 +1,21 @@
+{
+  "event_id": "019de775-3e74-7b90-b8a3-89667fa86f83",
+  "occurred_at": "2026-05-02T06:51:53.834216Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-b962",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "Support Gemini CLI in managed skills",
+    "type": "work",
+    "updated_at": "2026-05-02T06:51:53.834216Z",
+    "workflow_id": "work_sdlc"
+  }
+}

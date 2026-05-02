@@ -1,0 +1,9 @@
+{
+  "event_id": "019de739-b73e-79e0-864e-939d1dd0b386",
+  "occurred_at": "2026-05-02T05:46:52.606443Z",
+  "knot_id": "knots-9aa6",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/knots-9aa6-fix-tag-filter-pagination-v2"
+  }
+}
