@@ -67,6 +67,29 @@ mod tests {
         }
     }
 
+    fn matching_tag_filter() -> KnotListFilter {
+        KnotListFilter {
+            include_all: true,
+            state: None,
+            knot_type: None,
+            profile_id: None,
+            tags: vec!["tagged".to_string()],
+            query: None,
+        }
+    }
+
+    fn tagged_knot_view(
+        id: &str,
+        title: &str,
+        tags: Vec<&str>,
+        description: Option<&str>,
+    ) -> KnotView {
+        KnotView {
+            tags: tags.into_iter().map(|s| s.to_string()).collect(),
+            ..knot_view(id, title, description)
+        }
+    }
+
     #[test]
     fn empty_match_set_reports_zero_total_and_no_more() {
         let knots: Vec<KnotView> = (0..50)
@@ -113,5 +136,83 @@ mod tests {
         assert_eq!(last_page.data.len(), 20);
         assert_eq!(last_page.total, 120);
         assert!(!last_page.has_more);
+    }
+
+    #[test]
+    fn tag_filter_limit_one_returns_one_match_when_present() {
+        let make_knots = || -> Vec<KnotView> {
+            vec![
+                tagged_knot_view("K-1", "One", vec!["other"], None),
+                tagged_knot_view("K-2", "Two", vec!["tagged"], None),
+                tagged_knot_view("K-3", "Three", vec!["other"], None),
+            ]
+        };
+
+        let page = compute_paginated_list(make_knots(), &matching_tag_filter(), 0, 1);
+        assert_eq!(page.data.len(), 1, "limit 1 should return one row");
+        assert_eq!(page.data[0].id, "K-2");
+        assert_eq!(page.total, 1, "total must reflect filtered count");
+        assert!(!page.has_more);
+    }
+
+    #[test]
+    fn tag_filter_pages_are_stable_across_offsets() {
+        let make_knots = || -> Vec<KnotView> {
+            (0..5)
+                .map(|i| {
+                    tagged_knot_view(
+                        &format!("K-{i}"),
+                        &format!("Knot {i}"),
+                        vec!["tagged"],
+                        None,
+                    )
+                })
+                .chain((5..10).map(|i| {
+                    tagged_knot_view(&format!("K-{i}"), &format!("Knot {i}"), vec!["other"], None)
+                }))
+                .collect()
+        };
+
+        let page0 = compute_paginated_list(make_knots(), &matching_tag_filter(), 0, 2);
+        let page1 = compute_paginated_list(make_knots(), &matching_tag_filter(), 2, 2);
+        let page2 = compute_paginated_list(make_knots(), &matching_tag_filter(), 4, 2);
+
+        assert_eq!(page0.total, 5);
+        assert_eq!(page1.total, 5);
+        assert_eq!(page2.total, 5);
+        assert_eq!(page0.data.len(), 2);
+        assert_eq!(page1.data.len(), 2);
+        assert_eq!(page2.data.len(), 1);
+
+        let union: Vec<String> = page0
+            .data
+            .into_iter()
+            .chain(page1.data)
+            .chain(page2.data)
+            .map(|k| k.id)
+            .collect();
+        assert_eq!(union.len(), 5);
+        let mut sorted = union.clone();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(sorted.len(), 5, "pages overlap or skip rows: {union:?}");
+    }
+
+    #[test]
+    fn tag_filter_offset_beyond_total_returns_empty() {
+        let knots = vec![tagged_knot_view("K-1", "One", vec!["tagged"], None)];
+        let page = compute_paginated_list(knots, &matching_tag_filter(), 100, 10);
+        assert_eq!(page.total, 1);
+        assert!(page.data.is_empty());
+        assert!(!page.has_more);
+    }
+
+    #[test]
+    fn tag_filter_zero_matches_reports_zero_total() {
+        let knots = vec![tagged_knot_view("K-1", "One", vec!["other"], None)];
+        let page = compute_paginated_list(knots, &matching_tag_filter(), 0, 50);
+        assert_eq!(page.total, 0);
+        assert!(page.data.is_empty());
+        assert!(!page.has_more);
     }
 }
