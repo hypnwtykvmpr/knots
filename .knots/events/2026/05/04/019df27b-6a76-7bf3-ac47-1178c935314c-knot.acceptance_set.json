@@ -1,0 +1,9 @@
+{
+  "event_id": "019df27b-6a76-7bf3-ac47-1178c935314c",
+  "occurred_at": "2026-05-04T10:14:27.678062Z",
+  "knot_id": "knots-e935",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno show --json` returns non-empty lease-agent fields for active action knots when the lease was claimed by an agent with known identity.\n2. `kno ls --json` returns the same lease-agent fields for active action knots.\n3. Empty or missing lease-agent metadata is distinguishable from a real unknown value and covered by a regression test."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "019df27b-6a5e-7623-802d-eab61947a27e",
+  "occurred_at": "2026-05-04T10:14:27.678062Z",
+  "knot_id": "knots-e935",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nEnsure `kno show --json` and `kno ls --json` expose populated lease-agent metadata for active action knots, so clients can display provider/agent, model, and version without relying on session-side fallbacks.\n\nVerification:\n1. In a repository with an active action knot, run `kno show <id> --json | jq .lease_agent` and confirm provider, agent_name or agent_type, model, and model_version reflect the active claimant when known.\n2. Run `kno ls --json --state <active_state> | jq` and confirm the same lease-agent metadata is present for the active knot.\n3. Confirm inactive queued knots either omit lease metadata or emit an explicitly empty/null lease object, without pretending a lease is present.\n\nConstraints:\nDo not require UI clients to scrape notes, steps, or terminal session state to recover lease identity.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Fix active lease metadata JSON",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
