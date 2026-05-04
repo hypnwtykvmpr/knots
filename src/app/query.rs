@@ -29,7 +29,11 @@ impl App {
         for knot in &mut knots {
             workflow_runtime::enrich_step_metadata(knot, &self.profile_registry)?;
         }
-        self.apply_aliases_to_knots(knots)
+        let mut knots = self.apply_aliases_to_knots(knots)?;
+        for knot in &mut knots {
+            self.enrich_bound_lease_agent(knot)?;
+        }
+        Ok(knots)
     }
 
     pub fn show_knot(&self, id: &str) -> Result<Option<KnotView>, AppError> {

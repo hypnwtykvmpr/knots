@@ -80,3 +80,81 @@ fn show_knot_populates_lease_agent_from_bound_lease_record() {
 
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn list_knots_populates_lease_agent_from_bound_lease_record() {
+    let root = unique_workspace();
+    setup_repo(&root);
+    let app = open_app(&root);
+
+    let work = app
+        .create_knot("Lease-bound work", None, Some("work_item"), Some("default"))
+        .expect("work knot should be created");
+    let lease = crate::lease::create_lease(
+        &app,
+        "test-lease",
+        crate::domain::lease::LeaseType::Agent,
+        Some(crate::domain::lease::AgentInfo {
+            agent_type: "cli".to_string(),
+            provider: "Anthropic".to_string(),
+            agent_name: "claude".to_string(),
+            model: "opus".to_string(),
+            model_version: "4.6".to_string(),
+        }),
+        600,
+    )
+    .expect("lease should be created");
+    crate::lease::bind_lease(&app, &work.id, &lease.id).expect("bind should succeed");
+
+    let listed = app.list_knots().expect("list should succeed");
+    assert_eq!(listed.len(), 2); // work + lease
+    let work_view = listed
+        .iter()
+        .find(|k| k.id == work.id)
+        .expect("work knot should be in list");
+    let agent = work_view
+        .lease_agent
+        .as_ref()
+        .expect("bound lease agent should be exposed in list");
+    assert_eq!(work_view.lease_id.as_deref(), Some(lease.id.as_str()));
+    assert_eq!(agent.agent_type, "cli");
+    assert_eq!(agent.provider, "Anthropic");
+    assert_eq!(agent.agent_name, "claude");
+    assert_eq!(agent.model, "opus");
+    assert_eq!(agent.model_version, "4.6");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn list_knots_omits_lease_agent_for_unbound_knot() {
+    let root = unique_workspace();
+    setup_repo(&root);
+    let app = open_app(&root);
+
+    let queued = app
+        .create_knot(
+            "Unbound queued work",
+            None,
+            Some("work_item"),
+            Some("default"),
+        )
+        .expect("work knot should be created");
+    // Ensure no lease is bound — the created knot should have None initially.
+
+    let listed = app.list_knots().expect("list should succeed");
+    let queued_view = listed
+        .iter()
+        .find(|k| k.id == queued.id)
+        .expect("queued knot should be in list");
+    assert!(
+        queued_view.lease_agent.is_none(),
+        "unbound knot must omit lease_agent in list"
+    );
+    assert!(
+        queued_view.lease_id.is_none(),
+        "unbound knot must omit lease_id in list"
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
