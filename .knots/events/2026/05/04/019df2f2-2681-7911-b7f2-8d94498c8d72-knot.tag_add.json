@@ -1,0 +1,9 @@
+{
+  "event_id": "019df2f2-2681-7911-b7f2-8d94498c8d72",
+  "occurred_at": "2026-05-04T12:24:09.089122Z",
+  "knot_id": "knots-e935",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feat/knots-e935-lease-list-metadata"
+  }
+}

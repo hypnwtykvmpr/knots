@@ -1,0 +1,9 @@
+{
+  "event_id": "019df2ae-c594-7161-8f46-fbb9888cf313",
+  "occurred_at": "2026-05-04T11:10:33.357567Z",
+  "knot_id": "knots-2d5f",
+  "type": "knot.description_set",
+  "data": {
+    "description": "The Foolery overview lease-time fix needs historical lease acquisition timestamps. `kno lease list --all --json` works and returns expired-but-still-bound lease records, but `kno lease list --help` does not advertise the --all flag. Make the help text list --all so agents and humans can discover the historical lease lookup path."
+  }
+}

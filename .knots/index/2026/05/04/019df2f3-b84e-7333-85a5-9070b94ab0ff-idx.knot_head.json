@@ -1,0 +1,21 @@
+{
+  "event_id": "019df2f3-b84e-7333-85a5-9070b94ab0ff",
+  "occurred_at": "2026-05-04T12:25:51.950804Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-2d5f",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Show --all in lease list help",
+    "type": "work",
+    "updated_at": "2026-05-04T12:25:51.950804Z",
+    "workflow_id": "work_sdlc"
+  }
+}

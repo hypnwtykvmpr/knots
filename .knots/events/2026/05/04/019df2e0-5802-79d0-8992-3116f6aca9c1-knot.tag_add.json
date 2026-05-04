@@ -1,0 +1,9 @@
+{
+  "event_id": "019df2e0-5802-79d0-8992-3116f6aca9c1",
+  "occurred_at": "2026-05-04T12:04:42.11452Z",
+  "knot_id": "knots-2d5f",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feat/knots-2d5f-lease-list-help-all-2"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019df2d3-58f9-7441-af02-5a0b736312e7",
+  "occurred_at": "2026-05-04T11:50:30.393584Z",
+  "knot_id": "knots-e935",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "# Implementation Review — REJECTED\n\n## Verdict\nRejecting and rolling back to ready_for_implementation. The implementation step\n(2026-05-04T11:47:09 → 11:47:14, 5s, Codex 5.5) made no code change and the\nacceptance criteria for `kno ls --json` are NOT met.\n\n## Evidence\n\nEmpirical (against the locally installed kno 0.15.7 binary):\n\n- `kno show knots-e935 --json | jq .lease_agent` returns populated provider,\n  agent_name, agent_type, model, model_version. ✅ AC #1 met.\n- `kno ls --json | jq '.data[0].lease_agent'` returns `null` for the same\n  active knot (knots-e935, lease_id=knots-a08d, state=implementation_review).\n  ❌ AC #2 NOT met.\n\nSource confirms the gap, not just an artifact of the binary build:\n\n- src/app/types.rs:171-213 — `KnotView::from(KnotCacheRecord)` always sets\n  `lease_agent: None`. The field is `#[serde(skip_serializing_if = \"Option::is_none\")]`,\n  so when it stays None it is omitted from JSON entirely.\n- src/app/query.rs:35-62 — `show_knot` calls `enrich_bound_lease_agent`\n  (line 41) before returning, which is why `kno show` works.\n- src/app/query.rs:21-33 — `list_knots` does NOT call\n  `enrich_bound_lease_agent`. Every KnotView produced by listing therefore\n  has `lease_agent = None`. This is the bug.\n\n## Required fix\n\nIn `src/app/query.rs::list_knots`, after building each `KnotView`, call\n`self.enrich_bound_lease_agent(&mut knot)?` for each knot in the result\n(or batch-resolve lease records to avoid N+1 lookups). Mirror the existing\nbehavior in `show_knot`.\n\n## Tests required (AC #3)\n\nAdd a regression test that:\n1. Creates an action knot, creates a lease with known agent identity, claims\n   the knot with that lease.\n2. Calls `app.list_knots()` and asserts `lease_agent` is populated with the\n   expected provider/agent/model/version on the active knot.\n3. Asserts a queued knot with no lease yields `lease_agent: None`\n   (distinguishing absence from a real \"unknown\" value).\n\n## Other notes\n\n- No branch and no commits exist for this knot — `git log --all --since=\"2026-05-03\"`\n  shows no implementation commits and the working tree is clean. The\n  implementation step appears to have been a no-op.\n- AC #1 (kno show) is satisfied by code that already existed before this knot\n  was claimed; the new work needed is the listing path.",
+    "datetime": "2026-05-04T11:50:30.393584Z",
+    "entry_id": "019df2d3-58f9-7441-af02-59f480f1325a",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

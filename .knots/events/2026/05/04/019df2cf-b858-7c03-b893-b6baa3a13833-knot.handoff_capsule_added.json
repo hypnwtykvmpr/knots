@@ -1,0 +1,15 @@
+{
+  "event_id": "019df2cf-b858-7c03-b893-b6baa3a13833",
+  "occurred_at": "2026-05-04T11:46:32.664091Z",
+  "knot_id": "knots-2d5f",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan: --all is already declared on LeaseListArgs (src/cli_agent.rs:425) and shows in --help. Acceptance #1 and #2 are already met. The only work item is acceptance #3 — add a CLI test in src/cli_lease_tests.rs that uses clap::CommandFactory to render lease list's long help and asserts --all, -a, and 'Include terminated leases' appear. No production code change. Verify with cargo test + make sanity.",
+    "datetime": "2026-05-04T11:46:32.664091Z",
+    "entry_id": "019df2cf-b858-7c03-b893-b6a3b4078334",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

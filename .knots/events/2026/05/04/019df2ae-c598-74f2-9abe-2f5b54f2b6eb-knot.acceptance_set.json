@@ -1,0 +1,9 @@
+{
+  "event_id": "019df2ae-c598-74f2-9abe-2f5b54f2b6eb",
+  "occurred_at": "2026-05-04T11:10:33.357567Z",
+  "knot_id": "knots-2d5f",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno lease list --help` documents --all.\\n2. `kno lease list --all --json` behavior remains unchanged.\\n3. A CLI/help test covers the flag visibility."
+  }
+}

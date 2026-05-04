@@ -1,0 +1,20 @@
+{
+  "event_id": "019df2ce-84c7-7fc0-a55d-0fc931632016",
+  "occurred_at": "2026-05-04T11:45:13.927465Z",
+  "knot_id": "knots-2d5f",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "Opus",
+    "agent_name": "Claude",
+    "agent_version": "4.7",
+    "force": false,
+    "from": "ready_for_planning",
+    "profile_id": "autopilot",
+    "to": "planning",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019df2ae-c58d-7d33-a617-62b8b7c67462"
+  }
+}

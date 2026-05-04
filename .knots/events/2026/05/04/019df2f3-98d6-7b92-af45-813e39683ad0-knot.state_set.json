@@ -1,0 +1,20 @@
+{
+  "event_id": "019df2f3-98d6-7b92-af45-813e39683ad0",
+  "occurred_at": "2026-05-04T12:25:43.894308Z",
+  "knot_id": "knots-2d5f",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "GPT Mini",
+    "agent_name": "Codex",
+    "agent_version": "5.4",
+    "force": false,
+    "from": "ready_for_shipment_review",
+    "profile_id": "autopilot",
+    "to": "shipment_review",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019df2ea-3c90-7f93-9005-ef5ee5de97a9"
+  }
+}
