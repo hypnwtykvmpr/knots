@@ -268,3 +268,18 @@ fn next_with_lease_flag() {
         _ => panic!("expected Next"),
     }
 }
+
+#[test]
+fn lease_list_help_advertises_all_flag() {
+    use clap::CommandFactory;
+    let mut cmd = Cli::command();
+    let lease = cmd.find_subcommand_mut("lease").expect("lease subcommand");
+    let list = lease.find_subcommand_mut("list").expect("list subcommand");
+    let help = list.render_long_help().to_string();
+    assert!(help.contains("--all"), "help missing --all: {help}");
+    assert!(help.contains("-a"), "help missing -a short flag: {help}");
+    assert!(
+        help.contains("Include terminated leases"),
+        "help missing description: {help}"
+    );
+}
