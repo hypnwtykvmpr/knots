@@ -1,0 +1,17 @@
+{
+  "event_id": "019dfc5d-ac84-79d2-9ad4-759b36e66864",
+  "occurred_at": "2026-05-06T08:18:10.69265Z",
+  "knot_id": "knots-e1e2",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nMake kno preserve user-supplied tag casing and make tag filtering consistent, so a tag like Journey-Github-Connect remains visible and queryable with that spelling instead of being silently lowercased.\n\nVerification:\n1. Run `kno new \"Tag casing smoke\" --tag Journey-Github-Connect` in a scratch Knots project. Expected: the knot is created successfully.\n2. Run `kno show <id>` for the created knot. Expected: the tags include `Journey-Github-Connect` exactly as entered.\n3. Run `kno ls -g Journey-Github-Connect -a`. Expected: the created knot is returned.\n4. Run `kno update <id> --add-tag MixedCase-Tag` and then `kno show <id>`. Expected: `MixedCase-Tag` is shown exactly as entered.\n5. Run `kno ls -g MixedCase-Tag -a`. Expected: the updated knot is returned.\n\nConstraints:\nDo not break existing lowercased tags already stored in existing projects. If a migration or compatibility layer is needed, include it with the fix.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Preserve tag casing",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
