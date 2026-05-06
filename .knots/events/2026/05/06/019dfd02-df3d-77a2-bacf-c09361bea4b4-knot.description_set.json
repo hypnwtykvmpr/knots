@@ -1,0 +1,9 @@
+{
+  "event_id": "019dfd02-df3d-77a2-bacf-c09361bea4b4",
+  "occurred_at": "2026-05-06T11:18:37.10797Z",
+  "knot_id": "knots-4023",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Improve the Knots parent-planning workflow so agents know how to create implementation child knots without blocking the parent planning transition. Suggested behavior: create unlinked child knots using an autopilot-no-planning profile or equivalent no-planning path, then link the child knots to the parent after creation."
+  }
+}

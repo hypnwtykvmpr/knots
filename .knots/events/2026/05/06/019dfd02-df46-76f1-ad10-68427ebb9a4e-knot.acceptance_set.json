@@ -1,0 +1,9 @@
+{
+  "event_id": "019dfd02-df46-76f1-ad10-68427ebb9a4e",
+  "occurred_at": "2026-05-06T11:18:37.10797Z",
+  "knot_id": "knots-4023",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "Parent planning prompts explicitly say whether child knots should be created with autopilot-no-planning/--fast or a managed skill; the recommended flow is documented as: create unlinked child knots using autopilot-no-planning, then link them to the parent; hierarchy gates no longer surprise agents by blocking parent planning completion on newly-created child knots still waiting for planning; existing guarded transition semantics remain intact."
+  }
+}
