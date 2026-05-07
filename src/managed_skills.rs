@@ -10,7 +10,10 @@ mod inventory;
 use inventory::managed_skills;
 #[path = "managed_skills_gitignore.rs"]
 mod gitignore;
-use gitignore::{ensure_agents_skills_gitignore, ensure_claude_skills_gitignore};
+use gitignore::{
+    ensure_agents_skills_gitignore, ensure_claude_skills_gitignore, has_agents_skills_gitignore,
+    has_claude_skills_gitignore,
+};
 #[path = "managed_skills_ops.rs"]
 mod ops;
 use ops::{
@@ -216,14 +219,28 @@ fn doctor_check(repo_root: &Path, home: Option<&Path>, tool: SkillTool) -> Docto
         Some(location) => {
             let state = inspect_location(&location);
             if state.is_current() {
-                (
-                    DoctorStatus::Pass,
-                    format!(
-                        "{} managed skills installed at {}",
-                        tool.display_name(),
-                        location.skills_root.display()
-                    ),
-                )
+                let gitignore_ok = managed_skills_gitignore_ok(repo_root, tool).unwrap_or(false);
+                if gitignore_ok {
+                    (
+                        DoctorStatus::Pass,
+                        format!(
+                            "{} managed skills installed at {}",
+                            tool.display_name(),
+                            location.skills_root.display()
+                        ),
+                    )
+                } else {
+                    (
+                        DoctorStatus::Warn,
+                        format!(
+                            "{} managed skills installed at {}, but .gitignore does not blocklist \
+                             {} except skills; run `kno doctor --fix`",
+                            tool.display_name(),
+                            location.skills_root.display(),
+                            managed_root_hint(tool)
+                        ),
+                    )
+                }
             } else {
                 (
                     DoctorStatus::Warn,
@@ -247,6 +264,20 @@ fn doctor_check(repo_root: &Path, home: Option<&Path>, tool: SkillTool) -> Docto
         status,
         detail,
         data: None,
+    }
+}
+
+fn managed_skills_gitignore_ok(repo_root: &Path, tool: SkillTool) -> Result<bool, AppError> {
+    match tool {
+        SkillTool::Codex | SkillTool::OpenCode => has_agents_skills_gitignore(repo_root),
+        SkillTool::Claude => has_claude_skills_gitignore(repo_root),
+    }
+}
+
+fn managed_root_hint(tool: SkillTool) -> &'static str {
+    match tool {
+        SkillTool::Codex | SkillTool::OpenCode => ".agents",
+        SkillTool::Claude => ".claude",
     }
 }
 

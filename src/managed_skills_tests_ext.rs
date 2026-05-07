@@ -132,7 +132,8 @@ fn opencode_install_bootstraps_agents_gitignore_and_cleans_legacy_locations() {
     assert!(!home.join(".config/opencode/skills/knots/SKILL.md").exists());
 
     let gitignore = fs::read_to_string(repo.join(".gitignore")).expect("gitignore should exist");
-    assert!(gitignore.lines().any(|line| line.trim() == "/.agents/*"));
+    assert!(gitignore.lines().any(|line| line.trim() == "/.agents/**"));
+    assert!(gitignore.lines().any(|line| line.trim() == "!/.agents/"));
     assert!(gitignore
         .lines()
         .any(|line| line.trim() == "!/.agents/skills/"));
@@ -140,7 +141,13 @@ fn opencode_install_bootstraps_agents_gitignore_and_cleans_legacy_locations() {
         .lines()
         .any(|line| line.trim() == "!/.agents/skills/**"));
     fs::write(repo.join(".agents/private.txt"), "private").expect("private file");
+    fs::create_dir_all(repo.join(".agents/worktrees/elastic-clarke-9c0ed3/.git"))
+        .expect("nested worktree fixture");
     assert!(check_ignore(&repo, ".agents/private.txt"));
+    assert!(check_ignore(
+        &repo,
+        ".agents/worktrees/elastic-clarke-9c0ed3/.git"
+    ));
     assert!(!check_ignore(&repo, ".agents/skills/knots/SKILL.md"));
 }
 
@@ -155,7 +162,8 @@ fn claude_install_bootstraps_claude_gitignore_with_skills_allowlist() {
     assert!(output.contains(".claude/skills/knots/SKILL.md"));
 
     let gitignore = fs::read_to_string(repo.join(".gitignore")).expect("gitignore should exist");
-    assert!(gitignore.lines().any(|line| line.trim() == "/.claude/*"));
+    assert!(gitignore.lines().any(|line| line.trim() == "/.claude/**"));
+    assert!(gitignore.lines().any(|line| line.trim() == "!/.claude/"));
     assert!(gitignore
         .lines()
         .any(|line| line.trim() == "!/.claude/skills/"));
@@ -163,8 +171,46 @@ fn claude_install_bootstraps_claude_gitignore_with_skills_allowlist() {
         .lines()
         .any(|line| line.trim() == "!/.claude/skills/**"));
     fs::write(repo.join(".claude/settings.local.json"), "{}").expect("local settings");
+    fs::create_dir_all(repo.join(".claude/worktrees/elastic-clarke-9c0ed3/.git"))
+        .expect("nested worktree fixture");
     assert!(check_ignore(&repo, ".claude/settings.local.json"));
+    assert!(check_ignore(
+        &repo,
+        ".claude/worktrees/elastic-clarke-9c0ed3/.git"
+    ));
     assert!(!check_ignore(&repo, ".claude/skills/knots/SKILL.md"));
+}
+
+#[test]
+fn doctor_warns_and_fixes_installed_claude_skills_with_legacy_gitignore() {
+    let repo = unique_root("managed-skills-claude-gitignore-doctor");
+    let home = unique_root("managed-skills-home");
+    init_git_repo(&repo);
+    fs::create_dir_all(repo.join(".claude")).expect("claude root");
+
+    install_missing(&repo, Some(&home), SkillTool::Claude).expect("install");
+    fs::write(
+        repo.join(".gitignore"),
+        "/.claude/*\n!/.claude/skills/\n!/.claude/skills/**\n",
+    )
+    .expect("legacy gitignore should write");
+
+    let check = doctor_check(&repo, Some(&home), SkillTool::Claude);
+    assert_eq!(check.status, DoctorStatus::Warn);
+    assert!(check
+        .detail
+        .contains(".gitignore does not blocklist .claude"));
+
+    fix_doctor_check(&repo, "skills_claude");
+    fs::create_dir_all(repo.join(".claude/worktrees/elastic-clarke-9c0ed3/.git"))
+        .expect("nested worktree fixture");
+    assert!(check_ignore(
+        &repo,
+        ".claude/worktrees/elastic-clarke-9c0ed3/.git"
+    ));
+    assert!(!check_ignore(&repo, ".claude/skills/knots/SKILL.md"));
+    let check = doctor_check(&repo, Some(&home), SkillTool::Claude);
+    assert_eq!(check.status, DoctorStatus::Pass);
 }
 
 #[test]

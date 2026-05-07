@@ -193,7 +193,8 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
         .exists());
     let gitignore = std::fs::read_to_string(root.join(".gitignore"))
         .expect(".gitignore should exist after managed install");
-    assert!(gitignore.lines().any(|line| line.trim() == "/.agents/*"));
+    assert!(gitignore.lines().any(|line| line.trim() == "/.agents/**"));
+    assert!(gitignore.lines().any(|line| line.trim() == "!/.agents/"));
     assert!(gitignore
         .lines()
         .any(|line| line.trim() == "!/.agents/skills/"));
@@ -201,7 +202,13 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
         .lines()
         .any(|line| line.trim() == "!/.agents/skills/**"));
     std::fs::write(root.join(".agents/private.txt"), "private").expect("private file");
+    std::fs::create_dir_all(root.join(".agents/worktrees/elastic-clarke-9c0ed3/.git"))
+        .expect("nested worktree fixture");
     assert!(git_check_ignore(&root, ".agents/private.txt"));
+    assert!(git_check_ignore(
+        &root,
+        ".agents/worktrees/elastic-clarke-9c0ed3/.git"
+    ));
     assert!(!git_check_ignore(&root, ".agents/skills/knots/SKILL.md"));
 
     let uninstall = run_knots(&root, &db, &home, &["skills", "uninstall", "codex"]);
@@ -256,7 +263,8 @@ fn skills_install_prefers_project_root_for_claude() {
     assert!(!home.join(".claude/skills/knots/SKILL.md").exists());
     let gitignore = std::fs::read_to_string(root.join(".gitignore"))
         .expect(".gitignore should exist after claude install");
-    assert!(gitignore.lines().any(|line| line.trim() == "/.claude/*"));
+    assert!(gitignore.lines().any(|line| line.trim() == "/.claude/**"));
+    assert!(gitignore.lines().any(|line| line.trim() == "!/.claude/"));
     assert!(gitignore
         .lines()
         .any(|line| line.trim() == "!/.claude/skills/"));
@@ -264,7 +272,13 @@ fn skills_install_prefers_project_root_for_claude() {
         .lines()
         .any(|line| line.trim() == "!/.claude/skills/**"));
     std::fs::write(root.join(".claude/settings.local.json"), "{}").expect("local settings");
+    std::fs::create_dir_all(root.join(".claude/worktrees/elastic-clarke-9c0ed3/.git"))
+        .expect("nested worktree fixture");
     assert!(git_check_ignore(&root, ".claude/settings.local.json"));
+    assert!(git_check_ignore(
+        &root,
+        ".claude/worktrees/elastic-clarke-9c0ed3/.git"
+    ));
     assert!(!git_check_ignore(&root, ".claude/skills/knots/SKILL.md"));
 }
 
