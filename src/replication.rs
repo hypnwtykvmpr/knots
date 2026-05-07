@@ -181,11 +181,18 @@ impl<'a> ReplicationService<'a> {
             reporter,
             ProgressKind::Info,
             format!(
-                "copying {local_event_files} local knot file(s) \
-                 into the publish worktree"
+                "checking {local_event_files} local knot file(s) \
+                 against the publish worktree"
             ),
         )?;
         let copied_files = self.copy_files_into_worktree(worktree.path(), local_files)?;
+        if copied_files > 0 {
+            emit_progress(
+                reporter,
+                ProgressKind::Info,
+                format!("copied {copied_files} local knot file(s) into the publish worktree"),
+            )?;
+        }
         let stage_paths = stage_paths(worktree.path());
         if stage_paths.is_empty() {
             emit_progress(
