@@ -78,15 +78,22 @@ Ship a new Knots release.
      trigger it with `workflow_dispatch`.
 
 7. **Verify published outputs** — Confirm the GitHub Release exists for
-   `v<version>` and that these assets are attached:
+   `v<version>`, that its body contains the `CHANGELOG.md` section for that
+   version rather than only the `Version Packages` PR, and that these assets
+   are attached:
    - `knots-v<semver>-darwin-arm64.tar.gz`
    - `knots-v<semver>-linux-x86_64.tar.gz`
    - `knots-v<semver>-linux-aarch64.tar.gz`
    - `knots-v<semver>-checksums.txt`
 
+   To preview the release body locally, run:
+   `scripts/release/notes-from-changelog.sh <version> CHANGELOG.md`
+
 8. **Report** — Tell the user the released version, whether the release was
    newly published or recovered, link the GitHub Release, and call out any
-   follow-up work if verification found a problem.
+   follow-up work if verification found a problem. Include a one- or
+   two-bullet summary from the published release notes so the user can see the
+   release story without opening GitHub.
 
 ## Notes
 
@@ -94,7 +101,10 @@ Ship a new Knots release.
   by manually bumping a `patch`, `minor`, or `major` flag in this repo.
 - `npm run version-packages` runs `changeset version` and then syncs
   `Cargo.toml` and `package.json`.
-- The release workflow publishes GitHub release notes with `--generate-notes`.
+- The release workflow publishes GitHub release notes from the Changesets-built
+  `CHANGELOG.md` entry for the version. Do not rely on GitHub generated notes:
+  the release commit is usually the `Version Packages` merge, so generated
+  notes tend to omit the actual user-facing changes.
 - An existing `v<version>` tag is normal after a successful release. Treat only
   `tag exists but release is missing` or `release exists but required assets are
   missing` as recovery conditions.

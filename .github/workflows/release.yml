@@ -196,6 +196,9 @@ jobs:
     needs: [detect-release, build-linux, build-linux-arm64, build-darwin]
     if: needs.detect-release.outputs.should_release == 'true'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Download Linux artifact
         uses: actions/download-artifact@v7
         with:
@@ -225,6 +228,15 @@ jobs:
             knots-v"${version}"-linux-aarch64.tar.gz \
             > knots-v"${version}"-checksums.txt
 
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/notes-from-changelog.sh \
+            "${{ needs.detect-release.outputs.version }}" \
+            CHANGELOG.md \
+            > dist/release-notes.md
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -235,6 +247,9 @@ jobs:
           set -euo pipefail
           if gh release view "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --notes-file dist/release-notes.md
             gh release upload "${RELEASE_TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
               --clobber \
@@ -246,7 +261,7 @@ jobs:
             gh release create "${RELEASE_TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
               --title "${RELEASE_TAG}" \
-              --generate-notes \
+              --notes-file dist/release-notes.md \
               "dist/knots-v${RELEASE_VERSION}-darwin-arm64.tar.gz" \
               "dist/knots-v${RELEASE_VERSION}-linux-x86_64.tar.gz" \
               "dist/knots-v${RELEASE_VERSION}-linux-aarch64.tar.gz" \
