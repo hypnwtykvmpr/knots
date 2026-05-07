@@ -1,5 +1,21 @@
 # kno
 
+## 0.15.11
+
+### Patch Changes
+
+- bd5a3eb: Publish GitHub Release notes from the Changesets-built `CHANGELOG.md` entry for
+  the shipped version. The release workflow now uses that changelog section as
+  the release body, so releases show the actual user-facing changes instead of
+  only the `Version Packages` PR merge.
+- 2b46132: Fix `kno sync push` for projects that use a configured Knots store root, so
+  local event files are found and published from the active store instead of only
+  from `.knots/` under the repository root.
+
+  Clarify sync push progress output so a no-op push reports that local files are
+  being checked, and only reports copied files when files actually need to be
+  copied into the publish worktree.
+
 ## 0.15.10
 
 ### Patch Changes
