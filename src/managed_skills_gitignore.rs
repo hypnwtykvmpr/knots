@@ -3,12 +3,18 @@ use std::path::Path;
 
 use crate::app::AppError;
 
-const AGENTS_IGNORE_RULE: &str = "/.agents/*";
-const AGENTS_SKILLS_RULE: &str = "!/.agents/skills/";
-const AGENTS_SKILLS_CONTENT_RULE: &str = "!/.agents/skills/**";
-const LEGACY_AGENTS_IGNORE_RULE: &str = "/.agents/";
+const AGENTS_DIR: &str = ".agents";
+const CLAUDE_DIR: &str = ".claude";
 
 pub(super) fn ensure_agents_skills_gitignore(repo_root: &Path) -> Result<(), AppError> {
+    ensure_managed_skills_gitignore(repo_root, AGENTS_DIR)
+}
+
+pub(super) fn ensure_claude_skills_gitignore(repo_root: &Path) -> Result<(), AppError> {
+    ensure_managed_skills_gitignore(repo_root, CLAUDE_DIR)
+}
+
+fn ensure_managed_skills_gitignore(repo_root: &Path, dir: &str) -> Result<(), AppError> {
     let path = repo_root.join(".gitignore");
     let contents = if path.exists() {
         fs::read_to_string(&path)?
@@ -16,27 +22,30 @@ pub(super) fn ensure_agents_skills_gitignore(repo_root: &Path) -> Result<(), App
         String::new()
     };
 
+    let rules = managed_skills_rules(dir);
+    let legacy_rule = format!("/{dir}/");
     let mut lines = contents
         .lines()
         .filter(|line| {
-            !matches!(
-                line.trim(),
-                AGENTS_IGNORE_RULE
-                    | AGENTS_SKILLS_RULE
-                    | AGENTS_SKILLS_CONTENT_RULE
-                    | LEGACY_AGENTS_IGNORE_RULE
-            )
+            let trimmed = line.trim();
+            !rules.iter().any(|rule| rule == trimmed) && trimmed != legacy_rule
         })
         .map(ToOwned::to_owned)
         .collect::<Vec<_>>();
 
-    lines.push(AGENTS_IGNORE_RULE.to_string());
-    lines.push(AGENTS_SKILLS_RULE.to_string());
-    lines.push(AGENTS_SKILLS_CONTENT_RULE.to_string());
+    lines.extend(rules);
 
     let normalized = format!("{}\n", lines.join("\n"));
     if normalized != contents {
         fs::write(path, normalized)?;
     }
     Ok(())
+}
+
+fn managed_skills_rules(dir: &str) -> Vec<String> {
+    vec![
+        format!("/{dir}/*"),
+        format!("!/{dir}/skills/"),
+        format!("!/{dir}/skills/**"),
+    ]
 }

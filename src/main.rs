@@ -17,6 +17,7 @@ mod dispatch;
 mod doctor;
 mod doctor_cold_tier;
 mod doctor_fix;
+mod doctor_gitignore;
 mod doctor_knot_type_backfill;
 mod doctor_workflow_parity;
 mod doctor_workflows;

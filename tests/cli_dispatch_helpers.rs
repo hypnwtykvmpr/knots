@@ -27,6 +27,16 @@ pub fn run_git(cwd: &Path, args: &[&str]) {
     );
 }
 
+pub fn git_check_ignore(cwd: &Path, path: &str) -> bool {
+    Command::new("git")
+        .arg("-C")
+        .arg(cwd)
+        .args(["check-ignore", "--quiet", path])
+        .status()
+        .expect("git check-ignore should run")
+        .success()
+}
+
 pub fn setup_repo(root: &Path) {
     run_git(root, &["init"]);
     run_git(root, &["config", "user.email", "knots@example.com"]);

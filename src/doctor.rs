@@ -111,6 +111,7 @@ pub fn run_doctor_at(
         check_locks(&store_paths)?,
         check_worktree(repo_root, &store_paths, distribution),
         check_remote(repo_root, distribution)?,
+        crate::doctor_gitignore::check_gitignore(repo_root, distribution),
         check_version(),
         check_hooks(repo_root, distribution),
         crate::doctor_workflows::check_registered_workflows(repo_root),

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::app::AppError;
 
-use super::gitignore::ensure_agents_skills_gitignore;
+use super::gitignore::{ensure_agents_skills_gitignore, ensure_claude_skills_gitignore};
 use super::output::{format_changed_paths, format_existing_skills, skill_paths};
 use super::state::inspect_location;
 use super::{managed_skills, ManagedSkill, SkillLocation, SkillTool};
@@ -168,8 +168,9 @@ fn finalize_install(
     home: Option<&Path>,
     tool: SkillTool,
 ) -> Result<(), AppError> {
-    if tool.uses_agents_root() {
-        ensure_agents_skills_gitignore(repo_root)?;
+    match tool {
+        SkillTool::Codex | SkillTool::OpenCode => ensure_agents_skills_gitignore(repo_root)?,
+        SkillTool::Claude => ensure_claude_skills_gitignore(repo_root)?,
     }
     cleanup_legacy_locations(repo_root, home, tool)?;
     Ok(())

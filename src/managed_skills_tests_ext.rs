@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 
 use super::{
@@ -16,6 +17,30 @@ fn unique_root(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("{label}-{}", uuid::Uuid::now_v7()));
     fs::create_dir_all(&root).expect("temp root should be creatable");
     root
+}
+
+fn init_git_repo(root: &PathBuf) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .arg("init")
+        .output()
+        .expect("git init should run");
+    assert!(
+        output.status.success(),
+        "git init failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn check_ignore(root: &PathBuf, path: &str) -> bool {
+    Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["check-ignore", "--quiet", path])
+        .status()
+        .expect("git check-ignore should run")
+        .success()
 }
 
 #[test]
@@ -90,6 +115,7 @@ fn knots_plan_orchestrator_skill_describes_plan_execution_protocol() {
 fn opencode_install_bootstraps_agents_gitignore_and_cleans_legacy_locations() {
     let repo = unique_root("managed-skills-opencode-install");
     let home = unique_root("managed-skills-home");
+    init_git_repo(&repo);
     fs::create_dir_all(repo.join(".opencode/skills/knots")).expect("legacy opencode project root");
     fs::write(repo.join(".opencode/skills/knots/SKILL.md"), "legacy").expect("legacy project");
     fs::create_dir_all(home.join(".config/opencode/skills/knots")).expect("legacy user root");
@@ -113,6 +139,32 @@ fn opencode_install_bootstraps_agents_gitignore_and_cleans_legacy_locations() {
     assert!(gitignore
         .lines()
         .any(|line| line.trim() == "!/.agents/skills/**"));
+    fs::write(repo.join(".agents/private.txt"), "private").expect("private file");
+    assert!(check_ignore(&repo, ".agents/private.txt"));
+    assert!(!check_ignore(&repo, ".agents/skills/knots/SKILL.md"));
+}
+
+#[test]
+fn claude_install_bootstraps_claude_gitignore_with_skills_allowlist() {
+    let repo = unique_root("managed-skills-claude-gitignore");
+    let home = unique_root("managed-skills-home");
+    init_git_repo(&repo);
+    fs::create_dir_all(repo.join(".claude")).expect("claude root");
+
+    let output = install_missing(&repo, Some(&home), SkillTool::Claude).expect("install");
+    assert!(output.contains(".claude/skills/knots/SKILL.md"));
+
+    let gitignore = fs::read_to_string(repo.join(".gitignore")).expect("gitignore should exist");
+    assert!(gitignore.lines().any(|line| line.trim() == "/.claude/*"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.claude/skills/"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.claude/skills/**"));
+    fs::write(repo.join(".claude/settings.local.json"), "{}").expect("local settings");
+    assert!(check_ignore(&repo, ".claude/settings.local.json"));
+    assert!(!check_ignore(&repo, ".claude/skills/knots/SKILL.md"));
 }
 
 #[test]

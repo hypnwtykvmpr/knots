@@ -109,6 +109,16 @@ fn run_git(cwd: &Path, args: &[&str]) {
     );
 }
 
+fn git_check_ignore(cwd: &Path, path: &str) -> bool {
+    Command::new("git")
+        .arg("-C")
+        .arg(cwd)
+        .args(["check-ignore", "--quiet", path])
+        .status()
+        .expect("git check-ignore should run")
+        .success()
+}
+
 fn assert_success(output: &Output) {
     assert!(
         output.status.success(),
@@ -166,6 +176,7 @@ fn setup_repo_with_remote(root: &Path) {
 fn skills_install_and_uninstall_round_trip_for_codex() {
     let root = unique_workspace("knots-cli-skills-codex");
     let home = unique_workspace("knots-cli-skills-home");
+    setup_repo_with_remote(&root);
     let db = root.join(".knots/cache/state.sqlite");
 
     let install = run_knots(&root, &db, &home, &["skills", "install", "codex"]);
@@ -189,6 +200,9 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
     assert!(gitignore
         .lines()
         .any(|line| line.trim() == "!/.agents/skills/**"));
+    std::fs::write(root.join(".agents/private.txt"), "private").expect("private file");
+    assert!(git_check_ignore(&root, ".agents/private.txt"));
+    assert!(!git_check_ignore(&root, ".agents/skills/knots/SKILL.md"));
 
     let uninstall = run_knots(&root, &db, &home, &["skills", "uninstall", "codex"]);
     assert_success(&uninstall);
@@ -231,6 +245,7 @@ fn skills_install_for_opencode_uses_agents_root_and_cleans_legacy_locations() {
 fn skills_install_prefers_project_root_for_claude() {
     let root = unique_workspace("knots-cli-skills-claude");
     let home = unique_workspace("knots-cli-skills-home");
+    setup_repo_with_remote(&root);
     std::fs::create_dir_all(root.join(".claude")).expect("project root should exist");
     let db = root.join(".knots/cache/state.sqlite");
 
@@ -239,6 +254,18 @@ fn skills_install_prefers_project_root_for_claude() {
 
     assert!(root.join(".claude/skills/knots/SKILL.md").exists());
     assert!(!home.join(".claude/skills/knots/SKILL.md").exists());
+    let gitignore = std::fs::read_to_string(root.join(".gitignore"))
+        .expect(".gitignore should exist after claude install");
+    assert!(gitignore.lines().any(|line| line.trim() == "/.claude/*"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.claude/skills/"));
+    assert!(gitignore
+        .lines()
+        .any(|line| line.trim() == "!/.claude/skills/**"));
+    std::fs::write(root.join(".claude/settings.local.json"), "{}").expect("local settings");
+    assert!(git_check_ignore(&root, ".claude/settings.local.json"));
+    assert!(!git_check_ignore(&root, ".claude/skills/knots/SKILL.md"));
 }
 
 #[test]

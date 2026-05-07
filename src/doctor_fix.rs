@@ -68,6 +68,7 @@ pub(crate) fn apply_fixes_with_progress(
             "lock_health" => fix_lock_health(repo_root),
             "worktree" => fix_worktree(repo_root),
             "remote" => fix_remote(repo_root),
+            "gitignore" => fix_gitignore(repo_root),
             "version" => fix_version(),
             "hooks" => fix_hooks(repo_root),
             "workflow_registry" => fix_workflow_registry(repo_root),
@@ -92,6 +93,10 @@ pub(crate) fn apply_fixes_with_progress(
         }
     }
     outcome
+}
+
+fn fix_gitignore(repo_root: &Path) {
+    let _ = crate::init::ensure_knots_gitignore(repo_root);
 }
 
 pub(crate) fn announce_and_apply_fixes(

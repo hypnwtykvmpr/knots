@@ -10,7 +10,7 @@ mod inventory;
 use inventory::managed_skills;
 #[path = "managed_skills_gitignore.rs"]
 mod gitignore;
-use gitignore::ensure_agents_skills_gitignore;
+use gitignore::{ensure_agents_skills_gitignore, ensure_claude_skills_gitignore};
 #[path = "managed_skills_ops.rs"]
 mod ops;
 use ops::{
@@ -182,8 +182,13 @@ pub fn fix_doctor_check(repo_root: &Path, check_name: &str) {
     let Ok(destination) = preferred_location(repo_root, home.as_deref(), tool) else {
         return;
     };
-    if tool.uses_agents_root() {
-        let _ = ensure_agents_skills_gitignore(repo_root);
+    match tool {
+        SkillTool::Codex | SkillTool::OpenCode => {
+            let _ = ensure_agents_skills_gitignore(repo_root);
+        }
+        SkillTool::Claude => {
+            let _ = ensure_claude_skills_gitignore(repo_root);
+        }
     }
     let _ = reconcile_skills(&destination);
 }

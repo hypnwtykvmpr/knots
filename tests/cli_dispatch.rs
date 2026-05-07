@@ -206,6 +206,9 @@ fn doctor_without_fix_prints_hint_and_fix_creates_knots_branch() {
     assert_success(&doctor_fix);
     assert!(!String::from_utf8_lossy(&doctor_fix.stderr)
         .contains("kno doctor --fix to address these items"));
+    let gitignore = std::fs::read_to_string(root.join(".gitignore"))
+        .expect(".gitignore should exist after doctor --fix");
+    assert!(gitignore.lines().any(|line| line.trim() == "/.knots/"));
 
     let knots_remote = std::process::Command::new("git")
         .arg("-C")
@@ -235,6 +238,7 @@ fn init_and_uninit_commands_work_with_remote_origin() {
     let gitignore = std::fs::read_to_string(root.join(".gitignore"))
         .expect(".gitignore should exist after init");
     assert!(gitignore.lines().any(|line| line.trim() == "/.knots/"));
+    assert!(git_check_ignore(&root, ".knots/cache/state.sqlite"));
 
     let uninit = run_knots(&root, &db, &["uninit"]);
     assert_success(&uninit);
