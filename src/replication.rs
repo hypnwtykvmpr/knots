@@ -342,8 +342,8 @@ impl<'a> ReplicationService<'a> {
 
     fn collect_local_event_files(&self) -> Result<Vec<PathBuf>, SyncError> {
         let mut files = Vec::new();
-        for rel_root in [".knots/index", ".knots/events", ".knots/snapshots"] {
-            let root = self.repo_root.join(rel_root);
+        for rel_root in ["index", "events", "snapshots"] {
+            let root = self.store_paths.root.join(rel_root);
             if !root.exists() {
                 continue;
             }
@@ -359,13 +359,13 @@ impl<'a> ReplicationService<'a> {
                         continue;
                     }
                     let relative = path
-                        .strip_prefix(&self.repo_root)
+                        .strip_prefix(&self.store_paths.root)
                         .map_err(|err| SyncError::InvalidEvent {
                             path: path.clone(),
                             message: format!("failed to relativize event file: {}", err),
                         })?
                         .to_path_buf();
-                    files.push(relative);
+                    files.push(Path::new(".knots").join(relative));
                 }
             }
         }
@@ -381,7 +381,7 @@ impl<'a> ReplicationService<'a> {
     ) -> Result<u64, SyncError> {
         let mut copied = 0u64;
         for relative in relative_files {
-            let src = self.repo_root.join(relative);
+            let src = self.local_store_file_path(relative)?;
             if !src.exists() {
                 continue;
             }
@@ -413,7 +413,7 @@ impl<'a> ReplicationService<'a> {
         worktree_root: &Path,
         relative_file: &Path,
     ) -> Result<bool, SyncError> {
-        let src = self.repo_root.join(relative_file);
+        let src = self.local_store_file_path(relative_file)?;
         if !src.exists() {
             return Ok(false);
         }
@@ -425,6 +425,17 @@ impl<'a> ReplicationService<'a> {
         }
         let dst_bytes = std::fs::read(&dst)?;
         Ok(dst_bytes != src_bytes)
+    }
+
+    fn local_store_file_path(&self, relative_file: &Path) -> Result<PathBuf, SyncError> {
+        let store_relative =
+            relative_file
+                .strip_prefix(".knots")
+                .map_err(|err| SyncError::InvalidEvent {
+                    path: relative_file.to_path_buf(),
+                    message: format!("expected .knots-relative event path: {}", err),
+                })?;
+        Ok(self.store_paths.root.join(store_relative))
     }
 
     fn require_no_active_leases(&self) -> Result<(), SyncError> {

@@ -4,6 +4,7 @@ use std::process::Command;
 use uuid::Uuid;
 
 use crate::db;
+use crate::project::StorePaths;
 use crate::remote_init::init_remote_knots_branch;
 use crate::sync::SyncError;
 
@@ -88,8 +89,11 @@ fn setup_repo_without_remote(root: &Path) -> PathBuf {
 }
 
 fn write_local_knot_events(repo_root: &Path) {
-    let idx_path = repo_root
-        .join(".knots")
+    write_local_knot_events_at_store(&repo_root.join(".knots"));
+}
+
+fn write_local_knot_events_at_store(store_root: &Path) {
+    let idx_path = store_root
         .join("index")
         .join("2026")
         .join("02")
@@ -122,8 +126,7 @@ fn write_local_knot_events(repo_root: &Path) {
     )
     .expect("index event should be writable");
 
-    let full_path = repo_root
-        .join(".knots")
+    let full_path = store_root
         .join("events")
         .join("2026")
         .join("02")
@@ -224,6 +227,35 @@ fn push_then_pull_shares_knots_between_clones() {
         .expect("knot should be present after pull");
     assert_eq!(knot.title, "Published knot");
     assert_eq!(knot.description.as_deref(), Some("published details"));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn push_uses_configured_store_root_for_local_events() {
+    let root = unique_workspace();
+    let (_origin, dev1) = setup_origin_and_dev1(&root);
+    let store_root = root.join("named-store");
+    let store_paths = StorePaths {
+        root: store_root.clone(),
+    };
+    write_local_knot_events_at_store(&store_root);
+    init_remote_knots_branch(&dev1).expect("remote knots branch should initialize");
+
+    let db_path = store_paths.db_path();
+    std::fs::create_dir_all(db_path.parent().expect("db parent should exist"))
+        .expect("db parent should be creatable");
+    let conn = db::open_connection(db_path.to_str().expect("utf8 path")).expect("db should open");
+    let service = ReplicationService::with_store_paths(&conn, dev1.clone(), store_paths.clone());
+
+    let summary = service.push().expect("push should succeed");
+    assert_eq!(summary.local_event_files, 2);
+    assert_eq!(summary.copied_files, 2);
+    assert!(summary.pushed);
+    assert!(store_paths
+        .worktree_path()
+        .join(".knots/events/2026/02/24/9002-knot.description_set.json")
+        .exists());
 
     let _ = std::fs::remove_dir_all(root);
 }
