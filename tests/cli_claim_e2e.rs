@@ -11,10 +11,6 @@ fn unique_workspace(prefix: &str) -> PathBuf {
 }
 
 fn knots_binary() -> PathBuf {
-    let debug_binary = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/debug/knots");
-    if debug_binary.exists() {
-        return std::fs::canonicalize(&debug_binary).unwrap_or(debug_binary);
-    }
     PathBuf::from(env!("CARGO_BIN_EXE_knots"))
 }
 
