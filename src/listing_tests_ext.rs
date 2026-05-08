@@ -230,6 +230,64 @@ fn filters_by_profile_id() {
 }
 
 #[test]
+fn mixed_case_tag_filter_matches_mixed_case_stored_tag() {
+    let knots = vec![knot(
+        "K-1",
+        "Mixed",
+        "implementing",
+        Some("work"),
+        &["Journey-Github-Connect"],
+        None,
+    )];
+    let filter = KnotListFilter {
+        include_all: true,
+        tags: vec!["Journey-Github-Connect".to_string()],
+        ..KnotListFilter::default()
+    };
+    let filtered = apply_filters(knots, &filter);
+    assert_eq!(filtered.len(), 1);
+    assert_eq!(filtered[0].tags, vec!["Journey-Github-Connect".to_string()]);
+}
+
+#[test]
+fn lowercase_tag_filter_matches_mixed_case_stored_tag() {
+    let knots = vec![knot(
+        "K-1",
+        "Mixed",
+        "implementing",
+        Some("work"),
+        &["Journey-Github-Connect"],
+        None,
+    )];
+    let filter = KnotListFilter {
+        include_all: true,
+        tags: vec!["journey-github-connect".to_string()],
+        ..KnotListFilter::default()
+    };
+    let filtered = apply_filters(knots, &filter);
+    assert_eq!(filtered.len(), 1);
+}
+
+#[test]
+fn mixed_case_tag_filter_matches_legacy_lowercase_stored_tag() {
+    let knots = vec![knot(
+        "K-1",
+        "Legacy",
+        "implementing",
+        Some("work"),
+        &["journey-github-connect"],
+        None,
+    )];
+    let filter = KnotListFilter {
+        include_all: true,
+        tags: vec!["Journey-Github-Connect".to_string()],
+        ..KnotListFilter::default()
+    };
+    let filtered = apply_filters(knots, &filter);
+    assert_eq!(filtered.len(), 1);
+}
+
+#[test]
 fn does_not_hide_non_lease_knots() {
     let knots = vec![knot(
         "K-1",

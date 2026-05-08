@@ -390,12 +390,15 @@ impl<'a> IncrementalApplier<'a> {
         knot_id: &str,
         path: &Path,
     ) -> Result<(), SyncError> {
-        let tag = required_string(data, "tag", path)?
-            .trim()
-            .to_ascii_lowercase();
+        let raw = required_string(data, "tag", path)?;
+        let tag = raw.trim().to_string();
         if !tag.is_empty() {
             self.apply_metadata_update(knot_id, |r| {
-                if !r.tags.iter().any(|existing| existing == &tag) {
+                if !r
+                    .tags
+                    .iter()
+                    .any(|existing| existing.eq_ignore_ascii_case(&tag))
+                {
                     r.tags.push(tag.clone());
                 }
             })?;
@@ -409,12 +412,12 @@ impl<'a> IncrementalApplier<'a> {
         knot_id: &str,
         path: &Path,
     ) -> Result<(), SyncError> {
-        let tag = required_string(data, "tag", path)?
-            .trim()
-            .to_ascii_lowercase();
+        let raw = required_string(data, "tag", path)?;
+        let tag = raw.trim().to_string();
         if !tag.is_empty() {
             self.apply_metadata_update(knot_id, |r| {
-                r.tags.retain(|existing| existing != &tag);
+                r.tags
+                    .retain(|existing| !existing.eq_ignore_ascii_case(&tag));
             })?;
         }
         Ok(())

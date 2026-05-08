@@ -263,7 +263,7 @@ impl App {
             if normalized.is_empty() {
                 continue;
             }
-            if !tags.iter().any(|t| t == &normalized) {
+            if !tags.iter().any(|t| t.eq_ignore_ascii_case(&normalized)) {
                 tags.push(normalized.clone());
                 self.writer
                     .write(&EventRecord::full(FullEvent::with_identity(

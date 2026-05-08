@@ -200,6 +200,75 @@ fn write_snapshot_files(root: &Path) {
     .expect("cold snapshot should be writable");
 }
 
+fn write_mixed_case_tag_events(root: &Path) {
+    let idx_dir = root.join(".knots/index/2026/02/24");
+    std::fs::create_dir_all(&idx_dir).expect("idx dir");
+    std::fs::write(
+        idx_dir.join("0500-idx.knot_head.json"),
+        concat!(
+            "{\n",
+            "  \"event_id\": \"0500\",\n",
+            "  \"occurred_at\": \"2026-02-24T10:00:00Z\",\n",
+            "  \"type\": \"idx.knot_head\",\n",
+            "  \"data\": {\n",
+            "    \"knot_id\": \"K-MC\",\n",
+            "    \"title\": \"Mixed-case sync\",\n",
+            "    \"state\": \"work_item\",\n",
+            "    \"workflow_id\": \"work_sdlc\",\n",
+            "    \"profile_id\": \"autopilot\",\n",
+            "    \"updated_at\": \"2026-02-24T10:00:00Z\",\n",
+            "    \"terminal\": false\n",
+            "  }\n",
+            "}\n"
+        ),
+    )
+    .expect("index event");
+
+    let events_dir = root.join(".knots/events/2026/02/24");
+    std::fs::create_dir_all(&events_dir).expect("events dir");
+    std::fs::write(
+        events_dir.join("0501-knot.tag_add.json"),
+        concat!(
+            "{\n",
+            "  \"event_id\": \"0501\",\n",
+            "  \"occurred_at\": \"2026-02-24T10:01:00Z\",\n",
+            "  \"knot_id\": \"K-MC\",\n",
+            "  \"type\": \"knot.tag_add\",\n",
+            "  \"data\": {\"tag\": \"Journey-Github-Connect\"}\n",
+            "}\n"
+        ),
+    )
+    .expect("tag add event");
+}
+
+#[test]
+fn sync_preserves_mixed_case_tag_from_event() {
+    let root = unique_workspace();
+    init_repo(&root);
+    run_git(&root, &["checkout", "-b", "knots"]);
+
+    write_mixed_case_tag_events(&root);
+
+    run_git(&root, &["add", ".knots"]);
+    run_git(&root, &["commit", "-m", "seed mixed case tag"]);
+    run_git(&root, &["checkout", "main"]);
+
+    let conn = open_sync_db(&root);
+    let service = SyncService::new(&conn, root.clone());
+    service.sync().expect("sync should succeed");
+
+    let knot = db::get_knot_hot(&conn, "K-MC")
+        .expect("knot query")
+        .expect("knot present");
+    assert!(
+        knot.tags.contains(&"Journey-Github-Connect".to_string()),
+        "expected mixed-case tag preserved through sync, got {:?}",
+        knot.tags
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn sync_bootstrap_loads_latest_snapshots_when_no_events() {
     let root = unique_workspace();
