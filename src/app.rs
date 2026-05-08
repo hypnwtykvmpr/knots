@@ -301,6 +301,9 @@ mod tests_legacy_create_compat;
 #[path = "app/tests_legacy_workflow_ids.rs"]
 mod tests_legacy_workflow_ids;
 #[cfg(test)]
+#[path = "app/tests_list_lease.rs"]
+mod tests_list_lease;
+#[cfg(test)]
 #[path = "app/tests_planned_by_edge.rs"]
 mod tests_planned_by_edge;
 #[cfg(test)]

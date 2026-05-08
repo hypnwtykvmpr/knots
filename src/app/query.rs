@@ -27,6 +27,7 @@ impl App {
                 .map(KnotView::from)
                 .collect();
         for knot in &mut knots {
+            self.enrich_bound_lease_agent(knot)?;
             workflow_runtime::enrich_step_metadata(knot, &self.profile_registry)?;
         }
         self.apply_aliases_to_knots(knots)
