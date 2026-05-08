@@ -212,7 +212,7 @@ fn collect_tags(
         if normalized.is_empty() {
             continue;
         }
-        if !tags.iter().any(|e| e == &normalized) {
+        if !tags.iter().any(|e| e.eq_ignore_ascii_case(&normalized)) {
             tags.push(normalized.clone());
             events.push(FullEvent::with_identity(
                 new_event_id(),
@@ -228,8 +228,8 @@ fn collect_tags(
         if normalized.is_empty() {
             continue;
         }
-        if tags.iter().any(|e| e == &normalized) {
-            tags.retain(|e| e != &normalized);
+        if tags.iter().any(|e| e.eq_ignore_ascii_case(&normalized)) {
+            tags.retain(|e| !e.eq_ignore_ascii_case(&normalized));
             events.push(FullEvent::with_identity(
                 new_event_id(),
                 at.to_string(),

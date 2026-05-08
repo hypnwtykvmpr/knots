@@ -237,17 +237,18 @@ fn apply_execution_plan_data_set(
 
 fn apply_tag_add(p: &mut RehydrateProjection, data: &serde_json::Map<String, Value>) {
     if let Some(tag) = data.get("tag").and_then(Value::as_str) {
-        let normalized = tag.trim().to_ascii_lowercase();
-        if !normalized.is_empty() && !p.tags.iter().any(|e| e == &normalized) {
-            p.tags.push(normalized);
+        let normalized = tag.trim();
+        if !normalized.is_empty() && !p.tags.iter().any(|e| e.eq_ignore_ascii_case(normalized)) {
+            p.tags.push(normalized.to_string());
         }
     }
 }
 
 fn apply_tag_remove(p: &mut RehydrateProjection, data: &serde_json::Map<String, Value>) {
     if let Some(tag) = data.get("tag").and_then(Value::as_str) {
-        let normalized = tag.trim().to_ascii_lowercase();
-        p.tags.retain(|existing| existing != &normalized);
+        let normalized = tag.trim();
+        p.tags
+            .retain(|existing| !existing.eq_ignore_ascii_case(normalized));
     }
 }
 

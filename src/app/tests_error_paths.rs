@@ -68,7 +68,7 @@ fn helper_validations_cover_success_and_error_paths() {
 
     assert_eq!(non_empty("  x  ").as_deref(), Some("x"));
     assert!(non_empty("   ").is_none());
-    assert_eq!(normalize_tag("  A-B  "), "a-b");
+    assert_eq!(normalize_tag("  A-B  "), "A-B");
 
     let valid = metadata_entry_from_input(
         MetadataEntryInput {
@@ -226,6 +226,7 @@ fn apply_metadata_events(projection: &mut RehydrateProjection) {
     );
     apply_rehydrate_event(projection, &tag_add);
     apply_rehydrate_event(projection, &tag_add);
+    assert_eq!(projection.tags, vec!["Release".to_string()]);
 
     let note = FullEvent::with_identity(
         "e8",
