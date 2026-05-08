@@ -49,6 +49,17 @@ params:
 - After the note, handoff, and transition commands for this step succeed,
   stop immediately.
 
+## Hierarchy Gate
+- The parent's transition out of `planning` is gated on every direct
+  child's effective state rank meeting or exceeding the parent's
+  target state rank.
+- A child created with the default `autopilot` profile starts in
+  `planning` (rank 1), which blocks the parent's `plan_review`
+  transition (rank 3).
+- Child knots created during planning MUST therefore start in a
+  no-planning profile so they begin at `implementation` (rank 5) and
+  do not block the parent's `plan_review` transition.
+
 ## Actions
 1. Analyze the knot requirements and constraints
 2. Review knot invariants and ensure the plan respects them
@@ -56,9 +67,21 @@ params:
 4. Draft an implementation plan with steps, file changes, and test strategy
 5. Estimate complexity and identify risks
 6. Write the plan as a knot note via `kno update <id> --add-note "<plan>"`
-7. Create a hierarchy of knots via `kno new "<title>"` for parent knots,
-   `kno q "title"` for child knots and `kno edge <id> parent_of <id>`
-   for edges
+7. If the plan requires child knots, create them with a no-planning
+   profile so they do not block this parent's `plan_review` transition,
+   then link them to this parent. Use any of the equivalent forms below:
+   - `kno q "<title>"` — quick-create with the configured default
+     quick profile (typically `autopilot_no_planning`).
+   - `kno new "<title>" -f` — `--fast` form, same default quick
+     profile as `kno q`.
+   - `kno new "<title>" -p autopilot_no_planning` — explicit
+     no-planning profile.
+   Do NOT use the default `autopilot` profile for child knots created
+   during planning: a child in `planning` (rank 1) blocks the parent's
+   `plan_review` transition (rank 3) via the hierarchy gate.
+   Recommended order: create each child knot unlinked first, then
+   attach it to this parent with
+   `kno edge add <parent-id> parent_of <child-id>`.
 
 ## Output
 - Detailed implementation plan attached as a knot note
