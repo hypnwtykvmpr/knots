@@ -42,12 +42,21 @@ Ship a new Knots release.
    - **Internal-only** (refactors, test-only changes, CI, docs, comments, dep
      bumps with no behavior change) → no changeset required.
 
-   If any user-facing commit lacks a changeset, **stop and surface the gap to
-   the user before proceeding**. Offer to author the missing changesets,
-   commit+push them, and let the Changesets workflow refresh the Version
-   Packages PR. Do not ship a release that silently omits user-facing changes
-   from the changelog. Re-run this audit against the refreshed PR before
-   continuing to step 4.
+   If any user-facing commit lacks a changeset during an explicit ship-release
+   request, author the missing changesets, commit+push them, and let the
+   Changesets workflow refresh the Version Packages PR. Do not stop merely to
+   ask whether to add release-note coverage. Do not ship a release that
+   silently omits user-facing changes from the changelog. Re-run this audit
+   against the refreshed PR before continuing to step 4.
+
+   Changeset frontmatter must always use the npm package name:
+   `"knots": patch`, `"knots": minor`, or `"knots": major`. Never use the CLI
+   binary name `"kno"` as the Changesets package key; it is not a workspace
+   package and will make the `Changesets Version PR` workflow fail with
+   "Found changeset ... for package kno which is not in the workspace". Before
+   pushing changesets, run:
+   `rg -n '"kno": (patch|minor|major)' .changeset`
+   and fix any matches to `"knots": <bump>`.
 
 4. **Decide the path** —
    - If user-facing changes are on `main` and no version PR exists yet, let the
