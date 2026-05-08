@@ -411,3 +411,30 @@ fn doctor_skips_codex_when_agents_root_is_absent() {
     let codex = find_check(&report, "skills_codex");
     assert_eq!(codex["status"], "pass");
 }
+
+#[test]
+fn knots_e2e_skill_documents_invocation_precedence() {
+    let root = unique_workspace("knots-cli-skills-e2e-doc");
+    let home = unique_workspace("knots-cli-skills-home");
+    setup_repo_with_remote(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+
+    let install = run_knots(&root, &db, &home, &["skills", "install", "codex"]);
+    assert_success(&install);
+
+    let installed_e2e = root.join(".agents/skills/knots-e2e/SKILL.md");
+    assert!(installed_e2e.exists());
+    let body = std::fs::read_to_string(&installed_e2e).expect("e2e skill body");
+    assert!(
+        body.contains("kno claim --e2e <id>"),
+        "installed e2e skill should advertise --e2e claim form: {body}"
+    );
+    assert!(
+        body.contains("e2e_continuation"),
+        "installed e2e skill should document the boundary kind: {body}"
+    );
+    assert!(
+        body.contains("Invocation precedence"),
+        "installed e2e skill should explain precedence: {body}"
+    );
+}

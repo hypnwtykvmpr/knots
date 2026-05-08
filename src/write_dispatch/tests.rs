@@ -90,6 +90,7 @@ fn execute_operation_poll_claim_empty_and_json() {
         agent_model: None,
         agent_version: None,
         timeout_seconds: None,
+        e2e: false,
     });
     let err = execute_operation(&app, &empty).expect_err("empty poll should fail");
     match err {
@@ -108,6 +109,7 @@ fn execute_operation_poll_claim_empty_and_json() {
         agent_model: Some("model".to_string()),
         agent_version: Some("1.0".to_string()),
         timeout_seconds: None,
+        e2e: false,
     });
     let output = execute_operation(&app, &json).expect("poll claim json should succeed");
     let parsed: serde_json::Value = serde_json::from_str(&output).expect("json parse");

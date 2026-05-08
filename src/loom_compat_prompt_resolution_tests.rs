@@ -278,7 +278,7 @@ fn compat_harness_peek_resolves_loom_body_for_builtin_profile() {
     let knot = app
         .create_knot("Compat peek loom", None, Some("work_item"), None)
         .expect("create");
-    let peeked = poll_claim::peek_knot(&app, &knot.id).expect("peek should succeed");
+    let peeked = poll_claim::peek_knot(&app, &knot.id, false).expect("peek should succeed");
 
     assert!(
         peeked.skill.contains("# Implementation"),
@@ -297,8 +297,9 @@ fn compat_harness_claim_resolves_loom_body_for_builtin_profile() {
     let knot = app
         .create_knot("Compat claim loom", None, Some("work_item"), None)
         .expect("create");
-    let claimed = poll_claim::claim_knot(&app, &knot.id, Some("agent".to_string()), None, 600)
-        .expect("claim should succeed");
+    let claimed =
+        poll_claim::claim_knot(&app, &knot.id, Some("agent".to_string()), None, 600, false)
+            .expect("claim should succeed");
 
     assert!(
         claimed.skill.contains("# Implementation"),
@@ -341,7 +342,7 @@ fn custom_workflow_peek_resolves_loom_body_through_compat() {
     let knot = app
         .create_knot("Custom compat peek", None, None, None)
         .expect("create");
-    let peeked = poll_claim::peek_knot(&app, &knot.id).expect("peek should succeed");
+    let peeked = poll_claim::peek_knot(&app, &knot.id, false).expect("peek should succeed");
 
     assert!(
         peeked.skill.contains("# Custom Work"),

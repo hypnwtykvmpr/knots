@@ -146,7 +146,7 @@ fn peek_knot_does_not_advance_state() {
         .create_knot("Peek test", None, Some("work_item"), Some("default"))
         .expect("create should succeed");
     let original_state = created.state.clone();
-    let result = peek_knot(&app, &created.id);
+    let result = peek_knot(&app, &created.id, false);
     assert!(result.is_ok(), "peek_knot should succeed");
     let after = app
         .show_knot(&created.id)
@@ -185,10 +185,10 @@ fn peek_knot_completion_command_has_agent_metadata_flags() {
             Some("default"),
         )
         .expect("create should succeed");
-    let result = peek_knot(&app, &created.id).expect("peek_knot should succeed");
+    let result = peek_knot(&app, &created.id, false).expect("peek_knot should succeed");
     assert_eq!(
         result.completion_cmd,
-        completion_command(&created.id, "implementation", None)
+        completion_command(&created.id, "implementation", None, false)
     );
     let _ = std::fs::remove_dir_all(root);
 }
@@ -215,7 +215,14 @@ fn claim_rejects_knot_in_action_state() {
     };
     app.set_state_with_actor(&created.id, "implementation", false, None, actor.clone())
         .expect("advance should succeed");
-    let result = claim_knot(&app, &created.id, Some("agent".to_string()), None, 600);
+    let result = claim_knot(
+        &app,
+        &created.id,
+        Some("agent".to_string()),
+        None,
+        600,
+        false,
+    );
     let err = match result {
         Err(e) => e.to_string(),
         Ok(_) => panic!("claim should reject action state"),
@@ -243,7 +250,7 @@ fn peek_rejects_knot_in_action_state() {
     };
     app.set_state_with_actor(&created.id, "implementation", false, None, actor)
         .expect("advance should succeed");
-    let result = peek_knot(&app, &created.id);
+    let result = peek_knot(&app, &created.id, false);
     let err = match result {
         Err(e) => e.to_string(),
         Ok(_) => panic!("peek should reject action state"),
@@ -333,17 +340,24 @@ fn claim_poll_and_peek_use_installed_workflow_prompt_body() {
         .expect("create should succeed");
     assert_eq!(created.profile_id, "custom_flow/autopilot");
 
-    let peeked = peek_knot(&app, &created.id).expect("peek should succeed");
+    let peeked = peek_knot(&app, &created.id, false).expect("peek should succeed");
     assert!(peeked.skill.contains("Ship {{ output }} output."));
     assert!(peeked.skill.contains("Built output"));
 
-    let polled = poll_queue(&app, None, None)
+    let polled = poll_queue(&app, None, None, false)
         .expect("poll should succeed")
         .expect("queue should contain knot");
     assert!(polled.skill.contains("Ship {{ output }} output."));
 
-    let claimed = claim_knot(&app, &created.id, Some("agent".to_string()), None, 600)
-        .expect("claim should succeed");
+    let claimed = claim_knot(
+        &app,
+        &created.id,
+        Some("agent".to_string()),
+        None,
+        600,
+        false,
+    )
+    .expect("claim should succeed");
     assert!(claimed.skill.contains("Ship {{ output }} output."));
     assert!(claimed.skill.contains("Built output"));
 

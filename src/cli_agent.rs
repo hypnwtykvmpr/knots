@@ -121,6 +121,12 @@ pub struct PollArgs {
     pub agent_version: Option<String>,
     #[arg(long, help = "Lease timeout in seconds (default: 600).")]
     pub timeout_seconds: Option<u64>,
+    #[arg(
+        long,
+        help = "Authorize the knots-e2e skill to continue across claim boundaries until \
+                a terminal or passive waiting state."
+    )]
+    pub e2e: bool,
 }
 
 #[derive(Debug, Args)]
@@ -156,6 +162,12 @@ pub struct ClaimArgs {
     pub lease: Option<String>,
     #[arg(long, help = "Lease timeout in seconds (default: 600).")]
     pub timeout_seconds: Option<u64>,
+    #[arg(
+        long,
+        help = "Authorize the knots-e2e skill to continue across claim boundaries until \
+                a terminal or passive waiting state."
+    )]
+    pub e2e: bool,
 }
 
 #[derive(Debug, Args)]

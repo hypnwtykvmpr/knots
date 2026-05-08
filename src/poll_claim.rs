@@ -29,12 +29,13 @@ pub struct PollResult {
     pub knot: KnotView,
     pub skill: String,
     pub completion_cmd: String,
+    pub e2e: bool,
 }
 
 pub fn run_poll(app: &App, args: PollArgs) -> Result<(), AppError> {
     use crate::lease_expiry::DEFAULT_LEASE_TIMEOUT_SECONDS;
     let result = crate::trace::measure("poll_queue", || {
-        poll_queue(app, args.stage.as_deref(), args.owner.as_deref())
+        poll_queue(app, args.stage.as_deref(), args.owner.as_deref(), args.e2e)
     })?;
     match result {
         None => {
@@ -63,6 +64,7 @@ pub fn run_poll(app: &App, args: PollArgs) -> Result<(), AppError> {
                     Some("agent".to_string()),
                     None,
                     timeout,
+                    args.e2e,
                 )?;
                 print_result(&claimed, args.json);
             } else {
@@ -86,7 +88,7 @@ pub fn run_claim(app: &App, args: ClaimArgs) -> Result<(), AppError> {
     warn_deprecated_agent_metadata("claim", &flags, args.lease.is_some());
     let result = crate::trace::measure("claim", || {
         if args.peek {
-            peek_knot(app, &args.id)
+            peek_knot(app, &args.id, args.e2e)
         } else {
             let timeout = args
                 .timeout_seconds
@@ -97,6 +99,7 @@ pub fn run_claim(app: &App, args: ClaimArgs) -> Result<(), AppError> {
                 Some("agent".to_string()),
                 args.lease.as_deref(),
                 timeout,
+                args.e2e,
             )
         }
     })?;
@@ -104,7 +107,7 @@ pub fn run_claim(app: &App, args: ClaimArgs) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn peek_knot(app: &App, id: &str) -> Result<PollResult, AppError> {
+pub fn peek_knot(app: &App, id: &str, e2e: bool) -> Result<PollResult, AppError> {
     let registry = app.profile_registry();
     let knot = app
         .show_knot(id)?
@@ -124,11 +127,12 @@ pub fn peek_knot(app: &App, id: &str) -> Result<PollResult, AppError> {
         ))
     })?;
     let skill = prompt_body_for_state(registry, &profile_id, &next_action)?;
-    let completion_cmd = completion_command(&knot.id, &next_action, None);
+    let completion_cmd = completion_command(&knot.id, &next_action, None, e2e);
     Ok(PollResult {
         knot,
         skill,
         completion_cmd,
+        e2e,
     })
 }
 
@@ -150,12 +154,13 @@ pub fn poll_queue(
     app: &App,
     stage: Option<&str>,
     owner_filter: Option<&str>,
+    e2e: bool,
 ) -> Result<Option<PollResult>, AppError> {
     let registry = app.profile_registry();
     let owner_kind = parse_owner_filter(owner_filter);
     let knots = list_queue_candidates(app, stage)?;
     for knot in knots {
-        if let Some(result) = match_pollable(&knot, registry, &owner_kind)? {
+        if let Some(result) = match_pollable(&knot, registry, &owner_kind, e2e)? {
             return Ok(Some(result));
         }
     }
@@ -168,6 +173,7 @@ pub fn claim_knot(
     actor_kind: Option<String>,
     external_lease: Option<&str>,
     timeout_seconds: u64,
+    e2e: bool,
 ) -> Result<PollResult, AppError> {
     let registry = app.profile_registry();
     let knot = app
@@ -223,11 +229,13 @@ pub fn claim_knot(
     let bound = app
         .show_knot(&claimed.id)?
         .ok_or_else(|| AppError::NotFound(claimed.id.clone()))?;
-    let completion_cmd = completion_command(&bound.id, &bound.state, bound_lease_id.as_deref());
+    let completion_cmd =
+        completion_command(&bound.id, &bound.state, bound_lease_id.as_deref(), e2e);
     Ok(PollResult {
         knot: bound,
         skill,
         completion_cmd,
+        e2e,
     })
 }
 
@@ -280,25 +288,48 @@ fn create_and_bind_lease(
 }
 
 pub fn render_text(result: &PollResult) -> String {
-    prompt::render_prompt(&result.knot, &result.skill, &result.completion_cmd)
+    prompt::render_prompt(
+        &result.knot,
+        &result.skill,
+        &result.completion_cmd,
+        result.e2e,
+    )
 }
 
 pub fn render_text_verbose(result: &PollResult, verbose: bool) -> String {
-    prompt::render_prompt_verbose(&result.knot, &result.skill, &result.completion_cmd, verbose)
+    prompt::render_prompt_verbose(
+        &result.knot,
+        &result.skill,
+        &result.completion_cmd,
+        verbose,
+        result.e2e,
+    )
 }
 
 pub fn render_json(result: &PollResult) -> serde_json::Value {
-    prompt::render_prompt_json(&result.knot, &result.skill, &result.completion_cmd)
+    prompt::render_prompt_json(
+        &result.knot,
+        &result.skill,
+        &result.completion_cmd,
+        result.e2e,
+    )
 }
 
 pub fn render_json_verbose(result: &PollResult, verbose: bool) -> serde_json::Value {
-    prompt::render_prompt_json_verbose(&result.knot, &result.skill, &result.completion_cmd, verbose)
+    prompt::render_prompt_json_verbose(
+        &result.knot,
+        &result.skill,
+        &result.completion_cmd,
+        verbose,
+        result.e2e,
+    )
 }
 
 fn match_pollable(
     knot: &KnotView,
     registry: &ProfileRegistry,
     owner_kind: &OwnerKind,
+    e2e: bool,
 ) -> Result<Option<PollResult>, AppError> {
     let gate = knot.gate.clone().unwrap_or_default();
     let profile_id = profile_lookup_id(knot);
@@ -328,11 +359,12 @@ fn match_pollable(
         Ok(skill) => skill,
         Err(_) => return Ok(None),
     };
-    let completion_cmd = completion_command(&knot.id, &next_action, None);
+    let completion_cmd = completion_command(&knot.id, &next_action, None, e2e);
     Ok(Some(PollResult {
         knot: knot.clone(),
         skill,
         completion_cmd,
+        e2e,
     }))
 }
 
@@ -358,7 +390,16 @@ fn require_queue_state(registry: &ProfileRegistry, knot: &KnotView) -> Result<()
     Ok(())
 }
 
-fn completion_command(knot_id: &str, current_state: &str, lease_id: Option<&str>) -> String {
+fn completion_command(
+    knot_id: &str,
+    current_state: &str,
+    lease_id: Option<&str>,
+    _e2e: bool,
+) -> String {
+    // The completion command drives `kno next`, which is purely a state
+    // transition. E2E continuation is signalled in the workflow boundary text
+    // (which tells the agent to re-claim with `--e2e`), not on the next
+    // command itself.
     match lease_id {
         Some(lid) => format!(
             "kno next {knot_id} --expected-state {current_state} --lease {lid} {AGENT_COMPLETION_METADATA_FLAGS}"
@@ -384,72 +425,8 @@ fn prompt_body_for_state(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_owner_defaults_to_agent() {
-        assert_eq!(parse_owner_filter(None), OwnerKind::Agent);
-        assert_eq!(parse_owner_filter(Some("")), OwnerKind::Agent);
-        assert_eq!(parse_owner_filter(Some("agent")), OwnerKind::Agent);
-    }
-
-    #[test]
-    fn parse_owner_recognizes_human() {
-        assert_eq!(parse_owner_filter(Some("human")), OwnerKind::Human);
-        assert_eq!(parse_owner_filter(Some("Human")), OwnerKind::Human);
-    }
-
-    #[test]
-    fn normalize_ready_type_none_returns_none() {
-        assert_eq!(normalize_ready_type(None), None);
-    }
-
-    #[test]
-    fn normalize_ready_type_empty_returns_none() {
-        assert_eq!(normalize_ready_type(Some("")), None);
-        assert_eq!(normalize_ready_type(Some("  ")), None);
-    }
-
-    #[test]
-    fn normalize_ready_type_strips_prefix() {
-        assert_eq!(
-            normalize_ready_type(Some("ready_for_planning")),
-            Some("planning".to_string())
-        );
-    }
-
-    #[test]
-    fn normalize_ready_type_passes_through_stage() {
-        assert_eq!(normalize_ready_type(Some("plan")), Some("plan".to_string()));
-        assert_eq!(
-            normalize_ready_type(Some("implementation")),
-            Some("implementation".to_string())
-        );
-    }
-
-    #[test]
-    fn normalize_ready_type_lowercases_and_replaces_dashes() {
-        assert_eq!(
-            normalize_ready_type(Some("Plan-Review")),
-            Some("plan_review".to_string())
-        );
-    }
-
-    #[test]
-    fn completion_command_omits_deprecated_agent_metadata_flags() {
-        let cmd = completion_command("knots-27ef", "implementation", None);
-        // Lease is the declared source of agent identity; the completion
-        // prompt must not instruct agents to pass deprecated identity flags.
-        assert_eq!(
-            cmd,
-            "kno next knots-27ef --expected-state implementation --actor-kind agent"
-        );
-        assert!(!cmd.contains("--agent-name"));
-        assert!(!cmd.contains("--agent-model"));
-        assert!(!cmd.contains("--agent-version"));
-    }
-}
+#[path = "poll_claim/tests_inline.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "poll_claim/tests_ext2.rs"]

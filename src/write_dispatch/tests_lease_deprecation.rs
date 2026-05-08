@@ -20,9 +20,15 @@ use crate::write_queue::{
 //   model: "opus", model_version: "4.6"
 
 fn claim_with_lease(app: &crate::app::App, knot_id: &str, lease_id: &str) -> String {
-    let claimed =
-        poll_claim::claim_knot(app, knot_id, Some("agent".to_string()), Some(lease_id), 600)
-            .expect("claim with lease should succeed");
+    let claimed = poll_claim::claim_knot(
+        app,
+        knot_id,
+        Some("agent".to_string()),
+        Some(lease_id),
+        600,
+        false,
+    )
+    .expect("claim with lease should succeed");
     claimed.knot.state
 }
 

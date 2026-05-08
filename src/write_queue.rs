@@ -127,6 +127,8 @@ pub struct ClaimOperation {
     pub agent_version: Option<String>,
     pub lease_id: Option<String>,
     pub timeout_seconds: Option<u64>,
+    #[serde(default)]
+    pub e2e: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PollClaimOperation {
@@ -137,6 +139,8 @@ pub struct PollClaimOperation {
     pub agent_model: Option<String>,
     pub agent_version: Option<String>,
     pub timeout_seconds: Option<u64>,
+    #[serde(default)]
+    pub e2e: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GateEvaluateOperation {
