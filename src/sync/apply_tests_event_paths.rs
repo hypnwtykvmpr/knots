@@ -389,3 +389,60 @@ fn apply_full_event_covers_priority_type_tag_remove_note_and_handoff() {
 
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn apply_full_event_preserves_tag_casing_and_removes_case_insensitively() {
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    seed_hot_knot(&conn, "K-1");
+    let applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+
+    let events_dir = root.join(".knots/events/2026/02/25");
+    std::fs::create_dir_all(&events_dir).expect("events directory should be creatable");
+    write_event_file(
+        &events_dir,
+        "5100-knot.tag_add.json",
+        concat!(
+            "{\n",
+            "  \"event_id\": \"5100\",\n",
+            "  \"occurred_at\": \"2026-02-25T10:00:00Z\",\n",
+            "  \"knot_id\": \"K-1\",\n",
+            "  \"type\": \"knot.tag_add\",\n",
+            "  \"data\": {\"tag\": \"Journey-Github-Connect\"}\n",
+            "}\n"
+        ),
+    );
+    applier
+        .apply_full_event(Path::new(".knots/events/2026/02/25/5100-knot.tag_add.json"))
+        .expect("tag add event should apply");
+
+    let tagged = db::get_knot_hot(&conn, "K-1")
+        .expect("hot lookup should succeed")
+        .expect("hot knot should remain present");
+    assert_eq!(tagged.tags, vec!["Journey-Github-Connect".to_string()]);
+
+    write_event_file(
+        &events_dir,
+        "5101-knot.tag_remove.json",
+        concat!(
+            "{\n",
+            "  \"event_id\": \"5101\",\n",
+            "  \"occurred_at\": \"2026-02-25T10:01:00Z\",\n",
+            "  \"knot_id\": \"K-1\",\n",
+            "  \"type\": \"knot.tag_remove\",\n",
+            "  \"data\": {\"tag\": \"journey-github-connect\"}\n",
+            "}\n"
+        ),
+    );
+    applier
+        .apply_full_event(Path::new(
+            ".knots/events/2026/02/25/5101-knot.tag_remove.json",
+        ))
+        .expect("tag remove event should apply");
+    let removed = db::get_knot_hot(&conn, "K-1")
+        .expect("hot lookup should succeed")
+        .expect("hot knot should remain present");
+    assert!(removed.tags.is_empty());
+
+    let _ = std::fs::remove_dir_all(root);
+}

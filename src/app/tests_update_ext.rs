@@ -209,6 +209,7 @@ fn clear_all_invariants(app: &App, id: &str) -> KnotView {
     )
     .expect("c")
 }
+
 #[test]
 fn update_knot_requires_at_least_one_change() {
     let root = unique_workspace();

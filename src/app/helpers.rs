@@ -117,7 +117,7 @@ pub(crate) fn normalize_state_input(raw: &str) -> Result<String, AppError> {
 }
 
 pub(crate) fn normalize_tag(raw: &str) -> String {
-    raw.trim().to_ascii_lowercase()
+    raw.trim().to_string()
 }
 
 pub(crate) fn next_deferred_from_state(

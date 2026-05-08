@@ -313,6 +313,9 @@ mod tests_step_history;
 #[path = "app/tests_step_metadata_responses.rs"]
 mod tests_step_metadata_responses;
 #[cfg(test)]
+#[path = "app/tests_tag_casing.rs"]
+mod tests_tag_casing;
+#[cfg(test)]
 #[path = "app/tests_terminal_deferred.rs"]
 mod tests_terminal_deferred;
 #[cfg(test)]

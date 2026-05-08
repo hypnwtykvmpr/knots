@@ -101,6 +101,50 @@ fn include_all_with_user_filter_includes_terminal_knots() {
 }
 
 #[test]
+fn tag_filter_matches_mixed_case_and_legacy_lowercase_tags() {
+    let knots = vec![
+        knot(
+            "K-1",
+            "Mixed",
+            "implementing",
+            Some("work"),
+            &["Journey-Github-Connect"],
+            None,
+        ),
+        knot(
+            "K-2",
+            "Legacy",
+            "implementing",
+            Some("work"),
+            &["legacy-tag"],
+            None,
+        ),
+    ];
+
+    let mixed = apply_filters(
+        knots.clone(),
+        &KnotListFilter {
+            include_all: true,
+            tags: vec!["journey-github-connect".to_string()],
+            ..KnotListFilter::default()
+        },
+    );
+    assert_eq!(mixed.len(), 1);
+    assert_eq!(mixed[0].id, "K-1");
+
+    let legacy = apply_filters(
+        knots,
+        &KnotListFilter {
+            include_all: true,
+            tags: vec!["Legacy-Tag".to_string()],
+            ..KnotListFilter::default()
+        },
+    );
+    assert_eq!(legacy.len(), 1);
+    assert_eq!(legacy[0].id, "K-2");
+}
+
+#[test]
 fn normalize_knot_type_filter_covers_edge_cases() {
     assert_eq!(normalize_knot_type_filter(None), None);
     assert_eq!(normalize_knot_type_filter(Some("")), None);

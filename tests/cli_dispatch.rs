@@ -421,7 +421,7 @@ fn new_with_tags_creates_knot_with_tags() {
         .and_then(Value::as_array)
         .expect("tags should be an array");
     let tag_strs: Vec<&str> = tags.iter().filter_map(Value::as_str).collect();
-    assert!(tag_strs.contains(&"alpha"), "tags: {tag_strs:?}");
+    assert!(tag_strs.contains(&"Alpha"), "tags: {tag_strs:?}");
     assert!(tag_strs.contains(&"beta"), "tags: {tag_strs:?}");
 
     let _ = std::fs::remove_dir_all(root);
