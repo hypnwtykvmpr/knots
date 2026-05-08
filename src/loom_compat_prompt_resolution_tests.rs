@@ -409,6 +409,33 @@ fn no_planning_profiles_resolve_implementation_from_loom_body() {
 }
 
 #[test]
+fn planning_prompt_body_documents_child_knot_creation_guidance() {
+    let body = loom_compat_bundle::prompt_body_for_state("planning")
+        .expect("loom bundle should have planning");
+
+    assert!(
+        body.contains("autopilot_no_planning"),
+        "planning prompt should name the no-planning profile by id so agents \
+         know to bypass child planning"
+    );
+    assert!(
+        body.contains("--fast") || body.contains(" -f"),
+        "planning prompt should mention the --fast / -f shortcut for \
+         creating no-planning child knots"
+    );
+    assert!(
+        body.contains("kno edge add"),
+        "planning prompt should document linking children with `kno edge add` \
+         after creating them unlinked"
+    );
+    assert!(
+        body.contains("Hierarchy Gate") || body.contains("hierarchy gate"),
+        "planning prompt should explain the hierarchy-gate rule that blocks \
+         the parent's plan_review transition"
+    );
+}
+
+#[test]
 fn builtin_prompts_declare_extended_output_target_values() {
     let states_with_output = [
         "implementation",
