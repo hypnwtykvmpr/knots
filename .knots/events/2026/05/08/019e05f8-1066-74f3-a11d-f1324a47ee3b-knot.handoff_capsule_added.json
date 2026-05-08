@@ -1,0 +1,15 @@
+{
+  "event_id": "019e05f8-1066-74f3-a11d-f1324a47ee3b",
+  "occurred_at": "2026-05-08T05:03:23.749912Z",
+  "knot_id": "knots-4023",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation pushed for branch review. Branch: knots-4023-clarify-child-knot-creation. Commit: 597fbcf284cf. Updated loom/work_sdlc/prompts/planning.md (Hierarchy Gate section, Actions step 7 with kno q / kno new -f / -p autopilot_no_planning, recommended kno edge add ordering). Patched only the planning prompt body in loom/work_sdlc/dist/bundle.json so unrelated bundle drift stayed out of scope. Added regression assertion in src/loom_compat_prompt_resolution_tests.rs and a patch changeset. make sanity passed (1122 tests, 95.23% coverage).",
+    "datetime": "2026-05-08T05:03:23.749912Z",
+    "entry_id": "019e05f8-1065-7c70-810f-973d9cc272ac",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

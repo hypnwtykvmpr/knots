@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0609-68df-75c0-bc90-afedab7c26d8",
+  "occurred_at": "2026-05-08T05:22:20.511205Z",
+  "knot_id": "knots-e1e2",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-e1e2-preserve-tag-casing. Commit: f753181fef99558cd46480a66592f30b36c26dd2. Verification: make sanity passed with 95.10% coverage; scratch smoke verified mixed-case create, show, ls, update add-tag, and ls.",
+    "datetime": "2026-05-08T05:22:20.511205Z",
+    "entry_id": "019e0609-68df-75c0-bc90-afd64dcf6566",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

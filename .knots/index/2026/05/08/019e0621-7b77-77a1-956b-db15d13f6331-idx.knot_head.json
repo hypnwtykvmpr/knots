@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0621-7b77-77a1-956b-db15d13f6331",
+  "occurred_at": "2026-05-08T05:48:38.13531Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-e935",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Fix active lease metadata JSON",
+    "type": "work",
+    "updated_at": "2026-05-08T05:48:38.13531Z",
+    "workflow_id": "work_sdlc"
+  }
+}

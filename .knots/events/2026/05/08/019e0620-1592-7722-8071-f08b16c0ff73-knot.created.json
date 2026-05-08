@@ -1,0 +1,17 @@
+{
+  "event_id": "019e0620-1592-7722-8071-f08b16c0ff73",
+  "occurred_at": "2026-05-08T05:47:06.514418Z",
+  "knot_id": "knots-c7ca",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "lease",
+    "state": "lease_ready",
+    "title": "Lease: claude-e935-finalize",
+    "type": "lease",
+    "workflow_id": "lease_sdlc"
+  }
+}

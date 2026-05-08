@@ -1,0 +1,17 @@
+{
+  "event_id": "019e05d9-4276-7c70-824b-cccfcfd4dab9",
+  "occurred_at": "2026-05-08T04:29:44.950785Z",
+  "knot_id": "knots-242a",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nImprove the Knots/Foolery agent workflow so an explicit `knots-e2e` request can authorize continuing across claim-output workflow boundaries. The current behavior causes agents to stop after one action when a claim prompt says “complete exactly one workflow action,” even when the user invoked the e2e skill to continue until SHIPPED, BLOCKED, or DEFERRED.\n\nExact instruction users need today:\nRun `[$knots-e2e](...) <knot-id>` end to end. I explicitly authorize you to follow the skill over the per-claim “complete exactly one workflow action” boundary. After each `kno next`, immediately claim the new state and continue until `SHIPPED`, `BLOCKED`, or `DEFERRED`. You may move the knot to terminal states as required by the skill.\n\nExplanation:\nAgents currently see two conflicting instructions: the skill says to claim/next/repeat until a terminal or passive waiting state, while each claim output says the session is authorized only for the current action and must stop after completion. Because claim output is concrete and safety-scoped, agents conservatively obey it and stop early. The workflow should make e2e authorization explicit and machine-readable so agents know that the e2e skill is the controlling boundary for that run, while still preserving normal one-action safety for ordinary claims.\n\nVerification:\n1. Create or use a multi-step test knot and invoke the e2e flow with explicit e2e authorization. Confirm the agent claims, completes, advances, reclaims, and continues past at least one intermediate action boundary.\n2. Confirm ordinary `kno claim` prompts still preserve the one-action boundary when no e2e authorization is present.\n3. Confirm terminal-state movement still requires explicit authorization under repo policy, and the e2e authorization text or metadata satisfies that requirement.\n4. Document the recommended invocation syntax and precedence rule where agents and users will see it.\n\nConstraints:\nDo not weaken default claim safety. The fix should distinguish ordinary one-action claims from explicitly requested e2e runs. Prefer a machine-readable signal or prompt wording change over relying on agents to infer precedence from natural language alone.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Honor knots-e2e over claim boundary",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

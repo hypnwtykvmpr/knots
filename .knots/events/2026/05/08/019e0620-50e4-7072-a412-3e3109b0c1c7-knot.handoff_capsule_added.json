@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0620-50e4-7072-a412-3e3109b0c1c7",
+  "occurred_at": "2026-05-08T05:47:21.700752Z",
+  "knot_id": "knots-e935",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Shipment complete: implementation commit a723b637 (Enrich lease_agent in list_knots JSON output) merged to main via PR #77. CI passed (1122 tests, 95.10% coverage). Code is live on main branch.",
+    "datetime": "2026-05-08T05:47:21.700752Z",
+    "entry_id": "019e0620-50e4-7072-a412-3e25fd208bb5",
+    "model": "Sonnet",
+    "username": "Claude",
+    "version": "4.6"
+  }
+}

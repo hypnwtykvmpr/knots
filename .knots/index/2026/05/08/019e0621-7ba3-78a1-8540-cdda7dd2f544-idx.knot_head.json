@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0621-7ba3-78a1-8540-cdda7dd2f544",
+  "occurred_at": "2026-05-08T05:48:38.179148Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-0b25",
+    "profile_id": "lease",
+    "state": "lease_terminated",
+    "terminal": true,
+    "title": "Lease: claude-e935-review",
+    "type": "lease",
+    "updated_at": "2026-05-08T05:48:38.179148Z",
+    "workflow_id": "lease_sdlc"
+  }
+}

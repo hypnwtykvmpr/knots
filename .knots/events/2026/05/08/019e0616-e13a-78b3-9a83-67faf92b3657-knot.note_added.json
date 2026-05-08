@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0616-e13a-78b3-9a83-67faf92b3657",
+  "occurred_at": "2026-05-08T05:37:03.289648Z",
+  "knot_id": "knots-242a",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Implementation handoff: Branch: feature/knots-242a-e2e-boundary. Commit: 493ab6ca. Rebased onto main and force-with-lease pushed. Verification: make sanity passed (coverage 95.11%); push hook coverage passed again (95.12%). make install-hooks was attempted in the linked worktree but failed because .git is a gitdir file, not a directory.",
+    "datetime": "2026-05-08T05:37:03.289648Z",
+    "entry_id": "019e0616-e139-70b3-a697-122ee03a8a08",
+    "model": "GPT",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}

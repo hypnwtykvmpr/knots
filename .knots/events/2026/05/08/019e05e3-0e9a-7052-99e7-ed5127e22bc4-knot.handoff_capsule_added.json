@@ -1,0 +1,15 @@
+{
+  "event_id": "019e05e3-0e9a-7052-99e7-ed5127e22bc4",
+  "occurred_at": "2026-05-08T04:40:27.034343Z",
+  "knot_id": "knots-4023",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan: update loom/work_sdlc/prompts/planning.md step 7 to explicitly recommend kno q / kno new -f / kno new -p autopilot_no_planning for implementation child knots, document the create-then-link order with kno edge add <parent> parent_of <child>, and add a short Hierarchy Gate note explaining that autopilot child knots start at planning (rank 1) and block the parent's plan_review (rank 3) transition. Regenerate loom/work_sdlc/dist/bundle.json via make loom-bundle so the runtime prompt agents see actually changes. Add a regression assertion in src/loom_compat_prompt_resolution_tests.rs and a patch changeset. No child knots required; single implementation session. Hierarchy gate code in src/state_hierarchy.rs is unchanged.",
+    "datetime": "2026-05-08T04:40:27.034343Z",
+    "entry_id": "019e05e3-0e9a-7052-99e7-ed48e32b9af1",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

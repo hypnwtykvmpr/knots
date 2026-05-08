@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0617-3a3b-76b1-986c-739a4e1ee6d4",
+  "occurred_at": "2026-05-08T05:37:26.075063Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-e1e2",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Preserve tag casing",
+    "type": "work",
+    "updated_at": "2026-05-08T05:37:26.075063Z",
+    "workflow_id": "work_sdlc"
+  }
+}

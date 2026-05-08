@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0620-5a71-71f3-a657-ebe9e8779a78",
+  "occurred_at": "2026-05-08T05:47:24.145585Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-c7ca",
+    "profile_id": "lease",
+    "state": "lease_terminated",
+    "terminal": true,
+    "title": "Lease: claude-e935-finalize",
+    "type": "lease",
+    "updated_at": "2026-05-08T05:47:24.145585Z",
+    "workflow_id": "lease_sdlc"
+  }
+}

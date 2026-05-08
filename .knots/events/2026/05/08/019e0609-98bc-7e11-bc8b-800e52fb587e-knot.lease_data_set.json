@@ -1,0 +1,20 @@
+{
+  "event_id": "019e0609-98bc-7e11-bc8b-800e52fb587e",
+  "occurred_at": "2026-05-08T05:22:32.764147Z",
+  "knot_id": "knots-2a4d",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "Claude",
+        "agent_type": "cli",
+        "model": "Opus",
+        "model_version": "4.7",
+        "provider": "Claude"
+      },
+      "lease_type": "agent",
+      "nickname": "foolery:terminal_manager_take:term-1778214930501-9q6xna",
+      "timeout_seconds": 600
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e062a-b594-7793-82dd-caa89424e07e",
+  "occurred_at": "2026-05-08T05:58:42.836197Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-242a",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Honor knots-e2e over claim boundary",
+    "type": "work",
+    "updated_at": "2026-05-08T05:58:42.836197Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "event_id": "019e060f-1eb4-7d81-82db-aa105f147382",
+  "occurred_at": "2026-05-08T05:28:34.740235Z",
+  "knot_id": "knots-4ea5",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "Codex",
+        "agent_type": "cli",
+        "model": "GPT Mini",
+        "model_version": "5.4",
+        "provider": "Codex"
+      },
+      "lease_type": "agent",
+      "nickname": "foolery:terminal_manager_take:term-1778214931213-a61g2s",
+      "timeout_seconds": 600
+    }
+  }
+}

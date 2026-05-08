@@ -1,0 +1,21 @@
+{
+  "event_id": "019e0607-dec6-7712-b75e-67d2056946d9",
+  "occurred_at": "2026-05-08T05:20:39.622216Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-4023",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Clarify child knot creation during parent planning",
+    "type": "work",
+    "updated_at": "2026-05-08T05:20:39.622216Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019e0600-9190-78e3-9897-43ae7e22ce1d",
+  "occurred_at": "2026-05-08T05:12:41.104835Z",
+  "knot_id": "knots-e935",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation complete on branch worktree-knots-e935-list-lease-agent (commit 1ccba24b). list_knots now mirrors show_knot's enrich_bound_lease_agent so kno ls --json populates lease_agent for active action knots. Queued knots without a bound lease still emit no lease_agent. Regression test in src/app/tests_list_lease.rs covers both shapes. make sanity passes (1122 tests, 95.10% coverage).",
+    "datetime": "2026-05-08T05:12:41.104835Z",
+    "entry_id": "019e0600-9190-78e3-9897-43936ff6564d",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

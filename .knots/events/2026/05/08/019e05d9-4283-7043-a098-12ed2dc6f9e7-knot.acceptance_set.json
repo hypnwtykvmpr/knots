@@ -1,0 +1,9 @@
+{
+  "event_id": "019e05d9-4283-7043-a098-12ed2dc6f9e7",
+  "occurred_at": "2026-05-08T04:29:44.950785Z",
+  "knot_id": "knots-242a",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Explicit `knots-e2e` runs provide a clear, machine-readable or unambiguous prompt signal that the e2e skill controls the workflow boundary across multiple claim states.\n2. Agents can continue after `kno next` by reclaiming the knot without being blocked by the previous claim output’s one-action stop instruction.\n3. Ordinary non-e2e claims still instruct agents to complete exactly one workflow action and stop.\n4. Terminal-state movement remains explicitly authorized only when the user or e2e invocation grants it.\n5. Documentation or skill text includes the exact user-facing override wording and explains why it is needed until the workflow provides first-class support."
+  }
+}

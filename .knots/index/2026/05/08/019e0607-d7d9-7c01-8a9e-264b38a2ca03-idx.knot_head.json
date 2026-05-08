@@ -1,0 +1,37 @@
+{
+  "event_id": "019e0607-d7d9-7c01-8a9e-264b38a2ca03",
+  "occurred_at": "2026-05-08T05:20:37.849854Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-4023",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Clarify child knot creation during parent planning",
+    "type": "work",
+    "updated_at": "2026-05-08T05:20:37.849854Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e0600-a82d-7d13-bc48-f3f3f3b6106d"
+  }
+}

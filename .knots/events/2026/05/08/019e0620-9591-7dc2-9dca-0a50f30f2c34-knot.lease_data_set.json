@@ -1,0 +1,20 @@
+{
+  "event_id": "019e0620-9591-7dc2-9dca-0a50f30f2c34",
+  "occurred_at": "2026-05-08T05:47:39.281609Z",
+  "knot_id": "knots-0b25",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "Claude",
+        "agent_type": "cli",
+        "model": "Sonnet",
+        "model_version": "4.6",
+        "provider": "Claude"
+      },
+      "lease_type": "agent",
+      "nickname": "claude-e935-review",
+      "timeout_seconds": 600
+    }
+  }
+}

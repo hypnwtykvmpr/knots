@@ -1,0 +1,9 @@
+{
+  "event_id": "019e0616-d379-7de0-970e-b3c27f7d3a0f",
+  "occurred_at": "2026-05-08T05:36:59.769534Z",
+  "knot_id": "knots-242a",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:feature/knots-242a-e2e-boundary"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e05f8-101a-7a40-9dbc-ff16c6644e3e",
+  "occurred_at": "2026-05-08T05:03:23.674653Z",
+  "knot_id": "knots-4023",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:knots-4023-clarify-child-knot-creation"
+  }
+}

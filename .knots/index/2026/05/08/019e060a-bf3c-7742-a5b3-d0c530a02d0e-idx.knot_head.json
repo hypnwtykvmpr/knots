@@ -1,0 +1,37 @@
+{
+  "event_id": "019e060a-bf3c-7742-a5b3-d0c530a02d0e",
+  "occurred_at": "2026-05-08T05:23:48.156111Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-e1e2",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Preserve tag casing",
+    "type": "work",
+    "updated_at": "2026-05-08T05:23:48.156111Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e060a-8a19-7c32-9a52-151558735fff"
+  }
+}

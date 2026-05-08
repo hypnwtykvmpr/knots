@@ -1,0 +1,15 @@
+{
+  "event_id": "019e061e-7e72-7830-bb91-37d8b6036d06",
+  "occurred_at": "2026-05-08T05:45:22.290493Z",
+  "knot_id": "knots-242a",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "[Claude 2026-05-08] # Implementation Review — APPROVE\n\n## Verdict\nApprove. Implementation matches the plan and meets all acceptance criteria.\n\n## Evidence\n1. Branch feature/knots-242a-e2e-boundary at 493ab6ca contains the work\n   described in the plan note: ~821 insertions across src/, skills/, docs,\n   and tests.\n2. Acceptance criteria coverage:\n   - AC1 (machine-readable signal): JSON output adds 'e2e' bool and\n     'workflow_boundary_kind' (single_action | e2e_continuation). The\n     prompt body also carries 'kind: `single_action`' or\n     'kind: `e2e_continuation`' lines (src/prompt.rs).\n   - AC2 (continue after kno next): e2e boundary text explicitly tells\n     the agent to re-claim with 'kno claim --e2e <id>' after kno next,\n     and to continue until SHIPPED/BLOCKED/DEFERRED.\n   - AC3 (default one-action preserved): default boundary text still\n     contains 'Complete exactly one workflow action, then stop.';\n     verified by render_single_action_boundary_when_e2e_false and\n     claim_without_e2e_flag_keeps_single_action_workflow_boundary.\n   - AC4 (terminal-state authorization gated): e2e boundary contains\n     'Terminal-state movement is authorized for this e2e run.'; default\n     boundary makes no such claim.\n   - AC5 (docs): README.md adds 'Workflow boundary kinds' section and\n     verbatim user-facing override wording. AGENTS.md and CLAUDE.md add\n     a 'Claim Boundary Precedence' section. skills/knots_e2e.md adds\n     'Invocation precedence' and switches all examples to '--e2e'.\n3. Constraint respected: default claim safety is unchanged. ClaimArgs/\n   PollArgs default e2e to false; ClaimOperation/PollClaimOperation use\n   serde default; render_workflow_boundary branches on e2e and only the\n   e2e branch authorizes continuation.\n4. Test coverage: prompt_tests.rs adds 6 tests for both branches and\n   JSON fields; tests_inline.rs verifies completion_command does not\n   emit '--e2e' on kno next; tests/cli_claim_e2e.rs adds end-to-end\n   integration tests for both 'kno claim --e2e <id>' and default\n   'kno claim <id>' paths.\n5. Sanity gates: 'make sanity' on the feature branch ran 1132 tests\n   (0 failures) and reported 95.25% coverage, above the 95% threshold.\n6. No security issues or regressions identified in the diff.\n\n## Completion\nAdvancing to shipment via 'kno next'.",
+    "datetime": "2026-05-08T05:45:22.290493Z",
+    "entry_id": "019e061e-7e72-7830-bb91-37c2e5447516",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

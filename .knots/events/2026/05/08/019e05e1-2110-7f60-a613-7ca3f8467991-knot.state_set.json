@@ -1,0 +1,17 @@
+{
+  "event_id": "019e05e1-2110-7f60-a613-7ca3f8467991",
+  "occurred_at": "2026-05-08T04:38:20.688782Z",
+  "knot_id": "knots-e1e2",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "Opus",
+    "agent_name": "Claude",
+    "agent_version": "4.7",
+    "force": false,
+    "from": "planning",
+    "profile_id": "autopilot",
+    "to": "ready_for_plan_review",
+    "workflow_id": "work_sdlc"
+  }
+}
