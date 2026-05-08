@@ -170,6 +170,7 @@ fn map_claim(args: &crate::cli::ClaimArgs) -> WriteOperation {
         agent_version: args.agent_version.clone(),
         lease_id: args.lease.clone(),
         timeout_seconds: args.timeout_seconds,
+        e2e: args.e2e,
     })
 }
 
@@ -182,6 +183,7 @@ fn map_poll_claim(args: &crate::cli::PollArgs) -> WriteOperation {
         agent_model: args.agent_model.clone(),
         agent_version: args.agent_version.clone(),
         timeout_seconds: args.timeout_seconds,
+        e2e: args.e2e,
     })
 }
 

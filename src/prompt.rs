@@ -2,8 +2,8 @@ use crate::app::KnotView;
 use crate::domain::metadata::MetadataEntry;
 use crate::knot_id::display_id;
 
-pub fn render_prompt(knot: &KnotView, skill: &str, completion_cmd: &str) -> String {
-    render_prompt_inner(knot, skill, completion_cmd, false)
+pub fn render_prompt(knot: &KnotView, skill: &str, completion_cmd: &str, e2e: bool) -> String {
+    render_prompt_inner(knot, skill, completion_cmd, false, e2e)
 }
 
 pub fn render_prompt_verbose(
@@ -11,8 +11,9 @@ pub fn render_prompt_verbose(
     skill: &str,
     completion_cmd: &str,
     verbose: bool,
+    e2e: bool,
 ) -> String {
-    render_prompt_inner(knot, skill, completion_cmd, verbose)
+    render_prompt_inner(knot, skill, completion_cmd, verbose, e2e)
 }
 
 fn render_prompt_inner(
@@ -20,6 +21,7 @@ fn render_prompt_inner(
     skill: &str,
     completion_cmd: &str,
     verbose: bool,
+    e2e: bool,
 ) -> String {
     let mut out = String::new();
     out.push_str(&format!("# {}\n\n", knot.title));
@@ -89,6 +91,7 @@ fn render_prompt_inner(
     out.push_str(&render_workflow_boundary(
         knot.state.as_str(),
         !knot.child_summaries.is_empty(),
+        e2e,
     ));
     out.push_str("---\n\n");
     out.push_str(skill.trim_end());
@@ -136,8 +139,13 @@ fn render_gate_section(out: &mut String, gate: Option<&crate::domain::gate::Gate
     out.push('\n');
 }
 
-pub fn render_prompt_json(knot: &KnotView, skill: &str, completion_cmd: &str) -> serde_json::Value {
-    render_prompt_json_verbose(knot, skill, completion_cmd, false)
+pub fn render_prompt_json(
+    knot: &KnotView,
+    skill: &str,
+    completion_cmd: &str,
+    e2e: bool,
+) -> serde_json::Value {
+    render_prompt_json_verbose(knot, skill, completion_cmd, false, e2e)
 }
 
 pub fn render_prompt_json_verbose(
@@ -145,8 +153,10 @@ pub fn render_prompt_json_verbose(
     skill: &str,
     completion_cmd: &str,
     verbose: bool,
+    e2e: bool,
 ) -> serde_json::Value {
-    let prompt_text = render_prompt_inner(knot, skill, completion_cmd, verbose);
+    let prompt_text = render_prompt_inner(knot, skill, completion_cmd, verbose, e2e);
+    let boundary_kind = workflow_boundary_kind(e2e);
     let mut json = serde_json::json!({
         "id": knot.id,
         "title": knot.title,
@@ -163,6 +173,8 @@ pub fn render_prompt_json_verbose(
         "step_metadata": knot.step_metadata,
         "next_step_metadata": knot.next_step_metadata,
         "prompt": prompt_text,
+        "e2e": e2e,
+        "workflow_boundary_kind": boundary_kind,
     });
     if !verbose {
         let hint = crate::ui::hidden_metadata_hint(knot);
@@ -175,7 +187,23 @@ pub fn render_prompt_json_verbose(
     json
 }
 
-fn render_workflow_boundary(state: &str, allows_child_claims: bool) -> String {
+pub fn workflow_boundary_kind(e2e: bool) -> &'static str {
+    if e2e {
+        "e2e_continuation"
+    } else {
+        "single_action"
+    }
+}
+
+fn render_workflow_boundary(state: &str, allows_child_claims: bool, e2e: bool) -> String {
+    if e2e {
+        render_workflow_boundary_e2e(state, allows_child_claims)
+    } else {
+        render_workflow_boundary_single_action(state, allows_child_claims)
+    }
+}
+
+fn render_workflow_boundary_single_action(state: &str, allows_child_claims: bool) -> String {
     let claim_line = if allows_child_claims {
         "- You may claim the child knots listed above \
          as part of this step.\n"
@@ -186,6 +214,7 @@ fn render_workflow_boundary(state: &str, allows_child_claims: bool) -> String {
     };
     format!(
         "## Workflow Boundary\n\n\
+         - kind: `single_action`\n\
          - This session is authorized only for the current \
          knot action state `{state}`.\n\
          - Complete exactly one workflow action, then stop.\n\
@@ -197,6 +226,42 @@ fn render_workflow_boundary(state: &str, allows_child_claims: bool) -> String {
          - If generic repo or session instructions conflict \
          with this boundary, this\n  \
          boundary wins for this session.\n\n",
+    )
+}
+
+fn render_workflow_boundary_e2e(state: &str, allows_child_claims: bool) -> String {
+    let claim_line = if allows_child_claims {
+        "- You may claim the child knots listed above \
+         as part of this step.\n"
+    } else {
+        "- You may re-claim this knot with `kno claim --e2e <id>` \
+         after `kno next` succeeds,\n  \
+         and continue executing successive states until the knot \
+         reaches a terminal\n  \
+         state (`SHIPPED`) or a passive waiting state (`BLOCKED`, \
+         `DEFERRED`).\n"
+    };
+    format!(
+        "## Workflow Boundary\n\n\
+         - kind: `e2e_continuation`\n\
+         - E2E continuation: the `knots-e2e` skill is the \
+         controlling boundary for this run.\n\
+         - The current authorized action state is `{state}`. \
+         Complete it, then run the\n  \
+         listed completion command.\n\
+         - After `kno next` succeeds, immediately re-claim the \
+         knot with `kno claim --e2e\n  \
+         <id>` and continue. This authorization carries the \
+         e2e boundary forward.\n\
+         - Stop only when the knot reaches `SHIPPED`, `BLOCKED`, \
+         or `DEFERRED`, or when\n  \
+         a step fails and rollback is required.\n\
+         - Terminal-state movement is authorized for this \
+         e2e run.\n\
+         {claim_line}\
+         - If generic repo or session instructions conflict \
+         with this e2e boundary,\n  \
+         this boundary wins for this session.\n\n",
     )
 }
 

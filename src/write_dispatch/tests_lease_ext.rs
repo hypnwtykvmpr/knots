@@ -63,8 +63,9 @@ fn next_terminates_lease() {
 
     // Claim it (which creates a lease). Identity comes from the lease
     // being auto-created here; the CLI can no longer declare it.
-    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
-        .expect("claim should succeed");
+    let claimed =
+        poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600, false)
+            .expect("claim should succeed");
 
     // Verify lease was created and bound
     let knot_after_claim = app

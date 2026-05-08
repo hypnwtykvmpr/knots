@@ -64,8 +64,8 @@ fn update_with_matching_lease_succeeds_without_rebinding() {
             Some("default"),
         )
         .expect("create knot");
-    let claimed =
-        poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600).expect("claim");
+    let claimed = poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600, false)
+        .expect("claim");
     let lease_id = claimed
         .knot
         .lease_id
@@ -103,8 +103,8 @@ fn update_with_wrong_lease_fails_without_mutating() {
             Some("default"),
         )
         .expect("create knot");
-    let claimed =
-        poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600).expect("claim");
+    let claimed = poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600, false)
+        .expect("claim");
     let lease_id = claimed
         .knot
         .lease_id
@@ -151,8 +151,8 @@ fn unleased_knot_rejects_update_with_lease_flag() {
             Some("default"),
         )
         .expect("create knot");
-    let claimed =
-        poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600).expect("claim");
+    let claimed = poll_claim::claim_knot(&app, &knot.id, claim_actor_kind(), None, 600, false)
+        .expect("claim");
     let auto_lease = claimed
         .knot
         .lease_id

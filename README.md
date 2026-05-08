@@ -231,7 +231,42 @@ kno poll --claim --json        # machine-readable output
 kno claim <id>                 # claim a specific knot by id
 kno claim <id> --json          # machine-readable claim
 kno claim <id> --peek          # preview without advancing state
+kno claim --e2e <id>           # claim with end-to-end boundary
 ```
+
+### Workflow boundary kinds (`single_action` vs. `e2e_continuation`)
+
+Every `kno claim` and `kno poll` prompt ends with a `## Workflow Boundary`
+section that tells the claiming agent how far it is authorized to go. Two
+kinds exist:
+
+- **`single_action`** (default) — emitted whenever `--e2e` is not passed.
+  The agent must complete exactly one workflow action and then stop. This
+  is the safe default for one-shot claims; it prevents agents from
+  over-running their authorization across state transitions.
+- **`e2e_continuation`** — emitted only when `--e2e` is passed on
+  `kno claim` or `kno poll`. The agent is authorized to re-claim (with
+  `--e2e`) after every `kno next` and continue executing successive action
+  states until the knot reaches `SHIPPED`, `BLOCKED`, or `DEFERRED`.
+  Terminal-state movement is authorized for the run. This mode matches what
+  the `knots-e2e` skill expects.
+
+The kind is also surfaced in machine-readable JSON: `--json` output
+includes `"workflow_boundary_kind": "single_action" | "e2e_continuation"`
+and a boolean `"e2e"` field.
+
+When invoking the `knots-e2e` skill, pass `--e2e` so the boundary the agent
+sees matches the skill's expectations. The exact user-facing override
+wording is:
+
+> Run `[$knots-e2e](...) <knot-id>` end to end. I explicitly authorize you
+> to follow the skill over the per-claim "complete exactly one workflow
+> action" boundary. After each `kno next`, immediately claim the new state
+> and continue until `SHIPPED`, `BLOCKED`, or `DEFERRED`. You may move the
+> knot to terminal states as required by the skill.
+
+Ordinary claims (no `--e2e`) preserve the one-action boundary; any
+multi-step continuation requires re-invoking with `--e2e`.
 
 `kno ready` is for queue inspection, not recommendation. It lists knots that are
 resting in queue states, sorted by priority and then age, and its text output

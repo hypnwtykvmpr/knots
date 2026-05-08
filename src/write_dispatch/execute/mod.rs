@@ -199,6 +199,7 @@ fn execute_claim(app: &App, args: &crate::write_queue::ClaimOperation) -> Result
         Some("agent".to_string()),
         args.lease_id.as_deref(),
         timeout,
+        args.e2e,
     )?;
     if args.json {
         let value = poll_claim::render_json_verbose(&claimed, args.verbose);
@@ -213,7 +214,8 @@ fn execute_poll_claim(
     args: &crate::write_queue::PollClaimOperation,
 ) -> Result<String, AppError> {
     use crate::lease_expiry::DEFAULT_LEASE_TIMEOUT_SECONDS;
-    let polled = poll_claim::poll_queue(app, args.stage.as_deref(), args.owner.as_deref())?;
+    let polled =
+        poll_claim::poll_queue(app, args.stage.as_deref(), args.owner.as_deref(), args.e2e)?;
     let Some(polled) = polled else {
         return Err(AppError::InvalidArgument(
             "no claimable knots found".to_string(),
@@ -239,6 +241,7 @@ fn execute_poll_claim(
         Some("agent".to_string()),
         None,
         timeout,
+        args.e2e,
     )?;
     if args.json {
         let value = poll_claim::render_json(&claimed);

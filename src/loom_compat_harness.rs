@@ -315,13 +315,14 @@ fn run_single_scenario(
     outcome: &str,
 ) -> Result<ScenarioResult, AppError> {
     let knot = app.create_knot("Loom compat harness knot", None, None, Some(profile_id))?;
-    let prompt_view = poll_claim::peek_knot(app, &knot.id)?;
+    let prompt_view = poll_claim::peek_knot(app, &knot.id, false)?;
     let prompt_verified = prompt_view.skill.contains(prompt.body.trim())
         && prompt
             .accept
             .iter()
             .all(|item| prompt_view.skill.contains(item));
-    let claimed = poll_claim::claim_knot(app, &knot.id, Some("agent".to_string()), None, 600)?;
+    let claimed =
+        poll_claim::claim_knot(app, &knot.id, Some("agent".to_string()), None, 600, false)?;
     if claimed.knot.state != action_state {
         return Err(AppError::InvalidArgument(format!(
             "claim moved knot '{}' to '{}' instead of '{}'",

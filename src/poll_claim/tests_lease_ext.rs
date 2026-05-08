@@ -69,7 +69,7 @@ fn claim_rejects_lease_knot() {
     )
     .expect("lease should be created");
 
-    let result = claim_knot(&app, &lease.id, Some("agent".to_string()), None, 600);
+    let result = claim_knot(&app, &lease.id, Some("agent".to_string()), None, 600, false);
     let err = match result {
         Err(e) => e.to_string(),
         Ok(_) => panic!("claim should reject lease knot"),
@@ -91,7 +91,7 @@ fn claim_creates_lease_on_claim() {
         .create_knot("Claimable work", None, Some("work_item"), Some("default"))
         .expect("work knot should be created");
 
-    let _result = claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+    let _result = claim_knot(&app, &work.id, Some("agent".to_string()), None, 600, false)
         .expect("claim should succeed");
     let knot = app
         .show_knot(&work.id)
@@ -127,7 +127,8 @@ fn claim_without_external_lease_always_auto_creates_one() {
         .create_knot("Auto-lease work", None, Some("work_item"), Some("default"))
         .expect("work knot should be created");
 
-    claim_knot(&app, &work.id, Some("agent".to_string()), None, 600).expect("claim should succeed");
+    claim_knot(&app, &work.id, Some("agent".to_string()), None, 600, false)
+        .expect("claim should succeed");
     let knot = app
         .show_knot(&work.id)
         .expect("show should succeed")
@@ -159,6 +160,7 @@ fn run_poll_with_claim_creates_lease() {
         agent_model: None,
         agent_version: None,
         timeout_seconds: None,
+        e2e: false,
     };
 
     run_poll(&app, args).expect("run_poll with claim should succeed");
@@ -225,6 +227,7 @@ fn claim_with_external_lease_binds_it() {
         Some("agent".to_string()),
         Some(&lease.id),
         600,
+        false,
     )
     .expect("claim should succeed");
 
@@ -265,6 +268,7 @@ fn claim_with_terminated_lease_rejects() {
         Some("agent".to_string()),
         Some(&lease.id),
         600,
+        false,
     );
     assert!(
         result.is_err(),
@@ -288,7 +292,7 @@ fn claim_without_lease_creates_one() {
         )
         .expect("create work knot");
 
-    let result = claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
+    let result = claim_knot(&app, &work.id, Some("agent".to_string()), None, 600, false)
         .expect("claim should succeed");
 
     assert!(
@@ -328,6 +332,7 @@ fn completion_command_includes_lease() {
         Some("agent".to_string()),
         Some(&lease.id),
         600,
+        false,
     )
     .expect("claim with external lease");
 
@@ -369,6 +374,7 @@ fn claim_with_non_lease_knot_as_lease_rejects() {
         Some("agent".to_string()),
         Some(&fake_lease.id),
         600,
+        false,
     );
     let err = match result {
         Err(e) => e.to_string(),
@@ -414,6 +420,7 @@ fn claim_with_ready_lease_activates_it() {
         Some("agent".to_string()),
         Some(&lease.id),
         600,
+        false,
     )
     .expect("claim should succeed");
 
@@ -449,6 +456,7 @@ fn claim_with_nonexistent_lease_rejects() {
         Some("agent".to_string()),
         Some("nonexistent-lease-id"),
         600,
+        false,
     );
     assert!(
         result.is_err(),

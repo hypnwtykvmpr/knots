@@ -60,7 +60,7 @@ fn claim_work_knot(app: &crate::app::App, timeout: u64) -> (String, String) {
             Some("default"),
         )
         .expect("create work knot");
-    let claimed = poll_claim::claim_knot(app, &work.id, claim_actor_kind(), None, timeout)
+    let claimed = poll_claim::claim_knot(app, &work.id, claim_actor_kind(), None, timeout, false)
         .expect("claim should succeed");
     let lease_id = claimed.knot.lease_id.clone().expect("should have lease");
     (work.id, lease_id)

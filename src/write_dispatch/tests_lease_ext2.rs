@@ -1,7 +1,12 @@
 use super::tests_lease_ext::{create_test_lease, open_app, parse, setup_repo, unique_workspace};
 use super::{execute_operation, operation_from_command};
-use crate::poll_claim;
+use crate::app::App;
+use crate::poll_claim::{self, PollResult};
 use crate::write_queue::{NextOperation, UpdateOperation, WriteOperation};
+
+fn claim_default(app: &App, id: &str) -> PollResult {
+    poll_claim::claim_knot(app, id, Some("agent".to_string()), None, 600, false).expect("claim")
+}
 
 #[test]
 fn explicit_note_agent_flags_are_ignored_lease_wins() {
@@ -350,8 +355,7 @@ fn next_with_matching_lease_succeeds() {
         )
         .expect("create knot");
 
-    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
-        .expect("claim");
+    let claimed = claim_default(&app, &work.id);
     let lease_id = claimed.knot.lease_id.clone().expect("should have lease");
 
     let next_op = WriteOperation::Next(NextOperation {
@@ -381,9 +385,7 @@ fn next_with_wrong_lease_fails() {
         .create_knot("Wrong lease next", None, Some("work_item"), Some("default"))
         .expect("create knot");
 
-    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
-        .expect("claim");
-
+    let claimed = claim_default(&app, &work.id);
     let next_op = WriteOperation::Next(NextOperation {
         id: work.id.clone(),
         expected_state: Some(claimed.knot.state.clone()),
@@ -417,8 +419,7 @@ fn next_without_lease_fails_when_knot_has_bound_lease() {
         .create_knot("No lease next", None, Some("work_item"), Some("default"))
         .expect("create knot");
 
-    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
-        .expect("claim");
+    let claimed = claim_default(&app, &work.id);
 
     let next_op = WriteOperation::Next(NextOperation {
         id: work.id.clone(),
@@ -457,8 +458,7 @@ fn next_with_lease_on_unleasedknot_fails() {
         .create_knot("No lease on knot", None, Some("work_item"), Some("default"))
         .expect("create knot");
 
-    let claimed = poll_claim::claim_knot(&app, &work.id, Some("agent".to_string()), None, 600)
-        .expect("claim");
+    let claimed = claim_default(&app, &work.id);
     let lease_id = claimed
         .knot
         .lease_id

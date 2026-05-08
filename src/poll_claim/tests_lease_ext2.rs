@@ -31,6 +31,7 @@ fn claim_with_active_external_lease_rejects() {
         Some("agent".to_string()),
         Some(&lease.id),
         600,
+        false,
     ) {
         Err(err) => err.to_string(),
         Ok(_) => panic!("claim should reject active external lease"),

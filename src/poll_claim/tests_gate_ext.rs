@@ -56,14 +56,15 @@ fn list_and_poll_gate_candidates_respect_stage_and_owner() {
     assert_eq!(evaluate_candidates.len(), 1);
     assert_eq!(evaluate_candidates[0].id, gate.id);
 
-    let human = poll_queue(&app, Some("evaluate"), Some("human"))
+    let human = poll_queue(&app, Some("evaluate"), Some("human"), false)
         .expect("human poll should work")
         .expect("human should see gate");
     assert_eq!(human.knot.id, gate.id);
     assert!(human.skill.contains("# Evaluating"));
     assert!(human.completion_cmd.contains("--expected-state evaluating"));
 
-    let agent = poll_queue(&app, Some("evaluate"), Some("agent")).expect("agent poll should work");
+    let agent =
+        poll_queue(&app, Some("evaluate"), Some("agent"), false).expect("agent poll should work");
     assert!(agent.is_none());
 
     let _ = std::fs::remove_dir_all(root);
@@ -88,7 +89,7 @@ fn peek_and_claim_gate_follow_gate_workflow_states() {
         )
         .expect("gate should be created");
 
-    let peeked = peek_knot(&app, &gate.id).expect("peek should succeed");
+    let peeked = peek_knot(&app, &gate.id, false).expect("peek should succeed");
     assert_eq!(
         peeked.knot.state,
         crate::workflow_runtime::READY_TO_EVALUATE
@@ -98,7 +99,7 @@ fn peek_and_claim_gate_follow_gate_workflow_states() {
         .completion_cmd
         .contains("--expected-state evaluating"));
 
-    let claimed = claim_knot(&app, &gate.id, Some("agent".to_string()), None, 600)
+    let claimed = claim_knot(&app, &gate.id, Some("agent".to_string()), None, 600, false)
         .expect("claim should succeed");
     assert_eq!(claimed.knot.state, crate::workflow_runtime::EVALUATING);
     assert!(claimed.skill.contains("# Evaluating"));
@@ -141,6 +142,7 @@ fn run_poll_and_claim_cover_json_and_text_rendering_paths() {
             agent_model: None,
             agent_version: None,
             timeout_seconds: None,
+            e2e: false,
         },
     )
     .expect("poll should succeed");
@@ -181,6 +183,7 @@ fn run_poll_and_claim_cover_json_and_text_rendering_paths() {
             verbose: false,
             lease: None,
             timeout_seconds: None,
+            e2e: false,
         },
     )
     .expect("claim should succeed");
@@ -197,6 +200,7 @@ fn run_poll_and_claim_cover_json_and_text_rendering_paths() {
             verbose: true,
             lease: None,
             timeout_seconds: None,
+            e2e: false,
         },
     )
     .expect("peek claim should succeed");
@@ -244,7 +248,7 @@ fn run_ready_owner_filter_matches_pollable_owner() {
         .expect("stage-filtered candidates should succeed");
     assert_eq!(human_candidates.len(), 1, "stage filter isolates the gate");
 
-    let human_poll = poll_queue(&app, Some("evaluate"), Some("human"))
+    let human_poll = poll_queue(&app, Some("evaluate"), Some("human"), false)
         .expect("human poll should work")
         .expect("human should see the gate");
     assert_eq!(human_poll.knot.title, "Human gate");
@@ -296,10 +300,12 @@ fn claim_prompt_for_gate_surfaces_acceptance_context_and_evaluation_rules() {
         )
         .expect("invariants should be added");
 
-    let claimed = claim_knot(&app, &gate.id, Some("agent".to_string()), None, 600)
+    let claimed = claim_knot(&app, &gate.id, Some("agent".to_string()), None, 600, false)
         .expect("claim should succeed");
     let prompt = claimed.skill;
-    let full_prompt = crate::prompt::render_prompt(&claimed.knot, &prompt, &claimed.completion_cmd);
+    let full_prompt =
+        crate::prompt::render_prompt(&claimed.knot, &prompt, &claimed.completion_cmd, false);
+    assert!(!claimed.e2e, "default claim should not carry e2e flag");
 
     for needle in [
         "## Context",
@@ -323,6 +329,91 @@ fn claim_prompt_for_gate_surfaces_acceptance_context_and_evaluation_rules() {
             "claim prompt should contain {needle:?}"
         );
     }
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn claim_with_e2e_emits_e2e_continuation_boundary() {
+    let root = unique_workspace();
+    let app = open_app(&root);
+    app.create_knot("E2E claim work", None, Some("work_item"), Some("default"))
+        .expect("work knot should be created");
+
+    let candidates = list_queue_candidates(&app, None).expect("list candidates");
+    let knot_id = candidates
+        .into_iter()
+        .find(|k| k.knot_type == KnotType::Work)
+        .expect("work knot in queue")
+        .id;
+
+    let claimed = claim_knot(&app, &knot_id, Some("agent".to_string()), None, 600, true)
+        .expect("e2e claim should succeed");
+    assert!(claimed.e2e, "PollResult must carry the e2e flag through");
+    let rendered =
+        crate::prompt::render_prompt(&claimed.knot, &claimed.skill, &claimed.completion_cmd, true);
+    assert!(rendered.contains("kind: `e2e_continuation`"));
+    assert!(rendered.contains("E2E continuation"));
+    assert!(rendered.contains("kno claim --e2e"));
+    assert!(!rendered.contains("Complete exactly one workflow action, then stop."));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn claim_without_e2e_emits_single_action_boundary() {
+    let root = unique_workspace();
+    let app = open_app(&root);
+    app.create_knot(
+        "Single-action claim work",
+        None,
+        Some("work_item"),
+        Some("default"),
+    )
+    .expect("work knot should be created");
+
+    let candidates = list_queue_candidates(&app, None).expect("list candidates");
+    let knot_id = candidates
+        .into_iter()
+        .find(|k| k.knot_type == KnotType::Work)
+        .expect("work knot in queue")
+        .id;
+
+    let claimed = claim_knot(&app, &knot_id, Some("agent".to_string()), None, 600, false)
+        .expect("claim should succeed");
+    assert!(!claimed.e2e);
+    let rendered = crate::prompt::render_prompt(
+        &claimed.knot,
+        &claimed.skill,
+        &claimed.completion_cmd,
+        false,
+    );
+    assert!(rendered.contains("kind: `single_action`"));
+    assert!(rendered.contains("Complete exactly one workflow action, then stop."));
+    assert!(!rendered.contains("E2E continuation"));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn json_render_carries_e2e_signals_through_claim_pipeline() {
+    let root = unique_workspace();
+    let app = open_app(&root);
+    app.create_knot("JSON e2e", None, Some("work_item"), Some("default"))
+        .expect("work knot should be created");
+
+    let candidates = list_queue_candidates(&app, None).expect("list candidates");
+    let knot_id = candidates
+        .into_iter()
+        .find(|k| k.knot_type == KnotType::Work)
+        .expect("work knot in queue")
+        .id;
+
+    let claimed = claim_knot(&app, &knot_id, Some("agent".to_string()), None, 600, true)
+        .expect("e2e claim should succeed");
+    let json = super::render_json(&claimed);
+    assert_eq!(json["e2e"], serde_json::Value::Bool(true));
+    assert_eq!(json["workflow_boundary_kind"], "e2e_continuation");
 
     let _ = std::fs::remove_dir_all(root);
 }

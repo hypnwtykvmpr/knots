@@ -174,6 +174,7 @@ fn enqueue_and_wait_spins_until_worker_lock_is_released() {
             agent_version: None,
             lease_id: None,
             timeout_seconds: None,
+            e2e: false,
         }),
         |request| QueuedWriteResponse::success(request.request_id.clone()),
     )
