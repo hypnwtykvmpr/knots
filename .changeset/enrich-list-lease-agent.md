@@ -1,5 +1,5 @@
 ---
-"kno": patch
+"knots": patch
 ---
 
 Enrich `kno ls --json` output for active action knots with bound lease agent

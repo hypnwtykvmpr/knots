@@ -1,5 +1,5 @@
 ---
-"kno": patch
+"knots": patch
 ---
 
 Clarify the `planning` workflow prompt so agents create implementation child

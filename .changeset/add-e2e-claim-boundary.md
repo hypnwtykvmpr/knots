@@ -1,5 +1,5 @@
 ---
-"kno": patch
+"knots": patch
 ---
 
 Add `--e2e` support to `kno claim` and `kno poll` so end-to-end agent runs can

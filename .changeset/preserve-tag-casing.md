@@ -1,5 +1,5 @@
 ---
-"kno": patch
+"knots": patch
 ---
 
 Preserve tag casing in knot creation, updates, event replay, and sync while
