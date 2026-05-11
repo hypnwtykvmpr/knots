@@ -121,6 +121,7 @@ pub fn run_doctor_at(
         crate::doctor_cold_tier::check_cold_tier_imbalance_at(&store_paths)?,
         crate::doctor_workflow_parity::check_workflow_id_parity_at(&store_paths)?,
         crate::doctor_knot_type_backfill::check_knot_type_backfill_at(&store_paths)?,
+        crate::doctor_nested_cache::check_nested_caches_at(&store_paths)?,
     ];
     checks.extend(crate::managed_skills::doctor_checks(repo_root));
     Ok(DoctorReport { checks })
