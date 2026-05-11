@@ -4,7 +4,7 @@ COVERAGE_MIN ?= $(shell tr -d '[:space:]' < $(COVERAGE_FILE))
 SANITY_TARGET_DIR ?= target/sanity
 SANITY_COVERAGE_TARGET_DIR ?= target/sanity-coverage
 
-.PHONY: fmt lint test coverage sanity install-hooks check-threshold loom-bundle
+.PHONY: fmt lint test coverage sanity install-hooks check-threshold loom-bundle demo demo-gif
 
 fmt:
 	cargo fmt --all -- --check
@@ -39,3 +39,15 @@ check-threshold:
 
 loom-bundle:
 	loom build loom/work_sdlc --emit knots-bundle > loom/work_sdlc/dist/bundle.json
+
+demo:
+	@echo 'Run: asciinema rec --overwrite -c "bash scripts/demo.sh" assets/demo.cast'
+	@echo 'Then: make demo-gif  (renders assets/demo.gif for inline README playback).'
+
+demo-gif:
+	@command -v agg >/dev/null 2>&1 || { \
+	  echo "agg not found; install with: brew install agg"; \
+	  exit 1; \
+	}
+	agg assets/demo.cast assets/demo.gif
+	@echo "Wrote assets/demo.gif"
