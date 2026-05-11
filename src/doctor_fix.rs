@@ -41,58 +41,112 @@ pub(crate) struct FixOutcome {
     pub event_log_touched: bool,
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub(crate) struct FixProgressSummary {
+    pub fixed: usize,
+    pub skipped: usize,
+    pub failed: usize,
+}
+
 #[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn apply_fixes(repo_root: &Path, checks: &[DoctorCheck]) -> FixOutcome {
-    apply_fixes_with_progress(repo_root, checks, &mut None)
+    apply_fixes_with_progress(repo_root, checks, &mut None).outcome
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub(crate) struct FixProgress {
+    pub outcome: FixOutcome,
+    pub summary: FixProgressSummary,
 }
 
 pub(crate) fn apply_fixes_with_progress(
     repo_root: &Path,
     checks: &[DoctorCheck],
     reporter: &mut Option<&mut dyn ProgressReporter>,
-) -> FixOutcome {
+) -> FixProgress {
     set_version_fix_applied(false);
     let mut outcome = FixOutcome::default();
+    let mut summary = FixProgressSummary::default();
     for check in checks {
         if check.status == DoctorStatus::Pass {
             continue;
         }
 
-        let _ = emit_progress(
-            reporter,
-            ProgressKind::Info,
-            format!("Fixing {}...", check.name),
-        );
-
-        match check.name.as_str() {
-            "lock_health" => fix_lock_health(repo_root),
-            "worktree" => fix_worktree(repo_root),
-            "remote" => fix_remote(repo_root),
-            "gitignore" => fix_gitignore(repo_root),
-            "version" => fix_version(),
-            "hooks" => fix_hooks(repo_root),
-            "workflow_registry" => fix_workflow_registry(repo_root),
-            "schema_version" => fix_schema_version(repo_root),
-            "stuck_leases" => fix_stuck_leases(repo_root),
+        let applied = match check.name.as_str() {
+            "lock_health" => {
+                fix_lock_health(repo_root);
+                true
+            }
+            "worktree" => {
+                fix_worktree(repo_root);
+                true
+            }
+            "remote" => {
+                fix_remote(repo_root);
+                true
+            }
+            "gitignore" => {
+                fix_gitignore(repo_root);
+                true
+            }
+            "version" => {
+                fix_version();
+                true
+            }
+            "hooks" => {
+                fix_hooks(repo_root);
+                true
+            }
+            "workflow_registry" => {
+                fix_workflow_registry(repo_root);
+                true
+            }
+            "schema_version" => {
+                fix_schema_version(repo_root);
+                true
+            }
+            "stuck_leases" => {
+                fix_stuck_leases(repo_root);
+                true
+            }
             "terminal_parents" => {
                 fix_terminal_parents(repo_root);
                 outcome.event_log_touched = true;
+                true
             }
-            "cold_tier_imbalance" => crate::doctor_cold_tier::fix_cold_tier_imbalance(repo_root),
+            "cold_tier_imbalance" => {
+                crate::doctor_cold_tier::fix_cold_tier_imbalance(repo_root);
+                true
+            }
             "workflow_id_parity" => {
                 crate::doctor_workflow_parity::fix_workflow_id_parity(repo_root);
                 outcome.event_log_touched = true;
+                true
             }
             "knot_type_backfill" => {
-                crate::doctor_knot_type_backfill::fix_knot_type_backfill(repo_root)
+                crate::doctor_knot_type_backfill::fix_knot_type_backfill(repo_root);
+                true
             }
             name if name.starts_with("skills_") => {
-                crate::managed_skills::fix_doctor_check(repo_root, name)
+                crate::managed_skills::fix_doctor_check(repo_root, name);
+                true
             }
-            _ => {}
-        }
+            _ => false,
+        };
+        let result = if applied {
+            summary.fixed += 1;
+            "ok"
+        } else {
+            summary.skipped += 1;
+            "skip"
+        };
+        let _ = emit_progress(
+            reporter,
+            ProgressKind::Info,
+            format!("Fixing {}... {result}", check.name),
+        );
     }
-    outcome
+    FixProgress { outcome, summary }
 }
 
 fn fix_gitignore(repo_root: &Path) {
@@ -117,15 +171,18 @@ pub(crate) fn announce_and_apply_fixes(
         .count();
 
     if distribution == crate::project::DistributionMode::Git {
-        let outcome = apply_fixes_with_progress(repo_root, &report.checks, reporter);
-        if outcome.event_log_touched {
+        let progress = apply_fixes_with_progress(repo_root, &report.checks, reporter);
+        if progress.outcome.event_log_touched {
             let _ = emit_progress(reporter, ProgressKind::Info, "Syncing fix events...");
             sync_after_fixes(repo_root);
         }
         let _ = emit_progress(
             reporter,
             ProgressKind::Success,
-            format!("{} issue(s) fixed.", fix_count),
+            format!(
+                "{} fixed, {} skipped, {} failed",
+                progress.summary.fixed, progress.summary.skipped, progress.summary.failed
+            ),
         );
     } else {
         let _ = emit_progress(

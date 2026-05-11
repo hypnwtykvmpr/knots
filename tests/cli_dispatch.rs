@@ -198,12 +198,31 @@ fn doctor_without_fix_prints_hint_and_fix_creates_knots_branch() {
 
     let doctor = run_knots(&root, &db, &["doctor"]);
     assert_success(&doctor);
+    let doctor_stdout = String::from_utf8_lossy(&doctor.stdout);
+    assert!(
+        !doctor_stdout.contains("Running diagnostics")
+            && !doctor_stdout.contains("Fixing ")
+            && !doctor_stdout.contains(" fixed, "),
+        "plain doctor should not include --fix progress lines; got stdout:\n{doctor_stdout}"
+    );
     assert!(
         String::from_utf8_lossy(&doctor.stderr).contains("kno doctor --fix to address these items")
     );
 
     let doctor_fix = run_knots(&root, &db, &["doctor", "--fix"]);
     assert_success(&doctor_fix);
+    let doctor_fix_stdout = String::from_utf8_lossy(&doctor_fix.stdout);
+    assert_contains_in_order(
+        &doctor_fix_stdout,
+        &[
+            "Running diagnostics...",
+            "Fixing remote... ok",
+            "Fixing gitignore... ok",
+            "Fixing hooks... ok",
+            "Fixing skills_claude... ok",
+            "4 fixed, 0 skipped, 0 failed",
+        ],
+    );
     assert!(!String::from_utf8_lossy(&doctor_fix.stderr)
         .contains("kno doctor --fix to address these items"));
     let gitignore = std::fs::read_to_string(root.join(".gitignore"))
