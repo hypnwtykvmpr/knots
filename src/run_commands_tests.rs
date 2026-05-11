@@ -135,13 +135,13 @@ fn install_custom_workflow(root: &Path) {
 }
 
 #[test]
-fn resolve_skill_by_name_uses_current_workflow_prompt() {
+fn resolve_prompt_by_name_uses_current_workflow_prompt() {
     let root = unique_workspace();
     install_custom_workflow(&root);
     let db_path = root.join(".knots/cache/state.sqlite");
     let app = app::App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app");
 
-    let skill = resolve_skill_by_name(&app, "work").expect("custom prompt should resolve");
+    let skill = resolve_prompt_by_name(&app, "work").expect("custom prompt should resolve");
     assert!(skill.contains("Ship {{ output }} output."));
     assert!(skill.contains("## Acceptance Criteria"));
     assert!(skill.contains("Built output"));
@@ -150,12 +150,12 @@ fn resolve_skill_by_name_uses_current_workflow_prompt() {
 }
 
 #[test]
-fn resolve_skill_by_name_builtin_returns_loom_body_for_implementation() {
+fn resolve_prompt_by_name_builtin_returns_loom_body_for_implementation() {
     let root = unique_workspace();
     let db_path = root.join(".knots/cache/state.sqlite");
     let app = app::App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app");
 
-    let skill = resolve_skill_by_name(&app, "implementation")
+    let skill = resolve_prompt_by_name(&app, "implementation")
         .expect("builtin implementation should resolve");
     assert!(
         skill.contains("# Implementation"),
@@ -165,7 +165,7 @@ fn resolve_skill_by_name_builtin_returns_loom_body_for_implementation() {
 }
 
 #[test]
-fn resolve_skill_by_name_builtin_covers_all_loom_action_states() {
+fn resolve_prompt_by_name_builtin_covers_all_loom_action_states() {
     let root = unique_workspace();
     let db_path = root.join(".knots/cache/state.sqlite");
     let app = app::App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app");
@@ -181,7 +181,7 @@ fn resolve_skill_by_name_builtin_covers_all_loom_action_states() {
         ("exploration", "# Exploration"),
     ];
     for (state, heading) in states_and_headings {
-        let skill = resolve_skill_by_name(&app, state).unwrap_or_else(|e| panic!("{state}: {e}"));
+        let skill = resolve_prompt_by_name(&app, state).unwrap_or_else(|e| panic!("{state}: {e}"));
         assert!(
             skill.contains(heading),
             "{state}: skill should contain Loom heading '{heading}'"
@@ -191,7 +191,7 @@ fn resolve_skill_by_name_builtin_covers_all_loom_action_states() {
 }
 
 #[test]
-fn resolve_skill_for_knot_returns_loom_body_for_builtin_profile() {
+fn resolve_prompt_for_knot_returns_loom_body_for_builtin_profile() {
     let root = unique_workspace();
     let db_path = root.join(".knots/cache/state.sqlite");
     let app = app::App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app");
@@ -200,7 +200,7 @@ fn resolve_skill_for_knot_returns_loom_body_for_builtin_profile() {
         .create_knot("Skill knot test", None, Some("work_item"), None)
         .expect("create");
     let skill =
-        resolve_skill_for_knot(&app, &knot, &knot.id).expect("should resolve skill for knot");
+        resolve_prompt_for_knot(&app, &knot, &knot.id).expect("should resolve skill for knot");
     assert!(
         skill.contains("# Implementation"),
         "skill for knot should contain Loom heading"
@@ -209,7 +209,7 @@ fn resolve_skill_for_knot_returns_loom_body_for_builtin_profile() {
 }
 
 #[test]
-fn resolve_skill_for_knot_custom_workflow_returns_loom_body() {
+fn resolve_prompt_for_knot_custom_workflow_returns_loom_body() {
     let root = unique_workspace();
     install_custom_workflow(&root);
     let db_path = root.join(".knots/cache/state.sqlite");
@@ -218,7 +218,7 @@ fn resolve_skill_for_knot_custom_workflow_returns_loom_body() {
     let knot = app
         .create_knot("Custom skill knot", None, None, None)
         .expect("create");
-    let skill = resolve_skill_for_knot(&app, &knot, &knot.id)
+    let skill = resolve_prompt_for_knot(&app, &knot, &knot.id)
         .expect("should resolve skill for custom knot");
     assert!(
         skill.contains("Ship"),
@@ -232,13 +232,13 @@ fn resolve_skill_for_knot_custom_workflow_returns_loom_body() {
 }
 
 #[test]
-fn resolve_skill_by_name_rejects_legacy_fallbacks_for_custom_workflows() {
+fn resolve_prompt_by_name_rejects_legacy_fallbacks_for_custom_workflows() {
     let root = unique_workspace();
     install_custom_workflow(&root);
     let db_path = root.join(".knots/cache/state.sqlite");
     let app = app::App::open(db_path.to_str().expect("utf8"), root.clone()).expect("app");
 
-    let err = resolve_skill_by_name(&app, "implementation")
+    let err = resolve_prompt_by_name(&app, "implementation")
         .expect_err("missing custom state should not fall back");
     assert!(format!("{err}").contains("not a knot id or skill state name"));
 

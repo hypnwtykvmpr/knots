@@ -26,7 +26,7 @@ fn print_custom_help_with_color(color: bool) {
     let p = Paint { color };
     let cmd = Cli::command();
 
-    let subs: Vec<_> = cmd.get_subcommands().collect();
+    let subs: Vec<_> = cmd.get_subcommands().filter(|c| !c.is_hide_set()).collect();
     let (mut common, mut other): (Vec<_>, Vec<_>) = subs
         .into_iter()
         .partition(|c| COMMON_COMMANDS.contains(&c.get_name()));
@@ -35,6 +35,7 @@ fn print_custom_help_with_color(color: bool) {
 
     let pad = cmd
         .get_subcommands()
+        .filter(|c| !c.is_hide_set())
         .map(|c| c.get_name().len())
         .max()
         .unwrap_or(0);

@@ -82,12 +82,47 @@ fn completions_install_flag_parses() {
 }
 
 #[test]
-fn skill_parses() {
+fn prompt_parses() {
+    let cli = parse(&["kno", "prompt", "abc123"]);
+    match cli.command {
+        Commands::Prompt(args) => assert_eq!(args.id, "abc123"),
+        other => panic!("expected Prompt, got {:?}", other),
+    }
+}
+
+#[test]
+fn skill_alias_still_parses_as_prompt_for_backward_compat() {
     let cli = parse(&["kno", "skill", "abc123"]);
     match cli.command {
-        Commands::Skill(args) => assert_eq!(args.id, "abc123"),
-        other => panic!("expected Skill, got {:?}", other),
+        Commands::Prompt(args) => assert_eq!(args.id, "abc123"),
+        other => panic!(
+            "expected Prompt (via deprecated `skill` alias), got {:?}",
+            other
+        ),
     }
+}
+
+#[test]
+fn top_level_help_lists_prompt_and_omits_skill_as_top_level_command() {
+    use clap::CommandFactory;
+
+    let cmd = Cli::command();
+    let prompt = cmd
+        .get_subcommands()
+        .find(|c| c.get_name() == "prompt")
+        .expect("`prompt` should be the canonical subcommand");
+    assert!(
+        !prompt.is_hide_set(),
+        "`prompt` should be visible as the canonical subcommand"
+    );
+    assert!(
+        prompt.get_all_aliases().any(|a| a == "skill"),
+        "`prompt` should accept `skill` as a (hidden) backward-compat alias"
+    );
+    assert!(
+        !cmd.get_subcommands().any(|c| c.get_name() == "skill"),
+        "`skill` must not appear as a top-level subcommand of its own"
+    );
 }
 
 #[test]
