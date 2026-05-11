@@ -102,10 +102,58 @@ fn main() {
         cli_help::print_custom_help();
         return;
     }
+    if invoked_deprecated_skill_alias(&args) {
+        eprintln!("warning: 'kno skill' is deprecated; use 'kno prompt'");
+    }
     if let Err(err) = run() {
         eprint!("{}", format_error(&err));
         std::process::exit(1);
     }
+}
+
+fn invoked_deprecated_skill_alias(args: &[String]) -> bool {
+    // Detect whether the user typed `kno skill ...`. We do this from the raw
+    // argv because clap aliases resolve to the canonical subcommand without
+    // recording which alias the user actually used.
+    first_positional_subcommand(args).is_some_and(|sub| sub == "skill")
+}
+
+fn first_positional_subcommand(args: &[String]) -> Option<&str> {
+    // Skip the binary name and any preceding top-level options. Top-level
+    // options are defined in `Cli`: --db/-d, --repo-root/-C, --project, and
+    // the boolean --trace.
+    const VALUE_LONG_FLAGS: &[&str] = &["--db", "--repo-root", "--project"];
+    const VALUE_SHORT_FLAGS: &[&str] = &["-d", "-C"];
+    const BOOL_FLAGS: &[&str] = &["--trace"];
+
+    let mut i = 1;
+    while i < args.len() {
+        let arg = args[i].as_str();
+        if BOOL_FLAGS.contains(&arg) {
+            i += 1;
+            continue;
+        }
+        if VALUE_LONG_FLAGS.contains(&arg) || VALUE_SHORT_FLAGS.contains(&arg) {
+            i += 2;
+            continue;
+        }
+        if VALUE_LONG_FLAGS
+            .iter()
+            .any(|f| arg.len() > f.len() && arg.as_bytes()[f.len()] == b'=' && arg.starts_with(f))
+        {
+            i += 1;
+            continue;
+        }
+        if VALUE_SHORT_FLAGS
+            .iter()
+            .any(|f| arg.starts_with(f) && arg.len() > f.len())
+        {
+            i += 1;
+            continue;
+        }
+        return Some(arg);
+    }
+    None
 }
 
 fn format_error(err: &app::AppError) -> String {
@@ -275,7 +323,7 @@ fn command_name(command: &cli::Commands) -> &'static str {
         Commands::Plan(_) => "plan",
         Commands::Next(_) => "next",
         Commands::Rollback(_) => "rollback",
-        Commands::Skill(_) => "skill",
+        Commands::Prompt(_) => "prompt",
         Commands::Skills(_) => "skills",
         Commands::Q(_) => "q",
         Commands::Completions(_) => "completions",
@@ -311,7 +359,7 @@ fn dispatch_read_command(command: cli::Commands, app: &app::App) -> Result<(), a
             EdgeSubcommands::List(edge_args) => run_commands::run_edge_list(app, edge_args),
             _ => unreachable!("queued write commands handled before app init"),
         },
-        Commands::Skill(args) => run_commands::run_skill(app, args),
+        Commands::Prompt(args) => run_commands::run_prompt(app, args),
         Commands::Poll(args) => {
             if args.claim {
                 unreachable!("queued write commands handled before app init");

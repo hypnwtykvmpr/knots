@@ -290,7 +290,6 @@ Count of rejected review decisions accumulated on a knot — a lightweight quali
 A markdown prompt under `skills/` that describes how an external agent tool (Claude, Codex, OpenCode) should drive the `kno` CLI. Managed skills are installed into host tools by `kno skills install`.
 - `skills/README.md`
 - `src/managed_skills.rs`
-- ⚠ overloaded: also the CLI subcommand `skill` which *prints* a prompt for a knot's next action state — see `kno skill` vs `kno skills`.
 
 ### snapshot <!-- auto -->
 An optional append-only rollup of catalogs (active or cold) used to reduce cold-sync cost. Snapshots are advisory; the event log remains authoritative.
@@ -639,7 +638,6 @@ Terms needing human attention. Resolve and remove once decided.
 - ⚠ `apply` overload — tracked as knot `1b08` (Rename all uses of 'apply' to subject-specific verbs).
 - ⚠ `KnotState` not generated from loom — tracked as knot `db35` (Generate KnotState from loom bundles).
 - ⚠ Legacy state names (`idea`, `work_item`, `implementing`, …) in `knots-architecture-v4.md` — tracked as knot `1b0d` (Write knots-architecture-v5.md).
-- ⚠ `skill` vs `skills` CLI command confusion — tracked as knot `347f` (Rename CLI command 'skill' to 'prompt').
 
 ### Deferred (low priority / explicitly accepted)
 

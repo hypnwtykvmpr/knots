@@ -80,8 +80,8 @@ pub struct RollbackArgs {
 }
 
 #[derive(Debug, Args)]
-#[command(about = "Print skill for knot's next state.")]
-pub struct SkillArgs {
+#[command(about = "Print the action-state prompt for a knot.")]
+pub struct PromptArgs {
     #[arg(help = "Knot id/alias, or a state name (e.g. planning).")]
     pub id: String,
 }

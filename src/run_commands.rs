@@ -1,6 +1,6 @@
 use crate::action_prompt;
 use crate::cli::{
-    ColdSubcommands, CompactArgs, DoctorArgs, FsckArgs, LeaseSubcommands, PerfArgs, SkillArgs,
+    ColdSubcommands, CompactArgs, DoctorArgs, FsckArgs, LeaseSubcommands, PerfArgs, PromptArgs,
 };
 use crate::{app, dispatch, domain, lease, list_layout, listing, pagination, stream_output};
 use crate::{print_json, progress, progress_reporter, ui};
@@ -395,16 +395,16 @@ pub fn run_edge_list(
     Ok(())
 }
 
-pub fn run_skill(app: &app::App, args: SkillArgs) -> Result<(), app::AppError> {
-    let content = crate::trace::measure("resolve_skill", || match app.show_knot(&args.id)? {
-        Some(knot) => resolve_skill_for_knot(app, &knot, &args.id),
-        None => resolve_skill_by_name(app, &args.id),
+pub fn run_prompt(app: &app::App, args: PromptArgs) -> Result<(), app::AppError> {
+    let content = crate::trace::measure("resolve_prompt", || match app.show_knot(&args.id)? {
+        Some(knot) => resolve_prompt_for_knot(app, &knot, &args.id),
+        None => resolve_prompt_by_name(app, &args.id),
     })?;
     print!("{content}");
     Ok(())
 }
 
-fn resolve_skill_for_knot(
+fn resolve_prompt_for_knot(
     app: &app::App,
     knot: &app::KnotView,
     id: &str,
@@ -418,7 +418,7 @@ fn resolve_skill_for_knot(
     })
 }
 
-fn resolve_skill_by_name(app: &app::App, id: &str) -> Result<String, app::AppError> {
+fn resolve_prompt_by_name(app: &app::App, id: &str) -> Result<String, app::AppError> {
     let normalized = id.trim().to_ascii_lowercase().replace('-', "_");
     let mut profile_ids = vec![app.default_profile_id()?];
     for knot_type in crate::domain::knot_type::KnotType::ALL {
@@ -430,8 +430,8 @@ fn resolve_skill_by_name(app: &app::App, id: &str) -> Result<String, app::AppErr
     }
     for profile_id in profile_ids {
         let profile = app.profile_registry().require(&profile_id)?;
-        if let Some(skill) = action_prompt::render_for_profile(profile, &normalized) {
-            return Ok(skill);
+        if let Some(prompt) = action_prompt::render_for_profile(profile, &normalized) {
+            return Ok(prompt);
         }
     }
     Err(app::AppError::InvalidArgument(format!(

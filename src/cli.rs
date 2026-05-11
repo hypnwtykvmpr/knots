@@ -129,8 +129,8 @@ pub enum Commands {
         alias = "rb"
     )]
     Rollback(RollbackArgs),
-    #[command(about = "Print the skill prompt for a knot's next action state.")]
-    Skill(SkillArgs),
+    #[command(about = "Print the action-state prompt for a knot.", alias = "skill")]
+    Prompt(PromptArgs),
     #[command(about = "Manage Knots-managed agent skills.")]
     Skills(SkillsArgs),
     #[command(about = "Quick-create a knot using the default quick profile.")]
