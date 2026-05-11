@@ -75,9 +75,17 @@ fn setup_repo_with_origin() -> (PathBuf, PathBuf) {
 #[test]
 fn run_doctor_with_fix_progress_is_silent_when_fix_false() {
     let (root, local) = setup_repo_with_origin();
+    let baseline = run_doctor_with_fix_at_with_progress(
+        &local,
+        &local.join(".knots"),
+        DistributionMode::Git,
+        false,
+        &mut None,
+    )
+    .expect("baseline doctor should run");
     let mut reporter = CapturingReporter::default();
     let mut dyn_reporter: Option<&mut dyn ProgressReporter> = Some(&mut reporter);
-    let _ = run_doctor_with_fix_at_with_progress(
+    let captured = run_doctor_with_fix_at_with_progress(
         &local,
         &local.join(".knots"),
         DistributionMode::Git,
@@ -90,6 +98,7 @@ fn run_doctor_with_fix_progress_is_silent_when_fix_false() {
         "plain `kno doctor` (fix=false) must not emit any progress lines; got: {:?}",
         reporter.events
     );
+    assert_eq!(captured.checks, baseline.checks);
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -115,27 +124,67 @@ fn run_doctor_with_fix_progress_announces_diagnostics_then_per_fix_and_summary()
         first
     );
 
-    let fix_lines: Vec<&(ProgressKind, String)> = reporter
+    let fix_lines: Vec<&str> = reporter
         .events
         .iter()
-        .filter(|(_, msg)| msg.starts_with("Fixing "))
+        .filter_map(|(_, msg)| msg.starts_with("Fixing ").then_some(msg.as_str()))
         .collect();
     assert!(
         !fix_lines.is_empty(),
         "a freshly initialized repo should produce at least one fix line; got events: {:?}",
         reporter.events
     );
-    for (kind, _) in &fix_lines {
-        assert_eq!(*kind, ProgressKind::Info);
-    }
+    assert!(fix_lines.iter().all(|msg| msg.ends_with(" ok")));
+    assert!(reporter
+        .events
+        .iter()
+        .filter(|(_, msg)| msg.starts_with("Fixing "))
+        .all(|(kind, _)| *kind == ProgressKind::Info));
 
     let last = reporter.events.last().expect("at least one event");
     assert_eq!(last.0, ProgressKind::Success);
     assert!(
-        last.1.contains("issue(s) fixed") || last.1.contains("No issues found"),
+        last.1.contains("fixed") && last.1.contains("skipped") && last.1.contains("failed"),
         "summary line should report result, got {:?}",
         last
     );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn announce_and_apply_fixes_reports_ordered_results_then_final_summary() {
+    let root = unique_workspace();
+    let report = DoctorReport {
+        checks: vec![
+            DoctorCheck::simple("lock_health", DoctorStatus::Pass, "ok"),
+            DoctorCheck::simple("hooks", DoctorStatus::Warn, "install hooks"),
+            DoctorCheck::simple("remote", DoctorStatus::Fail, "missing remote"),
+            DoctorCheck::simple("unknown_check", DoctorStatus::Warn, "unsupported"),
+        ],
+    };
+    let mut reporter = CapturingReporter::default();
+    let mut dyn_reporter: Option<&mut dyn ProgressReporter> = Some(&mut reporter);
+
+    // Captured events verify ordering, but not real-time flushing on a TTY.
+    // Manual check: run `kno doctor --fix` in a repo with a fixable warning and
+    // observe each progress line appears before the next fix starts.
+    announce_and_apply_fixes(&root, DistributionMode::Git, &report, &mut dyn_reporter);
+
+    let messages: Vec<&str> = reporter.events.iter().map(|(_, m)| m.as_str()).collect();
+    assert_eq!(
+        messages,
+        vec![
+            "Fixing hooks... ok",
+            "Fixing remote... ok",
+            "Fixing unknown_check... skip",
+            "2 fixed, 1 skipped, 0 failed",
+        ]
+    );
+    assert_eq!(reporter.events[0].0, ProgressKind::Info);
+    assert_eq!(reporter.events[1].0, ProgressKind::Info);
+    assert_eq!(reporter.events[2].0, ProgressKind::Info);
+    assert_eq!(reporter.events[3].0, ProgressKind::Success);
 
     let _ = std::fs::remove_dir_all(root);
 }

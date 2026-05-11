@@ -55,11 +55,11 @@ fn apply_fixes_with_progress_emits_line_per_non_pass_check() {
     assert_eq!(
         messages,
         vec![
-            "Fixing hooks...",
-            "Fixing remote...",
-            "Fixing unknown_check...",
+            "Fixing hooks... ok",
+            "Fixing remote... ok",
+            "Fixing unknown_check... skip",
         ],
-        "every non-pass check (including unknown) should emit a progress line; pass checks should be skipped"
+        "every non-pass check should emit one ordered result line; pass checks should be skipped"
     );
     for (kind, _) in &reporter.events {
         assert_eq!(*kind, ProgressKind::Info);
@@ -72,7 +72,10 @@ fn apply_fixes_with_progress_emits_line_per_non_pass_check() {
 fn apply_fixes_with_progress_none_matches_silent_apply_fixes() {
     let root = unique_workspace();
     let checks = vec![sample_check("unknown_check", DoctorStatus::Warn)];
-    let outcome = apply_fixes_with_progress(&root, &checks, &mut None);
-    assert!(!outcome.event_log_touched);
+    let progress = apply_fixes_with_progress(&root, &checks, &mut None);
+    assert!(!progress.outcome.event_log_touched);
+    assert_eq!(progress.summary.fixed, 0);
+    assert_eq!(progress.summary.skipped, 1);
+    assert_eq!(progress.summary.failed, 0);
     let _ = std::fs::remove_dir_all(root);
 }
