@@ -22,7 +22,7 @@ coverage:
 	  exit 1; \
 	fi
 	mkdir -p coverage
-	CARGO_TARGET_DIR=$(SANITY_COVERAGE_TARGET_DIR) cargo tarpaulin --engine llvm --all-features \
+	CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=$(SANITY_COVERAGE_TARGET_DIR) cargo tarpaulin --engine llvm --all-features \
 	  --workspace --timeout 120 --out Xml \
 	  --output-dir coverage --fail-under "$(COVERAGE_MIN)"
 
