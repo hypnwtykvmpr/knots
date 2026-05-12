@@ -1,0 +1,10 @@
+{
+  "event_id": "019e1684-6bb2-7823-83e7-7d4c964b8112",
+  "occurred_at": "2026-05-11T10:10:37.618849051Z",
+  "knot_id": "knots-4e88",
+  "type": "knot.title_set",
+  "data": {
+    "from": "doctor --fix: cover progressive output with tests",
+    "to": "test: cover doctor --fix progressive output"
+  }
+}

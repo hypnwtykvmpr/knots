@@ -1,0 +1,10 @@
+{
+  "event_id": "019e168d-bab6-7552-b6b9-51fa10efb35a",
+  "occurred_at": "2026-05-11T10:20:47.670166538Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.title_set",
+  "data": {
+    "from": "detect nested knots caches in kno doctor and report them, suggest manual fixes",
+    "to": "kno doctor: detect and report nested knots cache directories"
+  }
+}

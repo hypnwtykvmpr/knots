@@ -1,0 +1,21 @@
+{
+  "event_id": "019e16c9-16a8-7e30-b9e9-9e8450200dec",
+  "occurred_at": "2026-05-11T11:25:37.832603175Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-4e88",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "test: cover doctor --fix progressive output",
+    "type": "work",
+    "updated_at": "2026-05-11T11:25:37.832603175Z",
+    "workflow_id": "work_sdlc"
+  }
+}

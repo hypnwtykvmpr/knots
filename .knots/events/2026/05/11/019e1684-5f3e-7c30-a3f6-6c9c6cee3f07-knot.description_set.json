@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1684-5f3e-7c30-a3f6-6c9c6cee3f07",
+  "occurred_at": "2026-05-11T10:10:34.430341917Z",
+  "knot_id": "knots-347f",
+  "type": "knot.description_set",
+  "data": {
+    "description": "The CLI has two confusingly similar nouns: `kno skill` (prints the action-state prompt for a knot) and `kno skills` (manages installed skill bundles). Rename the former to `kno prompt` to eliminate the naming collision.\n\nChanges required:\n- `src/cli.rs`: rename `Commands::Skill` variant and args struct to `Prompt`; add a `skill` alias that emits a deprecation warning for one release cycle.\n- `src/run_commands.rs`: rename `run_skill` → `run_prompt`; update the dispatch table.\n- `src/cli_skills.rs`: evaluate splitting into `cli_prompt.rs` + `cli_skills.rs` if it improves clarity without exceeding the 500-line file limit.\n- `docs/` and `skills/*.md`: replace all references to `kno skill` (the prompt command) with `kno prompt`.\n- `TAXONOMY.md`: remove the `skill vs skills` ambiguity flag now that the commands are distinct."
+  }
+}

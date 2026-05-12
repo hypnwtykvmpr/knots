@@ -1,0 +1,21 @@
+{
+  "event_id": "019e16c2-37eb-7181-92ad-546757093fdd",
+  "occurred_at": "2026-05-11T11:18:07.595667843Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-347f",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "cli: rename `kno skill <id>` to `kno prompt <id>`",
+    "type": "work",
+    "updated_at": "2026-05-11T11:18:07.595667843Z",
+    "workflow_id": "work_sdlc"
+  }
+}

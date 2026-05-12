@@ -1,0 +1,15 @@
+{
+  "event_id": "019e168d-a8db-7962-b8c1-ce3651c523b4",
+  "occurred_at": "2026-05-11T10:20:43.099260462Z",
+  "knot_id": "knots-4e88",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete. Implement tests for `doctor --fix` progress output in the existing doctor progress test areas. Relevant files inspected: src/doctor_fix_progress_tests.rs currently checks only `Fixing <name>...` lines; src/doctor_progress_tests.rs checks diagnostics/per-fix/summary presence and plain fix=false silence; tests/cli_dispatch.rs has a doctor --fix CLI fixture that creates `.gitignore` and origin/knots. Proposed implementation: tighten unit assertions to exact ordered per-fix status lines with fix name and ok/fail/skip result, assert the final summary (`N fixed, M skipped, K failed` or the accepted contract) appears after all fix lines, add a CLI stdout ordered-pattern assertion for `kno doctor --fix`, and assert plain `kno doctor` has no new progress lines beyond baseline. Add a test comment noting automated tests verify captured order but not real-time TTY flush timing; manually verify by running `kno doctor --fix` in a repo with a fixable warning and observing each line before the next fix starts. Run focused cargo tests and `make sanity`.",
+    "datetime": "2026-05-11T10:20:43.099260462Z",
+    "entry_id": "019e168d-a8db-7962-b8c1-ce22445006ac",
+    "model": "GPT",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}

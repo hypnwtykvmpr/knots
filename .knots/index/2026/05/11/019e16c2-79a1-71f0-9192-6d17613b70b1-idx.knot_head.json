@@ -1,0 +1,21 @@
+{
+  "event_id": "019e16c2-79a1-71f0-9192-6d17613b70b1",
+  "occurred_at": "2026-05-11T11:18:24.417719028Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-90a5",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "kno doctor: detect and report nested knots cache directories",
+    "type": "work",
+    "updated_at": "2026-05-11T11:18:24.417719028Z",
+    "workflow_id": "work_sdlc"
+  }
+}

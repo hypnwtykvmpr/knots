@@ -1,0 +1,15 @@
+{
+  "event_id": "019e16a2-af1a-7251-9168-00c0baf18833",
+  "occurred_at": "2026-05-11T10:43:40.954605587Z",
+  "knot_id": "knots-347f",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation complete on branch worktree-knots-347f-rename-skill-to-prompt (commit aa52fdec). Renamed Commands::Skill -> Commands::Prompt and SkillArgs -> PromptArgs in src/cli_agent.rs; renamed run_skill -> run_prompt and private resolvers in src/run_commands.rs; preserved kno skill as a hidden clap alias on kno prompt that emits the exact deprecation line to stderr. Updated TAXONOMY.md (removed skill/skills ambiguity flag) and added .changeset/rename-skill-to-prompt.md. New integration tests at tests/cli_prompt_command.rs cover canonical stdout, byte-identical alias parity, exact stderr warning, and help output excluding skill as a top-level command. make sanity passes: fmt + lint + 1138 tests pass + coverage 95.08% (above 95% threshold). Review artifact: branch worktree-knots-347f-rename-skill-to-prompt on origin.",
+    "datetime": "2026-05-11T10:43:40.954605587Z",
+    "entry_id": "019e16a2-af1a-7251-9168-00b79ac18eb4",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

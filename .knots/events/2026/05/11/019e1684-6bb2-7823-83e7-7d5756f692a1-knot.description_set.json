@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1684-6bb2-7823-83e7-7d5756f692a1",
+  "occurred_at": "2026-05-11T10:10:37.618849051Z",
+  "knot_id": "knots-4e88",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Add unit and CLI tests for the progress reporting introduced by `doctor --fix`. Tests must assert ordered per-fix status lines, correct final summary output, and that plain `kno doctor` (no `--fix`) emits no additional output. Include a manual verification note in implementation comments because automated tests cannot assert real-time flush ordering on a TTY."
+  }
+}

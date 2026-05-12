@@ -1,0 +1,15 @@
+{
+  "event_id": "019e169a-5102-7633-a5ce-dae198c0c85e",
+  "occurred_at": "2026-05-11T10:34:32.578208125Z",
+  "knot_id": "knots-4e88",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-4e88-doctor-fix-progress. Commit: 78c7f5569696976ffa28096f468d9ec310a127be. Implemented doctor --fix progress result lines and summary coverage; make sanity passed with 95.07% coverage.",
+    "datetime": "2026-05-11T10:34:32.578208125Z",
+    "entry_id": "019e169a-5102-7633-a5ce-dad5a3d1eb81",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

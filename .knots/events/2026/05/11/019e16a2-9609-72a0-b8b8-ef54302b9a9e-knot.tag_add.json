@@ -1,0 +1,9 @@
+{
+  "event_id": "019e16a2-9609-72a0-b8b8-ef54302b9a9e",
+  "occurred_at": "2026-05-11T10:43:34.537297428Z",
+  "knot_id": "knots-347f",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-347f-rename-skill-to-prompt"
+  }
+}

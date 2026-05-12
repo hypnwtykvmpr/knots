@@ -1,0 +1,15 @@
+{
+  "event_id": "019e169c-e78e-7080-be44-6902a944f6b8",
+  "occurred_at": "2026-05-11T10:37:22.190814217Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation handoff capsule\n- Branch: knots-90a5-nested-cache (pushed to origin)\n- Commit: db5b42308ebc54e244fd8722d43d73f1945fad5d\n- New module: src/doctor_nested_cache.rs (check_nested_caches_at)\n- Tests: src/doctor_nested_cache_tests.rs (8 tests, all pass)\n- Wiring: src/doctor.rs run_doctor_at appended new check; src/main.rs mod doctor_nested_cache\n- Behavior: WARN with one `rm -rf <path>` line per detected nested cache; data.nested = sorted Vec<String>; PASS otherwise\n- Acceptance mapping: AC1+AC2 verified by nested_cache_detected_warns_and_lists_path and multiple_nested_caches_all_listed_sorted; AC3 by clean_repo_has_no_warning + worktree_internal_knots_not_flagged + empty_nested_knots_dir_without_cache_is_ignored + missing_outer_cache_passes_when_store_empty; AC4 covered by both positive and negative tests.\n- Sanity: `make sanity` passes, coverage 95.08% (+0.01%).",
+    "datetime": "2026-05-11T10:37:22.190814217Z",
+    "entry_id": "019e169c-e78e-7080-be44-68f463843950",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

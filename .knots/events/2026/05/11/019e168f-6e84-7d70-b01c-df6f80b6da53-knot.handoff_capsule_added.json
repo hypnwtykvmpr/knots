@@ -1,0 +1,15 @@
+{
+  "event_id": "019e168f-6e84-7d70-b01c-df6f80b6da53",
+  "occurred_at": "2026-05-11T10:22:39.236338685Z",
+  "knot_id": "knots-347f",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete. Implement by renaming the action prompt command from Skill/SkillArgs/run_skill to Prompt/PromptArgs/run_prompt, preserving `kno skill <id>` as a hidden deprecated alias that emits exactly `warning: 'kno skill' is deprecated; use 'kno prompt'` to stderr. `src/run_commands.rs` is 489 lines, so prefer extracting prompt command logic to a small dedicated module if edits would push it over the 500-line limit. Leave managed `kno skills ...` behavior untouched. Update docs/skills prompt-command references, remove the TAXONOMY ambiguity note, add parser/dispatch/unit coverage for canonical prompt and deprecated alias, then verify with targeted tests, rg checks for `Commands::Skill`/`run_skill` and stale `kno skill` docs references, and `make sanity`.",
+    "datetime": "2026-05-11T10:22:39.236338685Z",
+    "entry_id": "019e168f-6e84-7d70-b01c-df56c82b809a",
+    "model": "GPT",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}

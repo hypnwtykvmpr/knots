@@ -1,0 +1,9 @@
+{
+  "event_id": "019e168d-bab6-7552-b6b9-5205335b32c5",
+  "occurred_at": "2026-05-11T10:20:47.670166538Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.description_set",
+  "data": {
+    "description": "The `kno doctor` command should scan for nested `.knots` cache directories (a cache directory that exists inside another cache directory's subtree) and report them as a diagnostic issue. Nested caches cause silent data inconsistencies and confused state. When detected, the command should print clear, actionable manual fix instructions (e.g., which paths to remove) rather than auto-deleting anything."
+  }
+}

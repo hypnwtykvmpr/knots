@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1684-6bb2-7823-83e7-7d62023a34b6",
+  "occurred_at": "2026-05-11T10:10:37.618849051Z",
+  "knot_id": "knots-4e88",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A unit test asserts that running `doctor --fix` emits one status line per fix in the order fixes are applied, with each line containing the fix name and its result (ok/fail/skip).\n2. A unit test asserts the final summary line (e.g. `N fixed, M skipped, K failed`) appears after all per-fix lines.\n3. A CLI integration test runs `kno doctor --fix` against a fixture environment and captures stdout; output matches the expected ordered pattern.\n4. A test asserts that `kno doctor` (without `--fix`) produces identical output to its baseline — no extra progress lines.\n5. `make sanity` passes with no coverage regression.\n6. A comment in the test file notes that flush timing (lines appearing before the next fix runs) requires manual TTY verification and explains how to do it."
+  }
+}

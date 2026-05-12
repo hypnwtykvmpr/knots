@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1684-5f3e-7c30-a3f6-6ca93092fb4e",
+  "occurred_at": "2026-05-11T10:10:34.430341917Z",
+  "knot_id": "knots-347f",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno prompt <knot-id>` prints the action-state prompt — output is byte-for-byte identical to the previous `kno skill` output.\n2. `kno skill <knot-id>` still executes (backward compat) and prints a deprecation notice to stderr: `warning: 'kno skill' is deprecated; use 'kno prompt'`.\n3. `kno skills install`, `kno skills uninstall`, and `kno skills update` are completely unaffected by this change.\n4. `kno --help` lists `prompt` as the canonical subcommand; `skill` does not appear as a top-level command.\n5. `src/cli.rs` and `src/run_commands.rs` contain no `Commands::Skill` variant or `run_skill` symbol (grep must return zero matches).\n6. New unit tests cover: (a) `run_prompt` output matches expected prompt text, (b) the deprecated `skill` alias emits exactly the deprecation warning to stderr.\n7. All pre-existing tests pass without modification.\n8. `TAXONOMY.md` no longer contains the `skill vs skills` ambiguity note.\n9. `make sanity` passes (format, lint, coverage ≥ threshold in `.ci/coverage-threshold.txt`)."
+  }
+}

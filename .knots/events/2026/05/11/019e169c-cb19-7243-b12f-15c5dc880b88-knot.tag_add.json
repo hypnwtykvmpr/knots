@@ -1,0 +1,9 @@
+{
+  "event_id": "019e169c-cb19-7243-b12f-15c5dc880b88",
+  "occurred_at": "2026-05-11T10:37:14.905944253Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:knots-90a5-nested-cache"
+  }
+}

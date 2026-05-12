@@ -1,0 +1,9 @@
+{
+  "event_id": "019e168d-bab6-7552-b6b9-521ae659208c",
+  "occurred_at": "2026-05-11T10:20:47.670166538Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Running `kno doctor` in a repo where a nested `.knots` cache exists produces a warning or error listing the nested cache path(s).\n2. The output includes explicit manual fix instructions (e.g., `rm -rf <path>`) for each detected nested cache.\n3. Running `kno doctor` in a clean repo (no nested caches) produces no false-positive warnings related to this check.\n4. A unit/integration test covers the detection logic: one case with a nested cache (expect warning), one without (expect no warning)."
+  }
+}

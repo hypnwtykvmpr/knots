@@ -1,0 +1,15 @@
+{
+  "event_id": "019e168f-f633-7393-a90c-14c2ccd3a376",
+  "occurred_at": "2026-05-11T10:23:13.971282531Z",
+  "knot_id": "knots-90a5",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan ready for review.\n\nImplementation adds one new detection-only doctor check named `nested_caches`:\n- New module `src/doctor_nested_cache.rs` exposing `check_nested_caches_at(&StorePaths)`.\n- Walks the canonical `.knots/` store and reports any descendant `.knots/`\n  directory that contains `cache/state.sqlite` or `cache/cache.lock`.\n- Returns `Warn` with `data.nested` (Vec<String>) and a multi-line `detail`\n  that includes one `rm -rf <abs-path>` per nested cache. No auto-fix.\n- Wired into `src/doctor.rs::run_doctor_at` via a single appended line; no\n  changes to `doctor_fix.rs`.\n\nTests (in `src/doctor_nested_cache_tests.rs`):\n- Positive: nested cache produces Warn with the path and `rm -rf` line.\n- Negative: clean repo, worktree-internal `.knots` (index/ only), missing\n  outer cache all produce Pass.\n- Multi-nested: both paths listed sorted, both `rm -rf` lines present.\n\nAcceptance criteria mapped 1:1 to tests. No invariants; no child knots needed.\nSingle implementation step.",
+    "datetime": "2026-05-11T10:23:13.971282531Z",
+    "entry_id": "019e168f-f633-7393-a90c-14b99282531d",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}
