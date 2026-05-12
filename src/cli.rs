@@ -9,6 +9,7 @@ pub use crate::cli_agent::*;
 pub use crate::cli_loom::*;
 pub use crate::cli_ops::*;
 pub use crate::cli_plan::*;
+pub use crate::cli_scope::*;
 pub use crate::cli_skills::*;
 pub use crate::cli_workflow::*;
 
@@ -250,6 +251,9 @@ pub struct NewArgs {
 
     #[arg(short = 't', long = "tag", help = "Add tag (repeatable).")]
     pub tags: Vec<String>,
+
+    #[command(flatten)]
+    pub scope: ScopeArgs,
 
     #[arg(long, help = "Bind a lease to this knot.")]
     pub lease: Option<String>,

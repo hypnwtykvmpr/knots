@@ -65,6 +65,7 @@ fn execute_queued_request_returns_failure_when_app_open_fails() {
             gate_owner_kind: None,
             gate_failure_modes: vec![],
             tags: vec![],
+            scope: crate::cli_scope::ScopeArgs::default(),
             lease_id: None,
         }),
     };
@@ -351,6 +352,7 @@ fn exploration_op() -> NewOperation {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         tags: vec![],
+        scope: crate::cli_scope::ScopeArgs::default(),
         lease_id: None,
     }
 }

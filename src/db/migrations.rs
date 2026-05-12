@@ -18,7 +18,7 @@ struct Migration {
     sql: &'static str,
 }
 
-const MIGRATIONS: [Migration; 17] = [
+const MIGRATIONS: [Migration; 18] = [
     Migration {
         version: 1,
         name: "baseline_cache_schema_v1",
@@ -330,6 +330,13 @@ CREATE INDEX IF NOT EXISTS idx_knot_hot_state ON knot_hot(state);
         name: "knot_execution_plan_data_v1",
         sql: r#"
 ALTER TABLE knot_hot ADD COLUMN execution_plan_data_json TEXT NOT NULL DEFAULT '{}';
+"#,
+    },
+    Migration {
+        version: 18,
+        name: "knot_scope_data_v1",
+        sql: r#"
+ALTER TABLE knot_hot ADD COLUMN scope_data_json TEXT NOT NULL DEFAULT '{}';
 "#,
     },
 ];

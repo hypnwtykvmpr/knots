@@ -7,6 +7,7 @@ use crate::domain::invariant::Invariant;
 use crate::domain::knot_type::{parse_knot_type, KnotType};
 use crate::domain::lease::{AgentInfo, LeaseData};
 use crate::domain::metadata::MetadataEntry;
+use crate::domain::scope::ScopeData;
 use crate::domain::step_history::StepRecord;
 use crate::workflow::StepMetadata;
 
@@ -36,6 +37,8 @@ pub struct KnotView {
     pub lease: Option<LeaseData>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution_plan: Option<ExecutionPlanData>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<ScopeData>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lease_id: Option<String>,
     #[serde(default)]
@@ -164,6 +167,7 @@ pub struct CreateKnotOptions {
     pub gate_data: GateData,
     pub lease_data: LeaseData,
     pub execution_plan_data: ExecutionPlanData,
+    pub scope_data: ScopeData,
     pub acceptance: Option<String>,
     pub tags: Vec<String>,
 }
@@ -176,6 +180,7 @@ impl From<KnotCacheRecord> for KnotView {
         let lease = (knot_type == KnotType::Lease).then_some(value.lease_data.clone());
         let execution_plan =
             should_include_execution_plan(&value).then_some(value.execution_plan_data.clone());
+        let scope = (!value.scope_data.is_empty()).then_some(value.scope_data.clone());
         Self {
             id: value.id,
             alias: None,
@@ -195,6 +200,7 @@ impl From<KnotCacheRecord> for KnotView {
             gate,
             lease,
             execution_plan,
+            scope,
             lease_id: value.lease_id,
             lease_expiry_ts: value.lease_expiry_ts,
             lease_agent: None,

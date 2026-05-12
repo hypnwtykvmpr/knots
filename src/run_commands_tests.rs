@@ -266,6 +266,7 @@ fn show_json_value_hides_lease_id_and_keeps_lease_agent_metadata() {
         gate: None,
         lease: None,
         execution_plan: None,
+        scope: None,
         lease_id: Some("knots-lease-secret".to_string()),
         lease_expiry_ts: 0,
         lease_agent: Some(crate::domain::lease::AgentInfo {

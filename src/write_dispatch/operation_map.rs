@@ -48,6 +48,7 @@ fn map_new(args: &crate::cli::NewArgs) -> WriteOperation {
         gate_owner_kind: args.gate_owner_kind.clone(),
         gate_failure_modes: args.gate_failure_modes.clone(),
         tags: args.tags.clone(),
+        scope: args.scope.clone(),
         lease_id: args.lease.clone(),
     })
 }
@@ -103,6 +104,7 @@ fn map_update(args: &crate::cli::UpdateArgs) -> WriteOperation {
         gate_owner_kind: args.gate_owner_kind.clone(),
         gate_failure_modes: args.gate_failure_modes.clone(),
         clear_gate_failure_modes: args.clear_gate_failure_modes,
+        scope: args.scope.clone(),
         execution_plan_file: args
             .execution_plan_file
             .as_ref()

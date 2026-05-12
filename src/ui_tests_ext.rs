@@ -6,6 +6,7 @@ use super::{
 use crate::app::KnotView;
 use crate::doctor::{DoctorCheck, DoctorReport, DoctorStatus};
 use crate::domain::metadata::MetadataEntry;
+use crate::domain::scope::{ScopeData, ScopeFloat};
 use crate::list_layout::DisplayKnot;
 use crate::listing::KnotListFilter;
 use crate::progress::ProgressKind;
@@ -46,6 +47,7 @@ fn sample_knot() -> KnotView {
         gate: None,
         lease: None,
         execution_plan: None,
+        scope: None,
         lease_id: None,
         lease_expiry_ts: 0,
         lease_agent: None,
@@ -181,6 +183,41 @@ fn show_and_print_paths_cover_empty_field_and_public_print_functions() {
     print_knot_list(&[row], &filter);
     print_knot_show(&sample_knot(), false);
     print_knot_show(&sample_knot(), true);
+}
+
+#[test]
+fn show_fields_include_all_scope_values() {
+    let mut knot = sample_knot();
+    knot.scope = Some(ScopeData {
+        volume: Some(8),
+        scale: Some("fib_v1".to_string()),
+        volume_score_confidence: Some(ScopeFloat::new(0.72).expect("finite")),
+        volume_stddev: Some(ScopeFloat::new(1.25).expect("finite")),
+        volume_result_id: Some("vol-1".to_string()),
+        reliability: Some(44),
+        reliability_score_confidence: Some(ScopeFloat::new(0.91).expect("finite")),
+        reliability_stddev: Some(ScopeFloat::new(2.5).expect("finite")),
+        reliability_band: Some("medium".to_string()),
+        reliability_result_id: Some("rel-1".to_string()),
+    });
+
+    let fields = knot_show_fields(&knot, false);
+    let value = |label: &str| {
+        fields
+            .iter()
+            .find(|field| field.label == label)
+            .map(|field| field.value.as_str())
+    };
+    assert_eq!(value("scope_volume"), Some("8"));
+    assert_eq!(value("scope_scale"), Some("fib_v1"));
+    assert_eq!(value("scope_volume_score_confidence"), Some("0.72"));
+    assert_eq!(value("scope_volume_stddev"), Some("1.25"));
+    assert_eq!(value("scope_volume_result_id"), Some("vol-1"));
+    assert_eq!(value("scope_reliability"), Some("44"));
+    assert_eq!(value("scope_reliability_score_confidence"), Some("0.91"));
+    assert_eq!(value("scope_reliability_stddev"), Some("2.5"));
+    assert_eq!(value("scope_reliability_band"), Some("medium"));
+    assert_eq!(value("scope_reliability_result_id"), Some("rel-1"));
 }
 
 #[test]

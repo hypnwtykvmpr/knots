@@ -22,6 +22,7 @@ pub mod helpers;
 mod knot_create;
 mod knot_lease;
 mod knot_profile;
+mod knot_scope;
 mod knot_update;
 mod profile_config;
 mod query;

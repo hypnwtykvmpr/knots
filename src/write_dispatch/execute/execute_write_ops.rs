@@ -32,12 +32,31 @@ pub(super) fn execute_update(
     };
     validate_non_claim_lease(&knot, args.lease_id.as_deref())?;
     let patch = build_update_patch(app, args)?;
-    let knot = execute_with_terminal_cascade_prompt(
-        args.approve_terminal_cascade,
-        |approve_terminal_cascade| {
-            app.update_knot_with_options(&args.id, patch.clone(), approve_terminal_cascade)
-        },
-    )?;
+    let scope_patch = super::scope_validation::parse_scope_patch(&args.scope)?;
+    if !patch.has_changes() && !scope_patch.has_changes() {
+        return Err(AppError::InvalidArgument(
+            "update requires at least one field change".to_string(),
+        ));
+    }
+    let had_field_changes = patch.has_changes();
+    let knot = if had_field_changes {
+        execute_with_terminal_cascade_prompt(
+            args.approve_terminal_cascade,
+            |approve_terminal_cascade| {
+                app.update_knot_with_options(&args.id, patch.clone(), approve_terminal_cascade)
+            },
+        )?
+    } else {
+        knot
+    };
+    let knot = if scope_patch.has_changes() {
+        let expected = (!had_field_changes)
+            .then_some(args.if_match.as_deref())
+            .flatten();
+        app.update_knot_scope(&knot.id, scope_patch, expected)?
+    } else {
+        knot
+    };
     refresh_lease_heartbeat(app, &knot);
     let palette = ui::Palette::auto();
     Ok(format!(

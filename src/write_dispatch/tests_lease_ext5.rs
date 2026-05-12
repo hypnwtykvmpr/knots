@@ -26,6 +26,7 @@ fn update_op_with_lease(id: &str, lease_id: &str) -> WriteOperation {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: None,

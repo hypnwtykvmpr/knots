@@ -13,9 +13,10 @@ use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::lease::LeaseData;
 use crate::domain::metadata::MetadataEntry;
+use crate::domain::scope::ScopeData;
 use crate::domain::step_history::StepRecord;
 
-pub const CURRENT_SCHEMA_VERSION: i64 = 17;
+pub const CURRENT_SCHEMA_VERSION: i64 = 18;
 
 mod catalog;
 mod migrations;
@@ -142,6 +143,8 @@ pub struct KnotCacheRecord {
     pub lease_data: LeaseData,
     #[serde(default)]
     pub execution_plan_data: ExecutionPlanData,
+    #[serde(default)]
+    pub scope_data: ScopeData,
     pub lease_id: Option<String>,
     #[serde(default)]
     pub lease_expiry_ts: i64,
@@ -285,6 +288,17 @@ ON CONFLICT(id) DO UPDATE SET
     Ok(())
 }
 
+pub fn update_knot_scope_data(conn: &Connection, id: &str, scope_data: &ScopeData) -> Result<()> {
+    let scope_data_json = to_json_text(scope_data)?;
+    with_write_retry(|| {
+        conn.execute(
+            "UPDATE knot_hot SET scope_data_json = ?2 WHERE id = ?1",
+            params![id, scope_data_json.as_str()],
+        )?;
+        Ok(())
+    })
+}
+
 pub fn get_knot_hot(conn: &Connection, id: &str) -> Result<Option<KnotCacheRecord>> {
     conn.query_row(
         r#"
@@ -292,7 +306,7 @@ SELECT id, title, state, updated_at, body, description, acceptance,
        priority, knot_type, tags_json, notes_json,
        handoff_capsules_json, invariants_json, step_history_json,
        gate_data_json, lease_data_json, execution_plan_data_json, lease_id, lease_expiry_ts,
-       workflow_id, profile_id, profile_etag,
+       workflow_id, profile_id, profile_etag, scope_data_json,
        deferred_from_state, blocked_from_state, created_at
 FROM knot_hot
 WHERE id = ?1
@@ -310,7 +324,7 @@ SELECT id, title, state, updated_at, body, description, acceptance,
        priority, knot_type, tags_json, notes_json,
        handoff_capsules_json, invariants_json, step_history_json,
        gate_data_json, lease_data_json, execution_plan_data_json, lease_id, lease_expiry_ts,
-       workflow_id, profile_id, profile_etag,
+       workflow_id, profile_id, profile_etag, scope_data_json,
        deferred_from_state, blocked_from_state, created_at
 FROM knot_hot
 ORDER BY updated_at DESC, id ASC
@@ -335,6 +349,7 @@ fn row_to_knot_cache_record(row: &rusqlite::Row<'_>) -> Result<KnotCacheRecord> 
     let gate_data_json: String = row.get(14)?;
     let lease_data_json: String = row.get(15)?;
     let execution_plan_data_json: String = row.get(16)?;
+    let scope_data_json: String = row.get(22)?;
     Ok(KnotCacheRecord {
         id: row.get(0)?,
         title: row.get(1)?,
@@ -358,9 +373,10 @@ fn row_to_knot_cache_record(row: &rusqlite::Row<'_>) -> Result<KnotCacheRecord> 
         workflow_id: row.get(19)?,
         profile_id: row.get(20)?,
         profile_etag: row.get(21)?,
-        deferred_from_state: row.get(22)?,
-        blocked_from_state: row.get(23)?,
-        created_at: row.get(24)?,
+        scope_data: from_json_text(scope_data_json, 22)?,
+        deferred_from_state: row.get(23)?,
+        blocked_from_state: row.get(24)?,
+        created_at: row.get(25)?,
     })
 }
 

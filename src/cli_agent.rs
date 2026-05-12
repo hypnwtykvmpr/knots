@@ -215,6 +215,8 @@ pub struct UpdateArgs {
         help = "Clear all gate failure-mode mappings."
     )]
     pub clear_gate_failure_modes: bool,
+    #[command(flatten)]
+    pub scope: crate::cli_scope::ScopeArgs,
     #[arg(
         long = "execution-plan-file",
         value_name = "PATH",

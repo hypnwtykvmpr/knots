@@ -161,9 +161,8 @@ impl App {
                 "gate": &options.gate_data,
             }),
         );
-        let index_event_id = new_event_id();
         let idx_event = IndexEvent::with_identity(
-            index_event_id.clone(),
+            new_event_id(),
             occurred_at.clone(),
             IndexEventKind::KnotHead.as_str(),
             build_knot_head_data(KnotHeadData {
@@ -194,7 +193,7 @@ impl App {
             options,
             &mut tags,
         )?;
-        self.writer.write(&EventRecord::index(idx_event))?;
+        self.writer.write(&EventRecord::index(idx_event.clone()))?;
         db::upsert_knot_hot(
             &self.conn,
             &UpsertKnotHot {
@@ -218,12 +217,13 @@ impl App {
                 lease_id: None,
                 workflow_id: profile.workflow_id.as_str(),
                 profile_id: profile.id.as_str(),
-                profile_etag: Some(&index_event_id),
+                profile_etag: Some(&idx_event.event_id),
                 deferred_from_state: None,
                 blocked_from_state: None,
                 created_at: Some(&occurred_at),
             },
         )?;
+        db::update_knot_scope_data(&self.conn, &knot_id, &options.scope_data)?;
         let record = db::get_knot_hot(&self.conn, &knot_id)?
             .ok_or_else(|| AppError::NotFound(knot_id.clone()))?;
         self.apply_alias_and_enrich_knot(KnotView::from(record))
@@ -255,6 +255,16 @@ impl App {
                 knot_id.to_string(),
                 FullEventKind::KnotAcceptanceSet.as_str(),
                 json!({ "acceptance": acceptance }),
+            );
+            self.writer.write(&EventRecord::full(event))?;
+        }
+        if !options.scope_data.is_empty() {
+            let event = FullEvent::with_identity(
+                new_event_id(),
+                occurred_at.to_string(),
+                knot_id.to_string(),
+                FullEventKind::KnotScopeSet.as_str(),
+                serde_json::to_value(&options.scope_data).expect("scope data should serialize"),
             );
             self.writer.write(&EventRecord::full(event))?;
         }
