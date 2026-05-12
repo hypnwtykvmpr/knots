@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
-use super::rehydrate_from_events;
-use crate::domain::scope::{ScopeData, ScopeFloat};
+use super::{rehydrate_from_events, App, CreateKnotOptions};
+use crate::domain::scope::{ScopeData, ScopeFloat, ScopePatch};
 
 fn unique_root(prefix: &str) -> std::path::PathBuf {
     let root = std::env::temp_dir().join(format!("{prefix}-{}", uuid::Uuid::now_v7()));
@@ -24,6 +24,37 @@ fn write_event(root: &std::path::Path, filename: &str, body: &Value) {
         serde_json::to_vec_pretty(body).expect("event serializes"),
     )
     .expect("event should be writable");
+}
+
+fn latest_knot_head_payload(root: &std::path::Path, knot_id: &str) -> Value {
+    let mut paths = Vec::new();
+    let mut stack = vec![root.join(".knots/index")];
+    while let Some(dir) = stack.pop() {
+        if !dir.exists() {
+            continue;
+        }
+        for entry in std::fs::read_dir(dir).expect("index dir should be readable") {
+            let path = entry.expect("index entry should be readable").path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|ext| ext == "json") {
+                paths.push(path);
+            }
+        }
+    }
+    paths.sort();
+    paths
+        .into_iter()
+        .rev()
+        .find_map(|path| {
+            let json: Value = serde_json::from_slice(
+                &std::fs::read(&path).expect("index event should be readable"),
+            )
+            .expect("index event should parse");
+            let data = json.get("data")?;
+            (json["type"] == "idx.knot_head" && data["knot_id"] == knot_id).then(|| data.clone())
+        })
+        .expect("knot head payload should exist")
 }
 
 fn created_event() -> Value {
@@ -64,6 +95,60 @@ fn scope_event(event_id: &str, occurred_at: &str, scope: &ScopeData) -> Value {
         "knot_id": "K-scope",
         "data": serde_json::to_value(scope).expect("scope serializes"),
     })
+}
+
+#[test]
+fn scope_update_writes_scope_to_index_head_and_list_view() {
+    let root = unique_root("knots-scope-index-head");
+    let db_path = root.join(".knots/cache/state.sqlite");
+    let app =
+        App::open(db_path.to_str().expect("utf8 path"), root.clone()).expect("app should open");
+    let created = app
+        .create_knot_with_options(
+            "Scoped index",
+            Some("desc"),
+            Some("implementation"),
+            Some("autopilot"),
+            None,
+            CreateKnotOptions::default(),
+        )
+        .expect("create should succeed");
+    let expected = ScopeData {
+        volume: Some(13),
+        scale: Some("fib_v1".to_string()),
+        reliability: Some(55),
+        reliability_band: Some("high".to_string()),
+        ..ScopeData::default()
+    };
+
+    let updated = app
+        .update_knot_scope(
+            &created.id,
+            ScopePatch {
+                volume: expected.volume,
+                scale: expected.scale.clone(),
+                reliability: expected.reliability,
+                reliability_band: expected.reliability_band.clone(),
+                ..ScopePatch::default()
+            },
+            None,
+        )
+        .expect("scope update should succeed");
+
+    assert_eq!(updated.scope.as_ref(), Some(&expected));
+    let listed = app.list_knots().expect("list should succeed");
+    let listed_scope = listed
+        .iter()
+        .find(|view| view.id == created.id)
+        .and_then(|view| view.scope.as_ref());
+    assert_eq!(listed_scope, Some(&expected));
+    let head = latest_knot_head_payload(&root, &created.id);
+    assert_eq!(head["scope"]["volume"], json!(13));
+    assert_eq!(head["scope"]["scale"], json!("fib_v1"));
+    assert_eq!(head["scope"]["reliability"], json!(55));
+    assert_eq!(head["scope"]["reliability_band"], json!("high"));
+
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]

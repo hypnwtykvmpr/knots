@@ -290,6 +290,17 @@ pub(super) fn parse_scope_data(
         .map_err(|err| invalid_event(path, &format!("invalid scope payload: {}", err)))
 }
 
+pub(super) fn parse_index_scope_data(
+    object: &Map<String, Value>,
+    path: &Path,
+) -> Result<ScopeData, SyncError> {
+    let raw = object
+        .get("scope")
+        .ok_or_else(|| invalid_event(path, "missing 'scope' field"))?;
+    serde_json::from_value(raw.clone())
+        .map_err(|err| invalid_event(path, &format!("invalid 'scope' payload: {}", err)))
+}
+
 pub(super) fn invalid_event(path: &Path, message: &str) -> SyncError {
     SyncError::InvalidEvent {
         path: path.to_path_buf(),
@@ -372,10 +383,13 @@ pub(super) fn build_index_upsert(
         .as_ref()
         .map(|r| r.lease_data.clone())
         .unwrap_or_default();
-    let scope_data = existing
+    let mut scope_data = existing
         .as_ref()
         .map(|r| r.scope_data.clone())
         .unwrap_or_default();
+    if params.data.contains_key("scope") {
+        scope_data = parse_index_scope_data(params.data, params.absolute_path)?;
+    }
     let mut execution_plan_data = existing
         .as_ref()
         .map(|r| r.execution_plan_data.clone())
