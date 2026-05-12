@@ -6,6 +6,7 @@ use super::{
     relative_path_for_event, EventRecord, EventStream, EventWriteError, FullEvent, FullEventKind,
     IndexEvent, IndexEventKind,
 };
+use crate::domain::scope::{ScopeData, ScopeFloat};
 
 #[test]
 fn full_event_kind_strings_cover_remaining_variants() {
@@ -82,6 +83,74 @@ fn relative_path_rejects_invalid_timestamp_values() {
         result,
         Err(EventWriteError::InvalidTimestamp { .. })
     ));
+}
+
+#[test]
+fn knot_scope_set_payload_uses_spec_keys() {
+    let scope = ScopeData {
+        volume: Some(8),
+        scale: Some("fib_v1".to_string()),
+        volume_score_confidence: Some(ScopeFloat::new(0.72).expect("finite")),
+        volume_stddev: Some(ScopeFloat::new(1.25).expect("finite")),
+        volume_result_id: Some("vol-1".to_string()),
+        reliability: Some(44),
+        reliability_score_confidence: Some(ScopeFloat::new(0.91).expect("finite")),
+        reliability_stddev: Some(ScopeFloat::new(2.5).expect("finite")),
+        reliability_band: Some("medium".to_string()),
+        reliability_result_id: Some("rel-1".to_string()),
+    };
+    let payload = serde_json::to_value(&scope).expect("scope serializes");
+    let object = payload.as_object().expect("scope payload is an object");
+
+    for key in [
+        "volume",
+        "scale",
+        "volume_score_confidence",
+        "volume_stddev",
+        "volume_result_id",
+        "reliability",
+        "reliability_score_confidence",
+        "reliability_stddev",
+        "reliability_band",
+        "reliability_result_id",
+    ] {
+        assert!(
+            object.contains_key(key),
+            "payload should contain spec field `{key}`"
+        );
+    }
+    assert_eq!(object.len(), 10, "payload should not contain extra keys");
+    let event = FullEvent::new("K-1", FullEventKind::KnotScopeSet, payload);
+    assert_eq!(event.event_type, "knot.scope_set");
+}
+
+#[test]
+fn knot_scope_set_payload_omits_absent_fields() {
+    let scope = ScopeData {
+        volume: Some(3),
+        reliability_band: Some("high".to_string()),
+        ..ScopeData::default()
+    };
+    let payload = serde_json::to_value(&scope).expect("scope serializes");
+    let object = payload.as_object().expect("scope payload is an object");
+
+    assert!(object.contains_key("volume"));
+    assert!(object.contains_key("reliability_band"));
+    for absent in [
+        "scale",
+        "volume_score_confidence",
+        "volume_stddev",
+        "volume_result_id",
+        "reliability",
+        "reliability_score_confidence",
+        "reliability_stddev",
+        "reliability_result_id",
+    ] {
+        assert!(
+            !object.contains_key(absent),
+            "absent field `{absent}` should be skipped in JSON"
+        );
+    }
 }
 
 #[test]
