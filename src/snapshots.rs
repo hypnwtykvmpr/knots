@@ -199,6 +199,7 @@ pub fn apply_latest_snapshots_at_store(
                     created_at: record.created_at.as_deref(),
                 },
             )?;
+            db::update_knot_scope_data(conn, &record.id, &record.scope_data)?;
             hot_count += 1;
         }
 

@@ -206,6 +206,48 @@ fn new_tag_defaults_empty() {
 }
 
 #[test]
+fn new_parses_scope_flags() {
+    let cli = parse(&[
+        "kno",
+        "new",
+        "Scoped",
+        "--scope-volume",
+        "5",
+        "--scope-scale",
+        "fib_v1",
+        "--scope-volume-score-confidence",
+        "0.72",
+        "--scope-volume-stddev",
+        "1.5",
+        "--scope-volume-result-id",
+        "vol-1",
+        "--scope-reliability",
+        "62",
+        "--scope-reliability-score-confidence",
+        "0.81",
+        "--scope-reliability-stddev",
+        "2.5",
+        "--scope-reliability-band",
+        "medium",
+        "--scope-reliability-result-id",
+        "rel-1",
+    ]);
+    match cli.command {
+        Commands::New(args) => {
+            assert_eq!(args.scope.scope_volume.as_deref(), Some("5"));
+            assert_eq!(args.scope.scope_scale.as_deref(), Some("fib_v1"));
+            assert_eq!(
+                args.scope.scope_volume_score_confidence.as_deref(),
+                Some("0.72")
+            );
+            assert_eq!(args.scope.scope_reliability.as_deref(), Some("62"));
+            assert_eq!(args.scope.scope_reliability_band.as_deref(), Some("medium"));
+        }
+        other => panic!("expected New, got {:?}", other),
+    }
+}
+
+#[test]
 fn update_parses_invariant_flags() {
     let cli = parse(&[
         "kno",
@@ -223,6 +265,36 @@ fn update_parses_invariant_flags() {
             assert_eq!(args.add_invariants.len(), 1);
             assert_eq!(args.remove_invariants.len(), 1);
             assert!(args.clear_invariants);
+        }
+        other => panic!("expected Update, got {:?}", other),
+    }
+}
+
+#[test]
+fn update_parses_scope_flags() {
+    let cli = parse(&[
+        "kno",
+        "update",
+        "abc123",
+        "--scope-volume",
+        "8",
+        "--scope-scale",
+        "fib_v1",
+        "--scope-volume-score-confidence",
+        "0.72",
+        "--scope-reliability",
+        "44",
+    ]);
+    match cli.command {
+        Commands::Update(args) => {
+            assert_eq!(args.id, "abc123");
+            assert_eq!(args.scope.scope_volume.as_deref(), Some("8"));
+            assert_eq!(args.scope.scope_scale.as_deref(), Some("fib_v1"));
+            assert_eq!(
+                args.scope.scope_volume_score_confidence.as_deref(),
+                Some("0.72")
+            );
+            assert_eq!(args.scope.scope_reliability.as_deref(), Some("44"));
         }
         other => panic!("expected Update, got {:?}", other),
     }

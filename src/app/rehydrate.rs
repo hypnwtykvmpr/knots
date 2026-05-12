@@ -9,6 +9,7 @@ use crate::domain::invariant::Invariant;
 use crate::domain::knot_type::{parse_knot_type, KnotType};
 use crate::domain::lease::LeaseData;
 use crate::domain::metadata::MetadataEntry;
+use crate::domain::scope::ScopeData;
 use crate::domain::step_history::StepRecord;
 use crate::events::{FullEvent, IndexEvent, IndexEventKind};
 use crate::workflow::normalize_profile_id;
@@ -35,6 +36,7 @@ pub(crate) struct RehydrateProjection {
     pub gate_data: GateData,
     pub lease_data: LeaseData,
     pub execution_plan_data: ExecutionPlanData,
+    pub scope_data: ScopeData,
     pub lease_id: Option<String>,
     pub workflow_id: String,
     pub profile_id: String,
@@ -76,6 +78,7 @@ fn new_projection(title: String, state: String, updated_at: String) -> Rehydrate
         gate_data: GateData::default(),
         lease_data: LeaseData::default(),
         execution_plan_data: ExecutionPlanData::default(),
+        scope_data: ScopeData::default(),
         lease_id: None,
         workflow_id: String::new(),
         profile_id: String::new(),
@@ -287,6 +290,13 @@ pub(crate) fn parse_gate_data_value(value: Option<&Value>) -> GateData {
 pub(crate) fn parse_execution_plan_data_value(value: Option<&Value>) -> ExecutionPlanData {
     let Some(value) = value.cloned() else {
         return ExecutionPlanData::default();
+    };
+    serde_json::from_value(value).unwrap_or_default()
+}
+
+pub(crate) fn parse_scope_data_value(value: Option<&Value>) -> ScopeData {
+    let Some(value) = value.cloned() else {
+        return ScopeData::default();
     };
     serde_json::from_value(value).unwrap_or_default()
 }

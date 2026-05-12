@@ -233,6 +233,7 @@ fn knot_show_fields(knot: &KnotView, verbose: bool) -> Vec<ShowField> {
     if !knot.tags.is_empty() {
         f.push(ShowField::new("tags", knot.tags.join(", ")));
     }
+    append_scope_fields(&mut f, knot);
     append_step_metadata_fields(&mut f, knot);
     append_metadata_fields(&mut f, knot, verbose);
     append_lease_agent_fields(&mut f, knot);
@@ -270,6 +271,52 @@ fn append_metadata_fields(f: &mut Vec<ShowField>, knot: &KnotView, verbose: bool
         ));
     }
 }
+
+fn append_scope_fields(f: &mut Vec<ShowField>, knot: &KnotView) {
+    let Some(scope) = knot.scope.as_ref() else {
+        return;
+    };
+    if let Some(value) = scope.volume {
+        f.push(ShowField::new("scope_volume", value.to_string()));
+    }
+    if let Some(value) = scope.scale.as_deref() {
+        f.push(ShowField::new("scope_scale", value));
+    }
+    if let Some(value) = scope.volume_score_confidence {
+        f.push(ShowField::new(
+            "scope_volume_score_confidence",
+            value.to_string(),
+        ));
+    }
+    if let Some(value) = scope.volume_stddev {
+        f.push(ShowField::new("scope_volume_stddev", value.to_string()));
+    }
+    if let Some(value) = scope.volume_result_id.as_deref() {
+        f.push(ShowField::new("scope_volume_result_id", value));
+    }
+    if let Some(value) = scope.reliability {
+        f.push(ShowField::new("scope_reliability", value.to_string()));
+    }
+    if let Some(value) = scope.reliability_score_confidence {
+        f.push(ShowField::new(
+            "scope_reliability_score_confidence",
+            value.to_string(),
+        ));
+    }
+    if let Some(value) = scope.reliability_stddev {
+        f.push(ShowField::new(
+            "scope_reliability_stddev",
+            value.to_string(),
+        ));
+    }
+    if let Some(value) = scope.reliability_band.as_deref() {
+        f.push(ShowField::new("scope_reliability_band", value));
+    }
+    if let Some(value) = scope.reliability_result_id.as_deref() {
+        f.push(ShowField::new("scope_reliability_result_id", value));
+    }
+}
+
 fn append_step_metadata_fields(f: &mut Vec<ShowField>, knot: &KnotView) {
     if let Some(meta) = &knot.step_metadata {
         f.push(ShowField::new("step_owner", format_step_owner(meta)));

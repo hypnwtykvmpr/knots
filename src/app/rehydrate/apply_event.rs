@@ -6,7 +6,7 @@ use crate::workflow::normalize_profile_id;
 
 use super::{
     parse_execution_plan_data_value, parse_gate_data_value, parse_invariants_value,
-    parse_metadata_entry_for_rehydrate, RehydrateProjection,
+    parse_metadata_entry_for_rehydrate, parse_scope_data_value, RehydrateProjection,
 };
 
 pub(crate) fn apply_rehydrate_event(projection: &mut RehydrateProjection, event: &FullEvent) {
@@ -36,6 +36,7 @@ pub(crate) fn apply_rehydrate_event(projection: &mut RehydrateProjection, event:
         "knot.execution_plan_data_set" => {
             apply_execution_plan_data_set(projection, data, event);
         }
+        "knot.scope_set" => apply_scope_set(projection, data, event),
         "knot.tag_add" => apply_tag_add(projection, data),
         "knot.tag_remove" => apply_tag_remove(projection, data),
         "knot.note_added" => apply_note_added(projection, data),
@@ -232,6 +233,15 @@ fn apply_execution_plan_data_set(
     event: &FullEvent,
 ) {
     p.execution_plan_data = parse_execution_plan_data_value(data.get("execution_plan"));
+    p.updated_at = event.occurred_at.clone();
+}
+
+fn apply_scope_set(
+    p: &mut RehydrateProjection,
+    data: &serde_json::Map<String, Value>,
+    event: &FullEvent,
+) {
+    p.scope_data = parse_scope_data_value(Some(&Value::Object(data.clone())));
     p.updated_at = event.occurred_at.clone();
 }
 

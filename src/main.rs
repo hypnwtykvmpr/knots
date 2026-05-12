@@ -9,6 +9,7 @@ mod cli_help;
 mod cli_loom;
 mod cli_ops;
 mod cli_plan;
+mod cli_scope;
 mod cli_skills;
 mod cli_workflow;
 mod completions;

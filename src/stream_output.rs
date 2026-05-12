@@ -61,6 +61,7 @@ mod tests {
             gate: None,
             lease: None,
             execution_plan: None,
+            scope: None,
             lease_id: None,
             lease_expiry_ts: 0,
             lease_agent: None,

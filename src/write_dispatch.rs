@@ -104,6 +104,10 @@ mod tests_plan_prompt;
 mod tests_rollback_ext;
 
 #[cfg(test)]
+#[path = "write_dispatch/tests_scope.rs"]
+mod tests_scope;
+
+#[cfg(test)]
 #[path = "write_dispatch/tests_gate_ext.rs"]
 mod tests_gate_ext;
 

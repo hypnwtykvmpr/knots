@@ -36,6 +36,7 @@ pub struct NewOperation {
     pub gate_owner_kind: Option<String>,
     pub gate_failure_modes: Vec<String>,
     pub tags: Vec<String>,
+    pub scope: crate::cli_scope::ScopeArgs,
     pub lease_id: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -73,6 +74,7 @@ pub struct UpdateOperation {
     pub gate_owner_kind: Option<String>,
     pub gate_failure_modes: Vec<String>,
     pub clear_gate_failure_modes: bool,
+    pub scope: crate::cli_scope::ScopeArgs,
     pub execution_plan_file: Option<String>,
     pub objective: Option<String>,
     pub add_note: Option<String>,

@@ -16,6 +16,7 @@ use super::helpers::{
 
 pub(crate) mod execute_plan_ops;
 mod execute_write_ops;
+mod scope_validation;
 
 pub(crate) fn execute_operation(app: &App, operation: &WriteOperation) -> Result<String, AppError> {
     match operation {
@@ -93,6 +94,8 @@ fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<Str
         &args.gate_failure_modes,
         knot_type,
     )?;
+    let scope_data = scope_validation::parse_scope_patch(&args.scope)?
+        .apply_to(crate::domain::scope::ScopeData::default());
     let knot = app.create_knot_with_options(
         &args.title,
         args.description.as_deref(),
@@ -107,6 +110,7 @@ fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<Str
                 objective: args.objective.clone(),
                 ..ExecutionPlanData::default()
             },
+            scope_data,
             tags: args.tags.clone(),
             ..CreateKnotOptions::default()
         },

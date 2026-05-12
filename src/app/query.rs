@@ -275,6 +275,7 @@ impl App {
                 created_at: record.created_at.as_deref(),
             },
         )?;
+        db::update_knot_scope_data(&self.conn, id, &record.scope_data)?;
         db::delete_cold_catalog(&self.conn, id)?;
         let hot =
             db::get_knot_hot(&self.conn, id)?.ok_or_else(|| AppError::NotFound(id.to_string()))?;
@@ -305,6 +306,7 @@ fn cold_view_from_record(record: ColdCatalogRecord) -> KnotView {
         gate: None,
         lease: None,
         execution_plan: None,
+        scope: None,
         lease_id: None,
         lease_expiry_ts: 0,
         lease_agent: None,

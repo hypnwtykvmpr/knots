@@ -3,11 +3,9 @@ use super::{execute_operation, operation_from_command};
 use crate::app::App;
 use crate::poll_claim::{self, PollResult};
 use crate::write_queue::{NextOperation, UpdateOperation, WriteOperation};
-
 fn claim_default(app: &App, id: &str) -> PollResult {
     poll_claim::claim_knot(app, id, Some("agent".to_string()), None, 600, false).expect("claim")
 }
-
 #[test]
 fn explicit_note_agent_flags_are_ignored_lease_wins() {
     // Lease is the declared source of note agent identity. Deprecated
@@ -39,6 +37,7 @@ fn explicit_note_agent_flags_are_ignored_lease_wins() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: Some("override note".to_string()),
@@ -76,7 +75,6 @@ fn explicit_note_agent_flags_are_ignored_lease_wins() {
 
     let _ = std::fs::remove_dir_all(root);
 }
-
 #[test]
 fn note_defaults_preserved_without_lease() {
     let root = unique_workspace();
@@ -103,6 +101,7 @@ fn note_defaults_preserved_without_lease() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: Some("plain note".to_string()),
@@ -135,7 +134,6 @@ fn note_defaults_preserved_without_lease() {
 
     let _ = std::fs::remove_dir_all(root);
 }
-
 #[test]
 fn handoff_capsule_auto_fills_from_lease_agent_info() {
     let root = unique_workspace();
@@ -164,6 +162,7 @@ fn handoff_capsule_auto_fills_from_lease_agent_info() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: None,
@@ -234,6 +233,7 @@ fn explicit_handoff_agent_flags_are_ignored_lease_wins() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: None,

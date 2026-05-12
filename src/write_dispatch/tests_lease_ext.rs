@@ -307,6 +307,7 @@ fn new_with_lease_flag_rejects() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         tags: vec![],
+        scope: crate::cli_scope::ScopeArgs::default(),
         lease_id: Some(lease_id.clone()),
     });
     let err = execute_operation(&app, &op).expect_err("new should reject lease binding");
@@ -356,6 +357,7 @@ fn update_with_lease_flag_rejects_unbound() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: None,
@@ -421,6 +423,7 @@ fn note_auto_fills_from_lease_agent_info() {
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
+        scope: crate::cli_scope::ScopeArgs::default(),
         execution_plan_file: None,
         objective: None,
         add_note: Some("auto-filled note".to_string()),

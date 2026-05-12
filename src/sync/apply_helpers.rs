@@ -11,6 +11,7 @@ use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::lease::LeaseData;
 use crate::domain::metadata::MetadataEntry;
+use crate::domain::scope::ScopeData;
 use crate::domain::step_history::StepRecord;
 use crate::installed_workflows;
 
@@ -41,6 +42,7 @@ pub(super) struct MetadataProjection {
     pub gate_data: GateData,
     pub lease_data: LeaseData,
     pub execution_plan_data: ExecutionPlanData,
+    pub scope_data: ScopeData,
     pub lease_id: Option<String>,
     pub workflow_id: String,
     pub profile_id: String,
@@ -69,6 +71,7 @@ impl MetadataProjection {
             gate_data: existing.gate_data.clone(),
             lease_data: existing.lease_data.clone(),
             execution_plan_data: existing.execution_plan_data.clone(),
+            scope_data: existing.scope_data.clone(),
             lease_id: existing.lease_id.clone(),
             workflow_id: existing.workflow_id.clone(),
             profile_id: existing.profile_id.clone(),
@@ -109,6 +112,7 @@ impl MetadataProjection {
                 created_at: self.created_at.as_deref(),
             },
         )?;
+        db::update_knot_scope_data(conn, id, &self.scope_data)?;
         Ok(())
     }
 }
@@ -278,6 +282,14 @@ pub(super) fn parse_execution_plan_data(
         .map_err(|err| invalid_event(path, &format!("invalid 'execution_plan' payload: {}", err)))
 }
 
+pub(super) fn parse_scope_data(
+    object: &Map<String, Value>,
+    path: &Path,
+) -> Result<ScopeData, SyncError> {
+    serde_json::from_value(Value::Object(object.clone()))
+        .map_err(|err| invalid_event(path, &format!("invalid scope payload: {}", err)))
+}
+
 pub(super) fn invalid_event(path: &Path, message: &str) -> SyncError {
     SyncError::InvalidEvent {
         path: path.to_path_buf(),
@@ -360,6 +372,10 @@ pub(super) fn build_index_upsert(
         .as_ref()
         .map(|r| r.lease_data.clone())
         .unwrap_or_default();
+    let scope_data = existing
+        .as_ref()
+        .map(|r| r.scope_data.clone())
+        .unwrap_or_default();
     let mut execution_plan_data = existing
         .as_ref()
         .map(|r| r.execution_plan_data.clone())
@@ -398,6 +414,7 @@ pub(super) fn build_index_upsert(
         gate_data,
         lease_data,
         execution_plan_data,
+        scope_data,
         lease_id,
         workflow_id: params.workflow_id.to_string(),
         profile_id: params.profile_id.to_string(),
