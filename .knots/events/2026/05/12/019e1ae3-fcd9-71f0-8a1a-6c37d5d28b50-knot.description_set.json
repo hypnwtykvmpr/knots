@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae3-fcd9-71f0-8a1a-6c37d5d28b50",
+  "occurred_at": "2026-05-12T06:33:29.555261Z",
+  "knot_id": "knots-ee7d",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nExpose scope metadata through Knots projections so clients can read it from `KnotView` and fast list/index paths without fully rehydrating every knot.\n\nVerification:\n1. Create or update a knot with scope metadata.\n2. Run `kno -C ~/knots show <id>` and confirm scope appears in the returned view/output.\n3. Run `kno -C ~/knots ls` or the relevant indexed listing path and confirm scope metadata is available where the API expects it.\n4. Run `cargo test` from ~/knots.\n\nConstraints:\nPrefer nullable columns in `knot_hot` or a structured `scope_json` column, whichever best fits current Knots projection patterns. Include scope in `idx.knot_head` if that is the fast head document used by Foolery."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae3-caa7-78b1-96cc-e1b8a4801744",
+  "occurred_at": "2026-05-12T06:33:16.693869Z",
+  "knot_id": "knots-41ba",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. The knot domain/view types can represent `scope_volume`, `scope_scale`, `scope_volume_score_confidence`, `scope_volume_stddev`, `scope_reliability`, `scope_reliability_score_confidence`, `scope_reliability_stddev`, `scope_reliability_band`, `scope_volume_result_id`, and `scope_reliability_result_id`.\n2. Existing knots without scope metadata still load and display successfully.\n3. Scope volume remains separate from any existing estimate/minutes concept."
+  }
+}

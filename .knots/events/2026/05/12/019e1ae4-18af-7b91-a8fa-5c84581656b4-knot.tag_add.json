@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae4-18af-7b91-a8fa-5c84581656b4",
+  "occurred_at": "2026-05-12T06:33:36.661353Z",
+  "knot_id": "knots-5091",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "cli"
+  }
+}

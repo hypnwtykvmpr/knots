@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae4-18a4-7513-8f00-63f2820d6f5a",
+  "occurred_at": "2026-05-12T06:33:36.661353Z",
+  "knot_id": "knots-5091",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `kno new` accepts `--scope-volume`, `--scope-scale`, `--scope-reliability`, and the quorum metadata flags needed by the scope object.\n2. `kno update` accepts the same scope flags and emits/stores a scope update without disturbing unrelated knot fields.\n3. CLI validation rejects invalid reliability scores outside 0-100, invalid confidence values outside 0.0-1.0, and negative stddev values.\n4. Help text documents the scope flags clearly."
+  }
+}

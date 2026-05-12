@@ -1,0 +1,17 @@
+{
+  "event_id": "019e1ae3-ca95-76a0-bc1a-3797f3dc6b50",
+  "occurred_at": "2026-05-12T06:33:16.693869Z",
+  "knot_id": "knots-41ba",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nAdd first-class optional scope metadata to the Knots domain model so a knot can carry scope volume, scope reliability, quorum confidence/spread, and rubric result references without using notes or tags.\n\nVerification:\n1. Run `cargo test` from ~/knots and confirm the test suite passes.\n2. Run `kno -C ~/knots fsck` and confirm the store validates.\n\nConstraints:\nKeep these as optional nullable fields for backward compatibility. Do not repurpose any existing estimate/minutes field for scope volume.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add scope metadata fields",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

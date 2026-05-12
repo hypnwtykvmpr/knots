@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae3-fcef-7e23-a08d-2559b2a85f64",
+  "occurred_at": "2026-05-12T06:33:29.555261Z",
+  "knot_id": "knots-ee7d",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "prompt-run-ledger"
+  }
+}

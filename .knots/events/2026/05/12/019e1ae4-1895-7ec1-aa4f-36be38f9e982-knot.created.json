@@ -1,0 +1,17 @@
+{
+  "event_id": "019e1ae4-1895-7ec1-aa4f-36be38f9e982",
+  "occurred_at": "2026-05-12T06:33:36.661353Z",
+  "knot_id": "knots-5091",
+  "type": "knot.created",
+  "data": {
+    "body": "Goal:\nAdd command-line support for setting scope metadata during `kno new` and `kno update`, matching the prompt-run-ledger scope field names and validation rules.\n\nVerification:\n1. Run `kno -C ~/knots new \"scope smoke\" --scope-volume 5 --scope-scale fib_v1 --scope-reliability 62` and confirm the created knot stores those values.\n2. Run `kno -C ~/knots update <id> --scope-volume 8 --scope-scale fib_v1 --scope-volume-score-confidence 0.72 --scope-reliability 44` and confirm the update is stored.\n3. Run `kno -C ~/knots show <id>` and confirm the final scope values are visible.\n4. Run `cargo test` from ~/knots.\n\nConstraints:\nValidate `scope_volume` as a positive integer and `scope_reliability` as a 0-100 integer. Keep quorum confidence fields as 0.0-1.0 floats and stddev fields as non-negative floats.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add CLI scope flags",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae3-fce0-7462-9c4c-ed0721883818",
+  "occurred_at": "2026-05-12T06:33:29.555261Z",
+  "knot_id": "knots-ee7d",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. `KnotView` includes a structured optional `scope` object or equivalent fields.\n2. The hot projection stores scope metadata using nullable columns or a structured JSON field.\n3. `idx.knot_head` includes scope metadata so Foolery can list scoped work without full rehydrate.\n4. Projection migrations are backward compatible with existing local stores."
+  }
+}

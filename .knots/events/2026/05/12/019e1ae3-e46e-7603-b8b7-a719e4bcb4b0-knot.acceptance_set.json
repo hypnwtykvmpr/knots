@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae3-e46e-7603-b8b7-a719e4bcb4b0",
+  "occurred_at": "2026-05-12T06:33:23.295331Z",
+  "knot_id": "knots-7dda",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. A `knot.scope_set` event exists or equivalent typed event support is added for scope metadata.\n2. The event payload supports `volume`, `scale`, `volume_score_confidence`, `volume_stddev`, `volume_result_id`, `reliability`, `reliability_score_confidence`, `reliability_stddev`, `reliability_band`, and `reliability_result_id`.\n3. Event replay/rehydration restores scope metadata exactly.\n4. Missing scope fields are treated as absent, not as zero values."
+  }
+}

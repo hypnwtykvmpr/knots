@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1ae3-e467-7db3-9a1e-0aa0c4d198ad",
+  "occurred_at": "2026-05-12T06:33:23.295331Z",
+  "knot_id": "knots-7dda",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nAdd an event path for setting and updating knot scope metadata, including volume, reliability, confidence, standard deviation, reliability band, and quorum result ids.\n\nVerification:\n1. Create or update a knot with scope metadata and inspect the event log to confirm a `knot.scope_set` event is written with the expected payload.\n2. Replay or rehydrate the knot and confirm the same scope metadata is restored.\n3. Run `cargo test` from ~/knots and confirm event/projection tests pass.\n\nConstraints:\nUse the prompt-run-ledger spec payload names. Preserve old event replay behavior for knots that do not have scope events."
+  }
+}
