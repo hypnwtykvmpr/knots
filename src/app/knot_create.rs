@@ -9,6 +9,7 @@ use crate::events::{
     IndexEventKind,
 };
 use crate::locks::FileLock;
+use crate::workflow::{ProfileDefinition, StepMetadata};
 use crate::workflow_runtime;
 
 use super::error::AppError;
@@ -19,6 +20,39 @@ use super::helpers::{
 };
 use super::types::{CreateKnotOptions, KnotView};
 use super::App;
+
+struct CreateKnotHeadParams<'a> {
+    knot_id: &'a str,
+    title: &'a str,
+    state: &'a str,
+    profile: &'a ProfileDefinition,
+    options: &'a CreateKnotOptions,
+    occurred_at: &'a str,
+    terminal: bool,
+    step_metadata: Option<&'a StepMetadata>,
+    next_step_metadata: Option<&'a StepMetadata>,
+}
+
+fn create_knot_head_data(params: CreateKnotHeadParams<'_>) -> serde_json::Value {
+    build_knot_head_data(KnotHeadData {
+        knot_id: params.knot_id,
+        title: params.title,
+        state: params.state,
+        workflow_id: params.profile.workflow_id.as_str(),
+        profile_id: params.profile.id.as_str(),
+        updated_at: params.occurred_at,
+        terminal: params.terminal,
+        deferred_from_state: None,
+        blocked_from_state: None,
+        invariants: &[],
+        knot_type: params.options.knot_type,
+        gate_data: &params.options.gate_data,
+        execution_plan_data: &params.options.execution_plan_data,
+        scope_data: Some(&params.options.scope_data),
+        step_metadata: params.step_metadata,
+        next_step_metadata: params.next_step_metadata,
+    })
+}
 
 impl App {
     pub fn create_knot(
@@ -125,7 +159,7 @@ impl App {
         title: &str,
         body: Option<&str>,
         state: &str,
-        profile: &crate::workflow::ProfileDefinition,
+        profile: &ProfileDefinition,
         options: &CreateKnotOptions,
     ) -> Result<KnotView, AppError> {
         let knot_id = self.next_knot_id()?;
@@ -165,20 +199,14 @@ impl App {
             new_event_id(),
             occurred_at.clone(),
             IndexEventKind::KnotHead.as_str(),
-            build_knot_head_data(KnotHeadData {
+            create_knot_head_data(CreateKnotHeadParams {
                 knot_id: &knot_id,
                 title,
                 state,
-                workflow_id: profile.workflow_id.as_str(),
-                profile_id: profile.id.as_str(),
-                updated_at: &occurred_at,
+                profile,
+                options,
+                occurred_at: &occurred_at,
                 terminal,
-                deferred_from_state: None,
-                blocked_from_state: None,
-                invariants: &[],
-                knot_type: options.knot_type,
-                gate_data: &options.gate_data,
-                execution_plan_data: &options.execution_plan_data,
                 step_metadata: step_metadata.as_ref(),
                 next_step_metadata: next_step_metadata.as_ref(),
             }),

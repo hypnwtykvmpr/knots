@@ -11,6 +11,7 @@ use std::process::Command;
 use uuid::Uuid;
 
 use crate::db;
+use crate::domain::scope::ScopeData;
 use crate::sync::GitAdapter;
 
 use super::IncrementalApplier;
@@ -108,6 +109,57 @@ fn apply_index_event_defaults_missing_profile_id_to_autopilot() {
         .expect("hot lookup should succeed")
         .expect("knot should be cached");
     assert_eq!(record.profile_id, "autopilot");
+    assert_eq!(record.scope_data, ScopeData::default());
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn apply_index_event_reads_scope_payload_into_hot_projection() {
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    db::set_meta(&conn, "hot_window_days", "365").expect("hot window should be configurable");
+    let mut applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+
+    let ts = recent_ts();
+    let body = format!(
+        concat!(
+            "{{\n",
+            "  \"event_id\": \"019c942e-0000-7883-bb13-27197273b8f5\",\n",
+            "  \"occurred_at\": \"{ts}\",\n",
+            "  \"type\": \"idx.knot_head\",\n",
+            "  \"data\": {{\n",
+            "    \"knot_id\": \"K-index-scope\",\n",
+            "    \"title\": \"Scoped index knot\",\n",
+            "    \"state\": \"implementation\",\n",
+            "    \"terminal\": false,\n",
+            "    \"workflow_id\": \"work_sdlc\",\n",
+            "    \"profile_id\": \"autopilot\",\n",
+            "    \"updated_at\": \"{ts}\",\n",
+            "    \"scope\": {{\n",
+            "      \"volume\": 21,\n",
+            "      \"scale\": \"fib_v1\",\n",
+            "      \"reliability\": 88,\n",
+            "      \"reliability_band\": \"high\"\n",
+            "    }}\n",
+            "  }}\n",
+            "}}\n"
+        ),
+        ts = ts,
+    );
+    let rel = write_legacy_head_event(&root, "index-scope-idx.knot_head.json", &body);
+
+    applier
+        .apply_index_event(&rel)
+        .expect("idx head with scope should apply");
+
+    let record = db::get_knot_hot(&conn, "K-index-scope")
+        .expect("hot lookup should succeed")
+        .expect("knot should be cached");
+    assert_eq!(record.scope_data.volume, Some(21));
+    assert_eq!(record.scope_data.scale.as_deref(), Some("fib_v1"));
+    assert_eq!(record.scope_data.reliability, Some(88));
+    assert_eq!(record.scope_data.reliability_band.as_deref(), Some("high"));
 
     let _ = std::fs::remove_dir_all(root);
 }
