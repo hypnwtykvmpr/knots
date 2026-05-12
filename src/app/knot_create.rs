@@ -161,27 +161,16 @@ impl App {
                 "gate": &options.gate_data,
             }),
         );
-        let idx_event = IndexEvent::with_identity(
-            new_event_id(),
-            occurred_at.clone(),
-            IndexEventKind::KnotHead.as_str(),
-            build_knot_head_data(KnotHeadData {
-                knot_id: &knot_id,
-                title,
-                state,
-                workflow_id: profile.workflow_id.as_str(),
-                profile_id: profile.id.as_str(),
-                updated_at: &occurred_at,
-                terminal,
-                deferred_from_state: None,
-                blocked_from_state: None,
-                invariants: &[],
-                knot_type: options.knot_type,
-                gate_data: &options.gate_data,
-                execution_plan_data: &options.execution_plan_data,
-                step_metadata: step_metadata.as_ref(),
-                next_step_metadata: next_step_metadata.as_ref(),
-            }),
+        let idx_event = build_create_idx_event(
+            &knot_id,
+            title,
+            state,
+            profile,
+            &occurred_at,
+            terminal,
+            options,
+            step_metadata.as_ref(),
+            next_step_metadata.as_ref(),
         );
         self.writer.write(&EventRecord::full(full_event))?;
         let mut tags = Vec::new();
@@ -303,4 +292,41 @@ impl App {
         }
         Ok(())
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_create_idx_event(
+    knot_id: &str,
+    title: &str,
+    state: &str,
+    profile: &crate::workflow::ProfileDefinition,
+    occurred_at: &str,
+    terminal: bool,
+    options: &CreateKnotOptions,
+    step_metadata: Option<&crate::workflow::StepMetadata>,
+    next_step_metadata: Option<&crate::workflow::StepMetadata>,
+) -> IndexEvent {
+    IndexEvent::with_identity(
+        new_event_id(),
+        occurred_at.to_string(),
+        IndexEventKind::KnotHead.as_str(),
+        build_knot_head_data(KnotHeadData {
+            knot_id,
+            title,
+            state,
+            workflow_id: profile.workflow_id.as_str(),
+            profile_id: profile.id.as_str(),
+            updated_at: occurred_at,
+            terminal,
+            deferred_from_state: None,
+            blocked_from_state: None,
+            invariants: &[],
+            knot_type: options.knot_type,
+            gate_data: &options.gate_data,
+            execution_plan_data: &options.execution_plan_data,
+            scope_data: Some(&options.scope_data),
+            step_metadata,
+            next_step_metadata,
+        }),
+    )
 }

@@ -287,6 +287,9 @@ mod tests_exploration;
 #[path = "app/tests_gate_ext.rs"]
 mod tests_gate_ext;
 #[cfg(test)]
+#[path = "app/tests_head_data.rs"]
+mod tests_head_data;
+#[cfg(test)]
 #[path = "app/tests_hierarchy.rs"]
 mod tests_hierarchy;
 #[cfg(test)]

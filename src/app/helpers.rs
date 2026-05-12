@@ -6,6 +6,7 @@ use crate::domain::gate::GateData;
 use crate::domain::invariant::Invariant;
 use crate::domain::knot_type::KnotType;
 use crate::domain::metadata::{normalize_datetime, MetadataEntry, MetadataEntryInput};
+use crate::domain::scope::ScopeData;
 use crate::domain::step_history::{derive_phase, StepActorInfo, StepRecord, StepStatus};
 use crate::installed_workflows;
 use crate::workflow::{normalize_profile_id, ProfileDefinition, ProfileRegistry, StepMetadata};
@@ -194,6 +195,7 @@ pub(crate) struct KnotHeadData<'a> {
     pub knot_type: KnotType,
     pub gate_data: &'a GateData,
     pub execution_plan_data: &'a ExecutionPlanData,
+    pub scope_data: Option<&'a ScopeData>,
     pub step_metadata: Option<&'a crate::workflow::StepMetadata>,
     pub next_step_metadata: Option<&'a crate::workflow::StepMetadata>,
 }
@@ -237,6 +239,14 @@ pub(crate) fn build_knot_head_data(head: KnotHeadData<'_>) -> Value {
             serde_json::to_value(head.execution_plan_data)
                 .expect("execution plan data should serialize"),
         );
+    }
+    if let Some(scope) = head.scope_data {
+        if !scope.is_empty() {
+            payload.insert(
+                "scope".to_string(),
+                serde_json::to_value(scope).expect("scope data should serialize"),
+            );
+        }
     }
     insert_optional_string(
         &mut payload,

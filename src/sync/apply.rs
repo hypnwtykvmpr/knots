@@ -484,3 +484,6 @@ mod tests_invariant;
 #[cfg(test)]
 #[path = "apply_tests_legacy_defaults.rs"]
 mod tests_legacy_defaults;
+#[cfg(test)]
+#[path = "apply_tests_scope.rs"]
+mod tests_scope;

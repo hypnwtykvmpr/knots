@@ -162,6 +162,93 @@ fn app_scope_update_rejects_empty_patch_and_noops_same_value() {
     assert_eq!(noop.profile_etag, etag);
 }
 
+#[test]
+fn scope_update_writes_scope_into_latest_idx_head_event() {
+    // The fast list/index path (Foolery) reads .knots/index/**/*.json head
+    // events directly. update_knot_scope must embed the scope object so that
+    // path can see it without rehydrating from full events.
+    let root = unique_workspace();
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().expect("utf8 path"), root.clone()).expect("app should open");
+
+    let created = app
+        .create_knot("scope head", None, None, None)
+        .expect("knot should be created");
+    app.update_knot_scope(
+        &created.id,
+        ScopePatch {
+            volume: Some(13),
+            scale: Some("fib_v1".to_string()),
+            reliability: Some(60),
+            ..ScopePatch::default()
+        },
+        None,
+    )
+    .expect("scope update should succeed");
+
+    let latest = latest_index_head_for(&root, &created.id).expect("idx head should exist");
+    let body: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&latest).expect("read idx event"))
+            .expect("idx event JSON parses");
+    let scope = body
+        .get("data")
+        .and_then(|d| d.get("scope"))
+        .expect("idx head must include scope");
+    assert_eq!(scope.get("volume").and_then(|v| v.as_u64()), Some(13));
+    assert_eq!(scope.get("scale").and_then(|v| v.as_str()), Some("fib_v1"));
+    assert_eq!(scope.get("reliability").and_then(|v| v.as_u64()), Some(60));
+}
+
+fn latest_index_head_for(root: &Path, knot_id: &str) -> Option<PathBuf> {
+    let index_root = root.join(".knots/index");
+    let mut found: Option<(String, PathBuf)> = None;
+    walk_index(&index_root, knot_id, &mut found);
+    found.map(|(_, p)| p)
+}
+
+fn walk_index(dir: &Path, knot_id: &str, found: &mut Option<(String, PathBuf)>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            walk_index(&path, knot_id, found);
+            continue;
+        }
+        if !path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.ends_with("-idx.knot_head.json"))
+        {
+            continue;
+        }
+        let Ok(bytes) = std::fs::read(&path) else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+            continue;
+        };
+        let id = value
+            .get("data")
+            .and_then(|d| d.get("knot_id"))
+            .and_then(|v| v.as_str());
+        if id != Some(knot_id) {
+            continue;
+        }
+        let occurred = value
+            .get("occurred_at")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        match found {
+            Some((existing, _)) if &occurred <= existing => {}
+            _ => *found = Some((occurred, path)),
+        }
+    }
+}
+
 fn empty_update() -> UpdateOperation {
     UpdateOperation {
         id: String::new(),

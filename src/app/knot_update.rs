@@ -19,10 +19,8 @@ use super::helpers::{
     resolve_step_metadata, validate_execution_plan_data_for_knot_type, KnotHeadData,
     StateEventParams,
 };
-use super::{
-    types::{KnotView, UpdateKnotPatch},
-    App,
-};
+use super::types::{KnotView, UpdateKnotPatch};
+use super::App;
 
 mod fields;
 
@@ -451,6 +449,7 @@ fn write_update_events_and_cache(
             knot_type: us.knot_type,
             gate_data: &us.gate_data,
             execution_plan_data: &us.execution_plan_data,
+            scope_data: Some(&current.scope_data),
             step_metadata: step_metadata.as_ref(),
             next_step_metadata: next_step_metadata.as_ref(),
         }),
