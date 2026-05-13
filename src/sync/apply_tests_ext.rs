@@ -439,7 +439,7 @@ fn changed_files_falls_back_to_scan_when_base_revision_is_unknown() {
 }
 
 #[test]
-fn apply_index_event_moves_old_non_terminal_knots_to_warm_cache() {
+fn apply_index_event_keeps_old_non_terminal_knots_in_hot_cache() {
     let root = setup_repo();
     let conn = open_conn(&root);
     let mut applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
@@ -459,8 +459,8 @@ fn apply_index_event_moves_old_non_terminal_knots_to_warm_cache() {
             "  \"occurred_at\": \"2026-02-25T10:00:00Z\",\n",
             "  \"type\": \"idx.knot_head\",\n",
             "  \"data\": {\n",
-            "    \"knot_id\": \"K-warm\",\n",
-            "    \"title\": \"Warm candidate\",\n",
+            "    \"knot_id\": \"K-hot\",\n",
+            "    \"title\": \"Hot candidate\",\n",
             "    \"state\": \"work_item\",\n",
             "    \"workflow_id\": \"work_sdlc\",\n",
             "    \"profile_id\": \"autopilot\",\n",
@@ -478,10 +478,10 @@ fn apply_index_event_moves_old_non_terminal_knots_to_warm_cache() {
         .apply_index_event(Path::new(".knots/index/2026/02/25/4000-idx.knot_head.json"))
         .expect("index apply should succeed");
     assert!(updated);
-    let hot = db::get_knot_hot(&conn, "K-warm").expect("hot lookup should succeed");
-    assert!(hot.is_none());
-    let warm = db::get_knot_warm(&conn, "K-warm").expect("warm lookup should succeed");
-    assert!(warm.is_some());
+    let hot = db::get_knot_hot(&conn, "K-hot").expect("hot lookup should succeed");
+    assert!(hot.is_some());
+    let warm = db::get_knot_warm(&conn, "K-hot").expect("warm lookup should succeed");
+    assert!(warm.is_none());
 
     let _ = std::fs::remove_dir_all(root);
 }

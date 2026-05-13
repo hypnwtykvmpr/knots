@@ -96,6 +96,7 @@ fn create_delete_and_resolve_context_cover_error_paths() {
     let home = temp_home("knots-project-context");
     let repo = home.join("repo");
     fs::create_dir_all(repo.join(".git")).expect("git dir should exist");
+    fs::write(repo.join(".git/HEAD"), "ref: refs/heads/main\n").expect("git HEAD should exist");
     let nested = repo.join("nested/workspace");
     fs::create_dir_all(&nested).expect("nested workspace should exist");
 
@@ -239,6 +240,7 @@ fn project_id_validation_and_git_root_search_cover_edge_cases() {
     let nested = home.join("a/b/c");
     fs::create_dir_all(&nested).expect("nested path should exist");
     fs::create_dir_all(home.join(".git")).expect("git marker should exist");
+    fs::write(home.join(".git/HEAD"), "ref: refs/heads/main\n").expect("git HEAD should exist");
 
     validate_project_id("demo_1").expect("underscore id should be valid");
     assert!(validate_project_id("").is_err());
@@ -249,6 +251,34 @@ fn project_id_validation_and_git_root_search_cover_edge_cases() {
     assert!(find_git_root(Path::new("/definitely/not/a/repo")).is_none());
 
     let _ = fs::remove_dir_all(git_root);
+}
+
+#[test]
+fn find_git_root_skips_knots_worktree() {
+    let root = temp_home("knots-project-worktree-skip");
+    let repo = root.join("repo");
+    fs::create_dir_all(repo.join(".git")).expect("repo .git");
+    fs::write(repo.join(".git/HEAD"), "ref: refs/heads/main\n").expect("repo HEAD");
+    let worktree = repo.join(".knots").join("_worktree");
+    fs::create_dir_all(&worktree).expect("worktree dir");
+    fs::write(worktree.join(".git"), "gitdir: /tmp/fake").expect(".git file");
+
+    let found = find_git_root(&worktree);
+    let expected = canonical_or_original(&repo);
+    assert_eq!(found.as_deref(), Some(expected.as_path()));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn find_git_root_ignores_empty_git_marker() {
+    let root = temp_home("knots-project-empty-git");
+    let nested = root.join("nested");
+    fs::create_dir_all(root.join(".git")).expect("empty .git dir");
+    fs::create_dir_all(&nested).expect("nested path");
+    assert!(find_git_root(&nested).is_none());
+
+    let _ = fs::remove_dir_all(root);
 }
 
 fn run_git(root: &Path, args: &[&str]) {

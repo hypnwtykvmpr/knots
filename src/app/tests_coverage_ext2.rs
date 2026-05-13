@@ -277,6 +277,7 @@ fn resolve_profile_id_and_default_quick_profile_cover_custom_workflow_paths() {
         .expect("workflow selection should succeed");
 
     let (app, _) = open_app(&root);
+    let app = app.with_home_override(Some(root.clone()));
     assert_eq!(
         app.resolve_profile_id("autopilot", Some("custom_flow"))
             .expect("workflow-scoped profile should resolve"),

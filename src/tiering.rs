@@ -24,36 +24,25 @@ pub enum CacheTier {
 pub fn classify_knot_tier(
     state: &str,
     updated_at: &str,
-    hot_window_days: i64,
+    _hot_window_days: i64,
     now: OffsetDateTime,
 ) -> CacheTier {
     let normalized = normalize_state_input(state);
     let is_terminal = TERMINAL_STATES.iter().any(|s| *s == normalized);
-    let parsed_updated_at = OffsetDateTime::parse(updated_at, &Rfc3339).ok();
 
-    if is_terminal {
-        let Some(updated) = parsed_updated_at else {
-            return CacheTier::Warm;
-        };
-        let archive_cutoff = now - Duration::hours(ARCHIVE_AGE_HOURS);
-        if updated < archive_cutoff {
-            return CacheTier::Cold;
-        }
-        // Recently terminated: keep in hot for the grace window.
+    if !is_terminal {
         return CacheTier::Hot;
     }
 
-    let Some(updated) = parsed_updated_at else {
+    let Some(updated) = OffsetDateTime::parse(updated_at, &Rfc3339).ok() else {
         return CacheTier::Warm;
     };
-
-    let window_days = hot_window_days.max(0);
-    let hot_cutoff = now - Duration::days(window_days);
-    if updated >= hot_cutoff {
-        CacheTier::Hot
-    } else {
-        CacheTier::Warm
+    let archive_cutoff = now - Duration::hours(ARCHIVE_AGE_HOURS);
+    if updated < archive_cutoff {
+        return CacheTier::Cold;
     }
+    // Recently terminated: keep in hot for the grace window.
+    CacheTier::Hot
 }
 
 #[cfg(test)]
@@ -111,8 +100,8 @@ mod tests {
 
     #[test]
     fn deferred_is_not_terminal_for_tiering() {
-        // deferred is passive, not terminal — uses regular hot/warm logic.
-        let recent = fmt(now() - Duration::hours(10));
+        // deferred is passive, not terminal, so it remains visible regardless of age.
+        let recent = fmt(now() - Duration::days(400));
         assert_eq!(
             classify_knot_tier("deferred", &recent, 7, now()),
             CacheTier::Hot
@@ -129,15 +118,15 @@ mod tests {
     }
 
     #[test]
-    fn old_non_terminal_is_warm() {
+    fn old_non_terminal_is_hot() {
         let tier = classify_knot_tier("work_item", "2025-12-01T00:00:00Z", 7, now());
-        assert_eq!(tier, CacheTier::Warm);
+        assert_eq!(tier, CacheTier::Hot);
     }
 
     #[test]
-    fn unparseable_date_falls_back_to_warm() {
+    fn unparseable_date_non_terminal_stays_hot() {
         let tier = classify_knot_tier("implementing", "not-a-date", 7, now());
-        assert_eq!(tier, CacheTier::Warm);
+        assert_eq!(tier, CacheTier::Hot);
     }
 
     #[test]

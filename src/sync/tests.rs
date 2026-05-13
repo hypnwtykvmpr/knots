@@ -285,12 +285,12 @@ fn sync_reduces_description_tag_and_note_events() {
 }
 
 #[test]
-fn sync_classifies_old_knots_as_warm_and_terminal_as_cold() {
+fn sync_keeps_old_non_terminal_knots_hot_and_terminal_knots_cold() {
     let root = unique_workspace();
     init_repo(&root);
     run_git(&root, &["checkout", "-b", "knots"]);
 
-    let warm_idx = root
+    let hot_idx = root
         .join(".knots")
         .join("index")
         .join("2025")
@@ -298,21 +298,21 @@ fn sync_classifies_old_knots_as_warm_and_terminal_as_cold() {
         .join("01")
         .join("0200-idx.knot_head.json");
     std::fs::create_dir_all(
-        warm_idx
+        hot_idx
             .parent()
-            .expect("warm index event parent directory should exist"),
+            .expect("hot index event parent directory should exist"),
     )
-    .expect("warm index event directory should be creatable");
+    .expect("hot index event directory should be creatable");
     std::fs::write(
-        &warm_idx,
+        &hot_idx,
         concat!(
             "{\n",
             "  \"event_id\": \"0200\",\n",
             "  \"occurred_at\": \"2025-01-01T00:00:00Z\",\n",
             "  \"type\": \"idx.knot_head\",\n",
             "  \"data\": {\n",
-            "    \"knot_id\": \"K-warm\",\n",
-            "    \"title\": \"Warm candidate\",\n",
+            "    \"knot_id\": \"K-hot\",\n",
+            "    \"title\": \"Hot candidate\",\n",
             "    \"state\": \"work_item\",\n",
             "    \"workflow_id\": \"work_sdlc\",\n",
             "    \"profile_id\": \"autopilot\",\n",
@@ -322,7 +322,7 @@ fn sync_classifies_old_knots_as_warm_and_terminal_as_cold() {
             "}\n"
         ),
     )
-    .expect("warm index event should be writable");
+    .expect("hot index event should be writable");
 
     let cold_idx = root
         .join(".knots")
@@ -359,7 +359,7 @@ fn sync_classifies_old_knots_as_warm_and_terminal_as_cold() {
     .expect("cold index event should be writable");
 
     run_git(&root, &["add", ".knots"]);
-    run_git(&root, &["commit", "-m", "seed warm and cold"]);
+    run_git(&root, &["commit", "-m", "seed hot and cold"]);
     run_git(&root, &["checkout", "main"]);
 
     let db_path = root.join(".knots/cache/state.sqlite");
@@ -376,13 +376,10 @@ fn sync_classifies_old_knots_as_warm_and_terminal_as_cold() {
     let summary = service.sync().expect("sync should succeed");
     assert_eq!(summary.index_files, 2);
 
-    let hot_warm = db::get_knot_hot(&conn, "K-warm").expect("hot lookup should succeed");
-    assert!(hot_warm.is_none());
-    let warm = db::get_knot_warm(&conn, "K-warm").expect("warm lookup should succeed");
-    assert_eq!(
-        warm.expect("warm entry should exist").title,
-        "Warm candidate"
-    );
+    let hot = db::get_knot_hot(&conn, "K-hot").expect("hot lookup should succeed");
+    assert_eq!(hot.expect("hot entry should exist").title, "Hot candidate");
+    let warm = db::get_knot_warm(&conn, "K-hot").expect("warm lookup should succeed");
+    assert!(warm.is_none());
 
     let cold = db::get_cold_catalog(&conn, "K-cold").expect("cold lookup should succeed");
     let cold = cold.expect("cold entry should exist");

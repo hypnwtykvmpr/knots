@@ -367,13 +367,18 @@ pub fn canonical_or_original(path: &Path) -> PathBuf {
 pub fn find_git_root(start: &Path) -> Option<PathBuf> {
     let mut current = canonical_or_original(start);
     loop {
-        if current.join(".git").exists() && !is_inside_knots_store(&current) {
+        if has_git_marker(&current) && !is_inside_knots_store(&current) {
             return Some(current);
         }
         if !current.pop() {
             return None;
         }
     }
+}
+
+fn has_git_marker(path: &Path) -> bool {
+    let git = path.join(".git");
+    git.is_file() || git.join("HEAD").is_file()
 }
 
 fn is_inside_knots_store(path: &Path) -> bool {
@@ -451,27 +456,13 @@ mod tests {
         set_active_project(Some(&home), "demo").expect("set active project");
         let repo_root = home.join("repo");
         fs::create_dir_all(repo_root.join(".git")).expect("git dir should exist");
+        fs::write(repo_root.join(".git/HEAD"), "ref: refs/heads/main\n")
+            .expect("git HEAD should exist");
         let context =
             resolve_context(None, Some(&repo_root), &home, Some(&home)).expect("resolve git");
         assert_eq!(context.project_id, None);
         assert_eq!(context.distribution, DistributionMode::Git);
         let _ = fs::remove_dir_all(home);
-    }
-
-    #[test]
-    fn find_git_root_skips_knots_worktree() {
-        let root = temp_home();
-        let repo = root.join("repo");
-        fs::create_dir_all(repo.join(".git")).expect("repo .git");
-        // Simulate a knots sync worktree inside .knots/_worktree
-        let worktree = repo.join(".knots").join("_worktree");
-        fs::create_dir_all(&worktree).expect("worktree dir");
-        fs::write(worktree.join(".git"), "gitdir: /tmp/fake").expect(".git file");
-        // Starting from inside the worktree should skip it and find the real repo
-        let found = find_git_root(&worktree);
-        let expected = canonical_or_original(&repo);
-        assert_eq!(found.as_deref(), Some(expected.as_path()));
-        let _ = fs::remove_dir_all(root);
     }
 
     #[test]
