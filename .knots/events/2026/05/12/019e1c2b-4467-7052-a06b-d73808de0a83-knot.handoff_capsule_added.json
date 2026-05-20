@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1c2b-4467-7052-a06b-d73808de0a83",
+  "occurred_at": "2026-05-12T12:30:58.151672021Z",
+  "knot_id": "knots-41ba",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan summary for `plan_review`:\n\nScopeData domain (src/domain/scope.rs:49-71) already models every acceptance\nfield as Option<…> and is projected through KnotView, KnotCacheRecord, events,\nsync, and CLI. The plumbing landed in knots-5091, knots-7dda, knots-ee7d.\n\nThe implementation step for this knot is verification-only:\n1. cargo test passes (full suite, incl. tests_scope_events, tests_scope,\n   apply_tests_legacy_defaults).\n2. kno -C ~/knots fsck validates the store.\n3. Spot-check the 10 acceptance fields against ScopeData; spot-check\n   KnotView.scope / scope_json projection match.\n\nNo new production code expected unless a gap is found, in which case extend\nScopeData (+ apply_to, event payload, migration shape if needed) and add a\nunit test.\n\nNaming note: acceptance text uses `scope_volume`, `scope_reliability`, etc.;\ndomain elides the `scope_` prefix because the type is `ScopeData`. Treat\nthem as semantically equivalent.\n\nVolume vs. estimate: no pre-existing knot estimate/minutes field exists;\n`minutes` lives only in lease_expiry, `estimate` appears only in the\nscope_volume CLI help text. No conflict.\n\nRisks: low. Plan is essentially a pass-through verification.",
+    "datetime": "2026-05-12T12:30:58.151672021Z",
+    "entry_id": "019e1c2b-4467-7052-a06b-d7254232bf17",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

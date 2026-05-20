@@ -1,0 +1,55 @@
+{
+  "event_id": "019e1c11-2c51-7f60-8ea7-9fbc6dc9fe3c",
+  "occurred_at": "2026-05-12T12:02:28.049370783Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-51ac",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "planning",
+      "output": {
+        "access_hint": "kno show",
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "autopilot",
+    "scope": {
+      "reliability": 77,
+      "reliability_band": "high",
+      "scale": "fib_v1",
+      "volume": 13
+    },
+    "state": "ready_for_planning",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "planning",
+      "output": {
+        "access_hint": "kno show",
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "scope projection smoke knots-ee7d",
+    "type": "work",
+    "updated_at": "2026-05-12T12:02:28.049370783Z",
+    "workflow_id": "work_sdlc"
+  }
+}

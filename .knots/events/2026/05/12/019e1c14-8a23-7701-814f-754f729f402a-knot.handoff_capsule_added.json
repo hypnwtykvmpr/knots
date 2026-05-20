@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1c14-8a23-7701-814f-754f729f402a",
+  "occurred_at": "2026-05-12T12:06:08.675290956Z",
+  "knot_id": "knots-ee7d",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implemented on branch worktree-knots-ee7d-scope-index at commit 86842a90eb08ea6cde76d2bea963fb0066bcb216. Scope metadata is now emitted in idx.knot_head, preserved across head writers, and applied into hot projections; verified show/list with knots-51ac and make sanity coverage 95.05%.",
+    "datetime": "2026-05-12T12:06:08.675290956Z",
+    "entry_id": "019e1c14-8a23-7701-814f-7531de868209",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

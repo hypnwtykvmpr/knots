@@ -1,0 +1,37 @@
+{
+  "event_id": "019e1b8b-71e6-7011-bdd1-48a47d3914a1",
+  "occurred_at": "2026-05-12T09:36:24.038758569Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-7dda",
+    "profile_id": "autopilot",
+    "state": "shipment_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "shipment_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Persist scope metadata events",
+    "type": "work",
+    "updated_at": "2026-05-12T09:36:24.038758569Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e1b8b-47d5-7aa0-a1dc-1a5cc6de95e1"
+  }
+}

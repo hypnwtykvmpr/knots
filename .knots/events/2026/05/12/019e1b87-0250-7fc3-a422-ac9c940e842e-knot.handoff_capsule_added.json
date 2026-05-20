@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1b87-0250-7fc3-a422-ac9c940e842e",
+  "occurred_at": "2026-05-12T09:31:33.328667722Z",
+  "knot_id": "knots-7dda",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Implementation complete.\n\nBranch: worktree-knots-7dda-scope-events\nCommit: ac24b912a69fe43fe5f2b8bc5d3331ae442beabc\n\nVerification:\n- All four scope-event acceptance criteria are covered by tests.\n- New tests (all pass):\n  - events::tests_ext::knot_scope_set_payload_uses_spec_keys\n  - events::tests_ext::knot_scope_set_payload_omits_absent_fields\n  - app::tests_scope_events::rehydrate_restores_full_scope_metadata_from_events\n  - app::tests_scope_events::rehydrate_merges_partial_scope_event_into_prior_scope\n  - app::tests_scope_events::rehydrate_preserves_field_absence_through_round_trip\n  - app::tests_scope_events::rehydrate_without_scope_events_yields_default_scope\n- Production code unchanged; scope event path was already wired end to end.\n- make sanity passes: fmt, clippy (-D warnings), file sizes, full cargo test (1161 passed),\n  npm run test-release (4/4), and tarpaulin coverage at 95.05% (>= 95 threshold).\n\nNotes for reviewer:\n- Replay semantics for knot.scope_set are REPLACE, not deep-merge. This is intentional:\n  ScopePatch::apply_to pre-merges before emission, so the on-disk payload always carries\n  the full merged state. Test rehydrate_merges_partial_scope_event_into_prior_scope\n  documents this contract explicitly.\n- Backward-compat for knots with no scope events: RehydrateProjection seeds\n  ScopeData::default() and the apply_event _ => {} catch-all preserves it. Covered by\n  rehydrate_without_scope_events_yields_default_scope.",
+    "datetime": "2026-05-12T09:31:33.328667722Z",
+    "entry_id": "019e1b87-0250-7fc3-a422-ac833fcac04f",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

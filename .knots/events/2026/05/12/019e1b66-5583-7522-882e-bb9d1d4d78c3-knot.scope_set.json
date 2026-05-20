@@ -1,0 +1,12 @@
+{
+  "event_id": "019e1b66-5583-7522-882e-bb9d1d4d78c3",
+  "occurred_at": "2026-05-12T08:55:51.939453521Z",
+  "knot_id": "knots-f7c7",
+  "type": "knot.scope_set",
+  "data": {
+    "reliability": 44,
+    "scale": "fib_v1",
+    "volume": 8,
+    "volume_score_confidence": 0.72
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1b5d-d6cf-7fb3-a699-2800fa21828c",
+  "occurred_at": "2026-05-12T08:46:35.215833066Z",
+  "knot_id": "knots-5091",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-5091-scope-flags"
+  }
+}

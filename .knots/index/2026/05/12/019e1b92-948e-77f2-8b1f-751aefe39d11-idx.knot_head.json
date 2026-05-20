@@ -1,0 +1,21 @@
+{
+  "event_id": "019e1b92-948e-77f2-8b1f-751aefe39d11",
+  "occurred_at": "2026-05-12T09:44:11.662453477Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-7dda",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Persist scope metadata events",
+    "type": "work",
+    "updated_at": "2026-05-12T09:44:11.662453477Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1b5d-d6cf-7fb3-a699-282584caa6b1",
+  "occurred_at": "2026-05-12T08:46:35.215833066Z",
+  "knot_id": "knots-5091",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implemented CLI scope metadata flags. Branch: worktree-knots-5091-scope-flags. Commit: 9cfe60ea02c5b6cd9a9714a1fa532ea3e39e3714. Verification: cargo test --all-targets --all-features passed; make sanity passed with 95.00% coverage.",
+    "datetime": "2026-05-12T08:46:35.215833066Z",
+    "entry_id": "019e1b5d-d6cf-7fb3-a699-281d4717cc53",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

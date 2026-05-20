@@ -1,0 +1,17 @@
+{
+  "event_id": "019e1b66-3a9d-7bb0-b940-f097ed3e9e49",
+  "occurred_at": "2026-05-12T08:55:45.053222412Z",
+  "knot_id": "knots-f7c7",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "scope smoke",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

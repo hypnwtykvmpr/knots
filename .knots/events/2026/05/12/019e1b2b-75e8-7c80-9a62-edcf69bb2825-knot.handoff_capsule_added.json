@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1b2b-75e8-7c80-9a62-edcf69bb2825",
+  "occurred_at": "2026-05-12T07:51:33.608910917Z",
+  "knot_id": "knots-5091",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Planning complete. CLI scope flags landed as a 10-flag extension to\nNewArgs (src/cli.rs) and UpdateArgs (src/cli_agent.rs), routed through a\nshared ScopePatch on NewOperation/UpdateOperation\n(src/write_dispatch/operation_map.rs), validated post-parse in a new\nscope_validation.rs (volume > 0, reliability 0-100, confidence 0.0-1.0,\nstddev >= 0.0), and persisted via CreateKnotOptions + build_update_patch.\nTests live in src/cli_tests.rs (parse) and src/write_dispatch/tests.rs\n(validation + round trip).\n\nHard dependency: knots-41ba must land first (domain fields), then 7dda\n(events), then ee7d (projection). Implementation step should claim only\nafter those sibling knots are SHIPPED or merged into main; otherwise\nflags have nowhere to write. If implementation is claimed before 41ba is\nready, return to ready_for_planning and note the dependency gap.\n\nFollow existing CLI conventions: clap doc comments for help, post-parse\nvalidation mirroring src/app/knot_update/fields.rs:125-147, error\nmessages naming the user-facing flag (scope_volume, not internal field).\nKeep scope_scale free-form at the CLI layer.",
+    "datetime": "2026-05-12T07:51:33.608910917Z",
+    "entry_id": "019e1b2b-75e8-7c80-9a62-edb9b9b8422d",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

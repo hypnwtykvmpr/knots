@@ -1,0 +1,21 @@
+{
+  "event_id": "019e1c29-345c-7872-a86c-ee6054fd50a0",
+  "occurred_at": "2026-05-12T12:28:42.965730505Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-f7c7",
+    "profile_id": "autopilot",
+    "state": "abandoned",
+    "terminal": true,
+    "title": "scope smoke",
+    "type": "work",
+    "updated_at": "2026-05-12T12:28:42.965730505Z",
+    "workflow_id": "work_sdlc"
+  }
+}

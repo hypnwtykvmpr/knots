@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1c11-2c57-7bf3-ad9f-c37d4111cb56",
+  "occurred_at": "2026-05-12T12:02:28.049370783Z",
+  "knot_id": "knots-51ac",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Temporary verification knot for scope projection implementation."
+  }
+}

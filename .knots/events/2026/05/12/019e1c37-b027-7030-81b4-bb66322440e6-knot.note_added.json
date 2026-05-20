@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1c37-b027-7030-81b4-bb66322440e6",
+  "occurred_at": "2026-05-12T12:44:32.167637829Z",
+  "knot_id": "knots-41ba",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "# Implementation Handoff Capsule — knots-41ba\n\n## Artifact\n- Branch: worktree-knots-41ba-scope-metadata\n- Commit: 384fc278f094d09a36bfe8e68fdc803dac3d73de\n- Remote: github.com:acartine/knots (pushed)\n\n## What this step delivers\nVerification that all ten scope metadata fields are first-class optional\nfields on the ScopeData domain type, with no overlap with any existing\nestimate/minutes concept. The implementing code landed via the child knots\n(knots-5091, knots-7dda, knots-ee7d); this step confirms acceptance and tags\nthe branch as the review artifact.\n\n## Acceptance coverage\n1. ScopeData (src/domain/scope.rs:49-71) exposes all 10 acceptance fields\n   as Option<...> with skip_serializing_if = Option::is_none:\n   - volume, scale, volume_score_confidence, volume_stddev, volume_result_id\n   - reliability, reliability_score_confidence, reliability_stddev,\n     reliability_band, reliability_result_id\n   Existing test scope_patch_detects_and_applies_every_field\n   (src/domain/scope.rs:158) asserts every field is settable and readable.\n2. Legacy knots without scope still load — covered by\n   src/sync/apply_tests_legacy_defaults.rs and the default-empty path\n   (ScopeData::default().is_empty() -> omitted from view; see\n   src/app/types.rs:183).\n3. Scope volume is its own field on ScopeData; no pre-existing\n   estimate/minutes field on knots is repurposed. Repo scan confirms\n   minutes exists only in src/lease_expiry.rs (lease TTL) and\n   estimate only as CLI help text in src/cli_scope.rs:10.\n\n## Verification commands run\n- cargo test from this branch — 1164 unit tests + integration suites\n  pass; full sanity (fmt, lint, tests, coverage) passes at 95.06% with the\n  managed pre-push hook.\n- kno -C ~/knots fsck — 415 scanned files, 0 issues.\n\n## Notes for the reviewer\n- The commit is intentionally empty for source changes — this knot is a\n  parent-level acceptance check on work already merged via child knots.\n  The commit message contains the verification evidence; the branch\n  satisfies the remote_main artifact contract.\n- Naming: acceptance text uses the scope_ prefix (e.g. scope_volume);\n  domain fields elide that prefix since they live under ScopeData. These\n  are semantically equivalent.",
+    "datetime": "2026-05-12T12:44:32.167637829Z",
+    "entry_id": "019e1c37-b027-7030-81b4-bb5313c6fe9b",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e1c29-3151-7051-a09e-c856d75f9bad",
+  "occurred_at": "2026-05-12T12:28:42.19341904Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-ee7d",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Project scope into knot views",
+    "type": "work",
+    "updated_at": "2026-05-12T12:28:42.19341904Z",
+    "workflow_id": "work_sdlc"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "event_id": "019e1c48-0cf1-7e00-999b-0a59b41d3b0e",
+  "occurred_at": "2026-05-12T13:02:24.49723307Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-41ba",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add scope metadata fields",
+    "type": "work",
+    "updated_at": "2026-05-12T13:02:24.49723307Z",
+    "workflow_id": "work_sdlc"
+  }
+}

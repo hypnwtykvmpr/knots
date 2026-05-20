@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1b2d-c585-7e00-b894-4ddec2814699",
+  "occurred_at": "2026-05-12T07:54:05.061084336Z",
+  "knot_id": "knots-5091",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Implementation blocked: hard dependencies knots-41ba (domain scope fields), knots-7dda (scope events), and knots-ee7d (scope projection) are all still in ready_for_planning. Verified no scope_volume/scope_reliability/scope_scale references exist anywhere in the codebase, so CLI flags would have nowhere to write. Per planner's note, returning to ready_for_implementation; should not be re-claimed for implementation until 41ba/7dda/ee7d are SHIPPED or merged into main.",
+    "datetime": "2026-05-12T07:54:05.061084336Z",
+    "entry_id": "019e1b2d-c585-7e00-b894-4dc72b502f3b",
+    "model": "Opus",
+    "username": "claude",
+    "version": "4.7"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1beb-b1ea-7c12-8900-c7766b8c16d9",
+  "occurred_at": "2026-05-12T11:21:31.8823101Z",
+  "knot_id": "knots-ee7d",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan for knots-ee7d: scope data is already projected into knot_hot (col scope_data_json, mig 18)\nand KnotView (Option<ScopeData>, types.rs:41). The remaining gap is idx.knot_head: it currently\nomits scope, so Foolery's fast list/index path can't see scope without a full rehydrate.\n\nImplementation summary for the next actor:\n1. Add scope_data: Option<&ScopeData> field to KnotHeadData in src/app/helpers.rs and emit a\n   \"scope\" key in build_knot_head_data when non-empty (mirror the existing execution_plan treatment).\n2. Thread Some(&current.scope_data) through every call site of build_knot_head_data (knot_create,\n   knot_scope, knot_update, knot_profile, state_ops, edges, execution_plan_edit, gate_metadata,\n   query::step_annotate).\n3. Teach src/sync/apply_helpers.rs::build_index_upsert to prefer data[\"scope\"] from idx heads over\n   the cached scope_data (add a tiny parse helper; keep parse_scope_data flat-payload for full\n   events).\n4. Tests: assert idx head JSON carries scope after update_knot_scope; assert a synthetic idx head\n   with embedded scope upserts knot_hot.scope_data correctly without a paired full event;\n   regression: idx heads lacking scope still apply.\n\nNo DB migration required. No public CLI surface changes — KnotView already exposes scope.",
+    "datetime": "2026-05-12T11:21:31.8823101Z",
+    "entry_id": "019e1beb-b1ea-7c12-8900-c76f227429a2",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

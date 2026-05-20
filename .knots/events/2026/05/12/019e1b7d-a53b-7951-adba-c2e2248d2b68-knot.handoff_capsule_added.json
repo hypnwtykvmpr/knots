@@ -1,0 +1,15 @@
+{
+  "event_id": "019e1b7d-a53b-7951-adba-c2e2248d2b68",
+  "occurred_at": "2026-05-12T09:21:19.675594513Z",
+  "knot_id": "knots-7dda",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Scope event path is already wired end to end: `FullEventKind::KnotScopeSet`\nemits in `src/app/knot_create.rs:261-270` and\n`src/app/knot_scope.rs:69-76`; replay handled in\n`src/app/rehydrate/apply_event.rs:39,239-246` via `parse_scope_data_value`;\nsync in `src/sync/apply.rs:380-383`. `ScopeData` covers all ten spec\nfields with `Option<...>` + `skip_serializing_if = \"Option::is_none\"` so\nabsent stays `None`. Backward compat for knots without scope events is\npreserved by the `_ => {}` catch-all in `apply_event.rs` and the default\n`ScopeData::default()` projection seed.\n\nThe missing piece is verification: no test exercises the event payload\nshape or the rehydrate round-trip. Implementation step should add tests\ncovering (1) payload key shape matches spec names, (2) absent fields stay\nabsent in JSON, (3) round-trip via `App + rehydrate_from_events` restores\nall ten fields exactly, (4) partial second `knot.scope_set` event replays\nto the merged state expected by the emitter contract, and (5) a knot with\nno scope events rehydrates to `ScopeData::default()`. Likely no\nproduction changes; if tests surface drift, fix producer/consumer rather\nthan relax the test. Files: new test file under `src/app/` (or extend\n`src/events/tests_ext.rs`), respect 500-line / 100-line / 100-col limits,\nrun `make sanity` before handoff.",
+    "datetime": "2026-05-12T09:21:19.675594513Z",
+    "entry_id": "019e1b7d-a53b-7951-adba-c2dd604e7e36",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}

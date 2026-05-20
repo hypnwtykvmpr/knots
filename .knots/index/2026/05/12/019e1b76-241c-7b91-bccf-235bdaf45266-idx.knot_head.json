@@ -1,0 +1,21 @@
+{
+  "event_id": "019e1b76-241c-7b91-bccf-235bdaf45266",
+  "occurred_at": "2026-05-12T09:13:07.868087282Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-5091",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Add CLI scope flags",
+    "type": "work",
+    "updated_at": "2026-05-12T09:13:07.868087282Z",
+    "workflow_id": "work_sdlc"
+  }
+}

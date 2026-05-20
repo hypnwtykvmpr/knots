@@ -1,0 +1,9 @@
+{
+  "event_id": "019e1c11-2c63-7e30-9d0a-1be186f1a701",
+  "occurred_at": "2026-05-12T12:02:28.049370783Z",
+  "knot_id": "knots-51ac",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "scope-ee7d-smoke-20260512"
+  }
+}
