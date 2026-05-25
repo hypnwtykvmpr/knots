@@ -1,0 +1,9 @@
+{
+  "event_id": "019e5ff1-e83d-7f81-bd9a-f45979d75d9b",
+  "occurred_at": "2026-05-25T16:22:29.681204Z",
+  "knot_id": "knots-8fb3",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. The bug is reproduced in a fresh kno store with a documented minimal command sequence.\n2. The root cause is identified and explained in the ship note (which call wipes the cache; whether the events on disk become a useless snapshot during replay).\n3. A fix is landed that:\n   (a) makes `kno plan step remove --wave N --step M` either succeed cleanly OR error without mutating state, and\n   (b) ensures `kno init` / `kno rehydrate` / `kno sync` correctly replay `knot.execution_plan_data_set` events into the cache, so the most recent snapshot is always recoverable.\n4. A regression test covers the exact failing sequence (create plan → modify edges → step remove).\n5. Verify on the original artifact: re-run the failing sequence against a copy of /Users/cartine/quilt/.knots/events/ at the time of the bug; expect either successful step removal or no state mutation."
+  }
+}
