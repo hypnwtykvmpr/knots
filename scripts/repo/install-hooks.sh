@@ -7,12 +7,19 @@ if [[ -z "${repo_root}" ]]; then
   exit 1
 fi
 
-hooks_dir="${repo_root}/.git/hooks"
+hooks_dir="$(git rev-parse --path-format=absolute --git-common-dir)/hooks"
 managed_hook="${hooks_dir}/pre-push"
 local_hook="${hooks_dir}/pre-push.local"
 marker="knots-managed-pre-push-hook"
 
 mkdir -p "${hooks_dir}"
+
+if [[ -f "${managed_hook}" ]] \
+  && grep -q "${marker}" "${managed_hook}" \
+  && [[ ! -w "${managed_hook}" ]]; then
+  echo "Managed pre-push hook already installed at ${managed_hook}"
+  exit 0
+fi
 
 if [[ -f "${managed_hook}" ]] && ! grep -q "${marker}" "${managed_hook}"; then
   if [[ -f "${local_hook}" ]]; then
@@ -31,7 +38,8 @@ cat > "${managed_hook}" <<EOF
 set -euo pipefail
 # ${marker}
 repo_root="${repo_root}"
-local_hook="\${repo_root}/.git/hooks/pre-push.local"
+hooks_dir="${hooks_dir}"
+local_hook="\${hooks_dir}/pre-push.local"
 
 if [[ -x "\${local_hook}" ]]; then
   "\${local_hook}" "\$@"

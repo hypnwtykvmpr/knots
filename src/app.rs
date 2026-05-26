@@ -308,6 +308,9 @@ mod tests_list_lease;
 #[path = "app/tests_planned_by_edge.rs"]
 mod tests_planned_by_edge;
 #[cfg(test)]
+#[path = "app/tests_rehydrate_execution_plan.rs"]
+mod tests_rehydrate_execution_plan;
+#[cfg(test)]
 #[path = "app/tests_scope_events.rs"]
 mod tests_scope_events;
 #[cfg(test)]

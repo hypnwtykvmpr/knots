@@ -15,11 +15,11 @@ use super::{GitAdapter, SyncError, SyncSummary};
 #[path = "apply_helpers.rs"]
 mod apply_helpers;
 use apply_helpers::{
-    build_index_upsert, current_unix_ms_string, invalid_event, is_stale_precondition, optional_i64,
-    optional_string, parse_execution_plan_data, parse_gate_data, parse_invariants,
-    parse_lease_data, parse_metadata_entry, parse_scope_data, read_json_file, required_profile_id,
-    required_string, required_workflow_id, IndexUpsertParams, MetadataProjection,
-    WorkflowIdResolution,
+    build_index_upsert, current_unix_ms_string, invalid_event, is_stale_full_precondition,
+    is_stale_precondition, optional_i64, optional_string, parse_execution_plan_data,
+    parse_gate_data, parse_invariants, parse_lease_data, parse_metadata_entry, parse_scope_data,
+    read_json_file, required_profile_id, required_string, required_workflow_id, IndexUpsertParams,
+    MetadataProjection, WorkflowIdResolution,
 };
 
 pub struct IncrementalApplier<'a> {
@@ -280,7 +280,7 @@ impl<'a> IncrementalApplier<'a> {
             .as_object()
             .ok_or_else(|| invalid_event(&absolute_path, "full event data must be an object"))?;
 
-        if is_stale_precondition(self.conn, &event.knot_id, event.precondition.as_ref())? {
+        if is_stale_full_precondition(self.conn, &event)? {
             return Ok(FullApplyOutcome::Ignored);
         }
 

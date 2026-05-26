@@ -36,6 +36,7 @@ pub(crate) struct RehydrateProjection {
     pub gate_data: GateData,
     pub lease_data: LeaseData,
     pub execution_plan_data: ExecutionPlanData,
+    pub execution_plan_data_from_full: bool,
     pub scope_data: ScopeData,
     pub lease_id: Option<String>,
     pub workflow_id: String,
@@ -78,6 +79,7 @@ fn new_projection(title: String, state: String, updated_at: String) -> Rehydrate
         gate_data: GateData::default(),
         lease_data: LeaseData::default(),
         execution_plan_data: ExecutionPlanData::default(),
+        execution_plan_data_from_full: false,
         scope_data: ScopeData::default(),
         lease_id: None,
         workflow_id: String::new(),
@@ -227,7 +229,7 @@ fn apply_index_head(
     if data.contains_key("gate") {
         projection.gate_data = parse_gate_data_value(data.get("gate"));
     }
-    if data.contains_key("execution_plan") {
+    if data.contains_key("execution_plan") && !projection.execution_plan_data_from_full {
         projection.execution_plan_data =
             parse_execution_plan_data_value(data.get("execution_plan"));
     }
