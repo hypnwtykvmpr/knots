@@ -1,0 +1,15 @@
+{
+  "event_id": "019e6375-e418-7163-bbbb-53248e7061dc",
+  "occurred_at": "2026-05-26T08:45:31.032801773Z",
+  "knot_id": "knots-8fb3",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Released from overview because no terminal session was found.",
+    "datetime": "2026-05-26T08:45:31.032801773Z",
+    "entry_id": "019e6375-e418-7163-bbbb-53142bed4d65",
+    "model": "unknown",
+    "username": "foolery",
+    "version": "unknown"
+  }
+}
