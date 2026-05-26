@@ -1,0 +1,15 @@
+{
+  "event_id": "019e638b-0816-7842-98e4-396a3d68b239",
+  "occurred_at": "2026-05-26T09:08:36.502952811Z",
+  "knot_id": "knots-8fb3",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-8fb3-execution-plan-cache. Commit: 6cc45c553c9d03e3b057006c2665861c589eece7. Pushed to origin. Verification: make sanity passed with 95.01% coverage; focused CLI/domain/rehydrate/sync regression tests passed. Original external Quilt event artifact was not present at /Users/cartine/quilt or /home/cartine/quilt in this workspace; regression fixture covers the reported remove sequence and replay downgrade.",
+    "datetime": "2026-05-26T09:08:36Z",
+    "entry_id": "019e638b-0816-7842-98e4-395ab8932cb6",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

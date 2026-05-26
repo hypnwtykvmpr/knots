@@ -1,0 +1,9 @@
+{
+  "event_id": "019e638b-0816-7842-98e4-3945271eb993",
+  "occurred_at": "2026-05-26T09:08:36.502952811Z",
+  "knot_id": "knots-8fb3",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-8fb3-execution-plan-cache"
+  }
+}
