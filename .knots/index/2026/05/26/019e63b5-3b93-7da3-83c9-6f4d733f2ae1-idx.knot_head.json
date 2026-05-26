@@ -1,0 +1,21 @@
+{
+  "event_id": "019e63b5-3b93-7da3-83c9-6f4d733f2ae1",
+  "occurred_at": "2026-05-26T09:54:42.195683093Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-8fb3",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Bug: kno plan step remove wipes execution_plan waves from cache; rehydrate/init/sync don't recover",
+    "type": "work",
+    "updated_at": "2026-05-26T09:54:42.195683093Z",
+    "workflow_id": "work_sdlc"
+  }
+}
