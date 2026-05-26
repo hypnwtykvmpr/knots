@@ -345,7 +345,7 @@ fn seed_hot_knot_empty_type(conn: &rusqlite::Connection, knot_id: &str) {
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
-            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
+            execution_plan_data: &ExecutionPlanData::default(),
             lease_id: None,
             workflow_id: "execution_plan_sdlc",
             profile_id: "autopilot",
