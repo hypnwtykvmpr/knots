@@ -1,0 +1,50 @@
+{
+  "event_id": "019e6379-3ae4-7d01-9ec9-fe7333831a97",
+  "occurred_at": "2026-05-26T08:49:09.860431082Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-8fb3",
+    "next_step_metadata": {
+      "action_kind": "produce",
+      "action_state": "implementation",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "profile_id": "autopilot",
+    "state": "plan_review",
+    "step_metadata": {
+      "action_kind": "gate",
+      "action_state": "plan_review",
+      "output": {
+        "artifact_type": "remote_main"
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "Bug: kno plan step remove wipes execution_plan waves from cache; rehydrate/init/sync don't recover",
+    "type": "work",
+    "updated_at": "2026-05-26T08:49:09.860431082Z",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019e6379-0e7a-7391-ae01-1c9e1919bdb1"
+  }
+}

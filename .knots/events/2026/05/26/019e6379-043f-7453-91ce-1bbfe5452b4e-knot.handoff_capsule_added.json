@@ -1,0 +1,15 @@
+{
+  "event_id": "019e6379-043f-7453-91ce-1bbfe5452b4e",
+  "occurred_at": "2026-05-26T08:48:55.871775665Z",
+  "knot_id": "knots-8fb3",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete. Investigate with tests around two paths: live `plan step remove` must validate before writes, and rehydrate/init must not let sparse/stale `idx.knot_head.execution_plan` overwrite a fuller `knot.execution_plan_data_set` snapshot. Start with app/CLI repro for wave 5 step removal after edge edits, then add replay tests for full-vs-index execution_plan precedence.",
+    "datetime": "2026-05-26T08:48:55.871775665Z",
+    "entry_id": "019e6379-043f-7453-91ce-1ba845916dcb",
+    "model": "GPT",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}
