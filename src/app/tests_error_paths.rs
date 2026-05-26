@@ -138,6 +138,7 @@ fn seed_projection() -> RehydrateProjection {
         gate_data: crate::domain::gate::GateData::default(),
         lease_data: crate::domain::lease::LeaseData::default(),
         execution_plan_data: crate::domain::execution_plan::ExecutionPlanData::default(),
+        execution_plan_data_from_full: false,
         scope_data: crate::domain::scope::ScopeData::default(),
         lease_id: None,
         workflow_id: String::new(),

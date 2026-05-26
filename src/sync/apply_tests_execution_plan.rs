@@ -154,6 +154,91 @@ fn apply_index_event_reads_execution_plan_payload() {
 }
 
 #[test]
+fn bootstrap_full_execution_plan_snapshot_wins_over_sparse_index_payload() {
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    db::set_meta(&conn, "hot_window_days", "365").expect("hot window should be configurable");
+
+    let ts = "2026-05-25T10:00:00Z";
+    let idx_dir = root.join(".knots/index/2026/05/25");
+    let events_dir = root.join(".knots/events/2026/05/25");
+    std::fs::create_dir_all(&idx_dir).expect("index directory should be creatable");
+    std::fs::create_dir_all(&events_dir).expect("events directory should be creatable");
+
+    std::fs::write(
+        idx_dir.join("1001-idx.knot_head.json"),
+        serde_json::json!({
+            "event_id": "1001",
+            "occurred_at": ts,
+            "type": "idx.knot_head",
+            "data": {
+                "knot_id": "K-plan-snapshot",
+                "title": "Execution plan",
+                "state": "ready_for_design",
+                "workflow_id": "execution_plan_sdlc",
+                "profile_id": "autopilot",
+                "updated_at": ts,
+                "terminal": false,
+                "type": "execution_plan",
+                "execution_plan": { "objective": "Recover from full event" }
+            }
+        })
+        .to_string(),
+    )
+    .expect("index event should write");
+    std::fs::write(
+        events_dir.join("1000-knot.execution_plan_data_set.json"),
+        serde_json::json!({
+            "event_id": "1000",
+            "occurred_at": ts,
+            "knot_id": "K-plan-snapshot",
+            "type": "knot.execution_plan_data_set",
+            "precondition": { "profile_etag": "previous-index" },
+            "data": {
+                "execution_plan": {
+                    "objective": "Recover from full event",
+                    "waves": [{
+                        "wave_index": 5,
+                        "name": "Wave 5",
+                        "objective": "Do not lose this",
+                        "steps": [{
+                            "step_index": 4,
+                            "knot_ids": ["K-gate"]
+                        }]
+                    }]
+                }
+            }
+        })
+        .to_string(),
+    )
+    .expect("full event should write");
+
+    let mut applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+    applier
+        .apply_to_head("HEAD")
+        .expect("bootstrap apply should succeed");
+
+    let record = db::get_knot_hot(&conn, "K-plan-snapshot")
+        .expect("hot lookup should succeed")
+        .expect("record should exist");
+    assert_eq!(record.execution_plan_data.waves.len(), 1);
+    assert_eq!(record.execution_plan_data.waves[0].wave_index, 5);
+    assert_eq!(record.execution_plan_data.waves[0].steps[0].step_index, 4);
+    assert_eq!(record.profile_etag.as_deref(), Some("1001"));
+
+    applier
+        .apply_index_event(Path::new(".knots/index/2026/05/25/1001-idx.knot_head.json"))
+        .expect("reapplying sparse index should succeed");
+    let record = db::get_knot_hot(&conn, "K-plan-snapshot")
+        .expect("hot lookup should succeed")
+        .expect("record should still exist");
+    assert_eq!(record.execution_plan_data.waves.len(), 1);
+    assert_eq!(record.execution_plan_data.waves[0].steps[0].step_index, 4);
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn apply_index_event_ignores_removed_top_level_fields_and_legacy_ids() {
     let root = setup_repo();
     let conn = open_conn(&root);

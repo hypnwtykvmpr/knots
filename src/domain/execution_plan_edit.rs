@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::HashSet;
 use std::fmt;
 
@@ -76,7 +74,7 @@ pub fn remove_wave(
     wave_index: u32,
 ) -> Result<(ExecutionPlanData, CascadeInfo), PlanEditError> {
     let mut next = canonicalize_plan(plan);
-    let index = existing_offset(next.waves.len(), wave_index, "wave")?;
+    let index = wave_offset_by_index(&next.waves, wave_index)?;
     let wave = next.waves.remove(index);
     let cascade = cascade_from_wave(&wave);
     renumber_waves(&mut next);
@@ -89,7 +87,10 @@ pub fn move_wave(
     to: u32,
 ) -> Result<ExecutionPlanData, PlanEditError> {
     let mut next = canonicalize_plan(plan);
-    move_item(&mut next.waves, from, to, "wave")?;
+    let from_index = wave_offset_by_index(&next.waves, from)?;
+    let wave = next.waves.remove(from_index);
+    let to_index = insertion_offset(next.waves.len(), Some(to), "wave")?;
+    next.waves.insert(to_index, wave);
     renumber_waves(&mut next);
     Ok(next)
 }
@@ -123,7 +124,7 @@ pub fn remove_step(
 ) -> Result<(ExecutionPlanData, CascadeInfo), PlanEditError> {
     let mut next = canonicalize_plan(plan);
     let wave = wave_mut_by_index(&mut next, wave_index)?;
-    let index = existing_offset(wave.steps.len(), step_index, "step")?;
+    let index = step_offset_by_index(&wave.steps, wave_index, step_index)?;
     let step = wave.steps.remove(index);
     let cascade = cascade_from_step(&step);
     renumber_steps(wave);
@@ -138,7 +139,10 @@ pub fn move_step(
 ) -> Result<ExecutionPlanData, PlanEditError> {
     let mut next = canonicalize_plan(plan);
     let wave = wave_mut_by_index(&mut next, wave_index)?;
-    move_item(&mut wave.steps, from, to, "step")?;
+    let from_index = step_offset_by_index(&wave.steps, wave_index, from)?;
+    let step = wave.steps.remove(from_index);
+    let to_index = insertion_offset(wave.steps.len(), Some(to), "step")?;
+    wave.steps.insert(to_index, step);
     renumber_steps(wave);
     Ok(next)
 }
@@ -156,21 +160,8 @@ fn wave_mut_by_index(
     plan: &mut ExecutionPlanData,
     wave_index: u32,
 ) -> Result<&mut ExecutionPlanWave, PlanEditError> {
-    let offset = existing_offset(plan.waves.len(), wave_index, "wave")?;
+    let offset = wave_offset_by_index(&plan.waves, wave_index)?;
     Ok(&mut plan.waves[offset])
-}
-
-fn move_item<T>(
-    items: &mut Vec<T>,
-    from: u32,
-    to: u32,
-    kind: &'static str,
-) -> Result<(), PlanEditError> {
-    let from_index = existing_offset(items.len(), from, kind)?;
-    let item = items.remove(from_index);
-    let to_index = insertion_offset(items.len(), Some(to), kind)?;
-    items.insert(to_index, item);
-    Ok(())
 }
 
 fn insertion_offset(
@@ -185,21 +176,50 @@ fn insertion_offset(
     Ok(index as usize - 1)
 }
 
-fn existing_offset(len: usize, index: u32, kind: &'static str) -> Result<usize, PlanEditError> {
-    if index == 0 {
-        return Err(PlanEditError::IndexOutOfBounds { kind, index, len });
-    }
-    if index as usize > len {
-        return Err(match kind {
-            "wave" => PlanEditError::WaveNotFound(index),
-            "step" => PlanEditError::StepNotFound {
-                wave_index: 0,
-                step_index: index,
-            },
-            _ => PlanEditError::IndexOutOfBounds { kind, index, len },
+fn wave_offset_by_index(
+    waves: &[ExecutionPlanWave],
+    wave_index: u32,
+) -> Result<usize, PlanEditError> {
+    if wave_index == 0 {
+        return Err(PlanEditError::IndexOutOfBounds {
+            kind: "wave",
+            index: wave_index,
+            len: waves.len(),
         });
     }
-    Ok(index as usize - 1)
+    if let Some(offset) = waves.iter().position(|wave| wave.wave_index == wave_index) {
+        return Ok(offset);
+    }
+    let all_unindexed = !waves.is_empty() && waves.iter().all(|wave| wave.wave_index == 0);
+    if all_unindexed && wave_index as usize <= waves.len() {
+        return Ok(wave_index as usize - 1);
+    }
+    Err(PlanEditError::WaveNotFound(wave_index))
+}
+
+fn step_offset_by_index(
+    steps: &[ExecutionPlanStep],
+    wave_index: u32,
+    step_index: u32,
+) -> Result<usize, PlanEditError> {
+    if step_index == 0 {
+        return Err(PlanEditError::IndexOutOfBounds {
+            kind: "step",
+            index: step_index,
+            len: steps.len(),
+        });
+    }
+    if let Some(offset) = steps.iter().position(|step| step.step_index == step_index) {
+        return Ok(offset);
+    }
+    let all_unindexed = !steps.is_empty() && steps.iter().all(|step| step.step_index == 0);
+    if all_unindexed && step_index as usize <= steps.len() {
+        return Ok(step_index as usize - 1);
+    }
+    Err(PlanEditError::StepNotFound {
+        wave_index,
+        step_index,
+    })
 }
 
 fn renumber_waves(plan: &mut ExecutionPlanData) {
@@ -410,7 +430,7 @@ mod tests {
         assert_eq!(
             err,
             PlanEditError::StepNotFound {
-                wave_index: 0,
+                wave_index: 1,
                 step_index: 3,
             }
         );

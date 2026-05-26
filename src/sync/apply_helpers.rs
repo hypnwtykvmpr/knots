@@ -13,6 +13,7 @@ use crate::domain::lease::LeaseData;
 use crate::domain::metadata::MetadataEntry;
 use crate::domain::scope::ScopeData;
 use crate::domain::step_history::StepRecord;
+use crate::events::FullEvent;
 use crate::installed_workflows;
 
 use super::SyncError;
@@ -322,6 +323,22 @@ pub(super) fn is_stale_precondition(
     Ok(current != precondition.profile_etag)
 }
 
+pub(super) fn is_stale_full_precondition(
+    conn: &Connection,
+    event: &FullEvent,
+) -> Result<bool, SyncError> {
+    let Some(precondition) = event.precondition.as_ref() else {
+        return Ok(false);
+    };
+    let Some(current) = db::get_knot_hot(conn, &event.knot_id)? else {
+        return Ok(false);
+    };
+    if current.profile_etag.as_deref() == Some(precondition.profile_etag.as_str()) {
+        return Ok(false);
+    }
+    Ok(current.updated_at != event.occurred_at)
+}
+
 pub(super) struct IndexUpsertParams<'a> {
     pub conn: &'a Connection,
     pub data: &'a serde_json::Map<String, serde_json::Value>,
@@ -395,7 +412,10 @@ pub(super) fn build_index_upsert(
         .map(|r| r.execution_plan_data.clone())
         .unwrap_or_default();
     if params.data.contains_key("execution_plan") {
-        execution_plan_data = parse_execution_plan_data(params.data, params.absolute_path)?;
+        let incoming = parse_execution_plan_data(params.data, params.absolute_path)?;
+        if should_use_index_execution_plan(&execution_plan_data, &incoming) {
+            execution_plan_data = incoming;
+        }
     }
     let lease_id = existing.as_ref().and_then(|r| r.lease_id.clone());
     let deferred_from_state =
@@ -437,4 +457,11 @@ pub(super) fn build_index_upsert(
         blocked_from_state,
         created_at: Some(created_at),
     })
+}
+
+fn should_use_index_execution_plan(
+    existing: &ExecutionPlanData,
+    incoming: &ExecutionPlanData,
+) -> bool {
+    !incoming.waves.is_empty() || existing.waves.is_empty()
 }

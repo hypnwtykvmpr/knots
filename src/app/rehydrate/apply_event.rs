@@ -88,6 +88,7 @@ fn apply_created(
     }
     if data.contains_key("execution_plan") {
         p.execution_plan_data = parse_execution_plan_data_value(data.get("execution_plan"));
+        p.execution_plan_data_from_full = true;
     }
     // Compat: pre-fix `knot.created` events carried the description inline as
     // `body`. Newer creates emit a separate `knot.description_set` that will
@@ -233,6 +234,7 @@ fn apply_execution_plan_data_set(
     event: &FullEvent,
 ) {
     p.execution_plan_data = parse_execution_plan_data_value(data.get("execution_plan"));
+    p.execution_plan_data_from_full = true;
     p.updated_at = event.occurred_at.clone();
 }
 

@@ -8,3 +8,7 @@ pub mod metadata;
 pub mod scope;
 pub mod state;
 pub mod step_history;
+
+#[cfg(test)]
+#[path = "execution_plan_edit_tests.rs"]
+mod execution_plan_edit_tests;
