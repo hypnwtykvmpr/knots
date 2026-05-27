@@ -83,6 +83,7 @@ fn minimal_knot() -> KnotView {
         notes: vec![],
         handoff_capsules: vec![],
         invariants: vec![],
+        verification_steps: vec![],
         step_history: vec![],
         gate: None,
         lease: None,
@@ -136,6 +137,7 @@ fn knot_show_fields_include_optional_sections() {
             version: "1".into(),
         }],
         invariants: vec![],
+        verification_steps: vec![],
         step_history: vec![],
         gate: None,
         lease: None,
@@ -171,6 +173,20 @@ fn knot_show_fields_include_optional_sections() {
     ] {
         assert!(labels.iter().any(|x| x == l), "missing {l}");
     }
+}
+
+#[test]
+fn verification_steps_render_as_numbered_show_field() {
+    let mut k = minimal_knot();
+    assert!(!knot_show_fields(&k, false)
+        .iter()
+        .any(|f| f.label == "verification_steps"));
+    k.verification_steps = vec!["cargo test".to_string(), "make sanity".to_string()];
+    let field = knot_show_fields(&k, false)
+        .into_iter()
+        .find(|f| f.label == "verification_steps")
+        .expect("verification_steps field should render");
+    assert_eq!(field.value, "1. cargo test\n2. make sanity");
 }
 #[test]
 fn hidden_hint_empty_single() {

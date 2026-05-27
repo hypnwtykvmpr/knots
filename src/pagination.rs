@@ -36,6 +36,7 @@ mod tests {
             notes: Vec::new(),
             handoff_capsules: Vec::new(),
             invariants: Vec::new(),
+            verification_steps: Vec::new(),
             step_history: Vec::new(),
             gate: None,
             lease: None,

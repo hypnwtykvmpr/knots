@@ -3,7 +3,6 @@ use std::time::Duration;
 use serde_json::json;
 
 use crate::db::{self, KnotCacheRecord, UpsertKnotHot};
-use crate::domain::knot_type::parse_knot_type;
 use crate::events::{
     new_event_id, now_utc_rfc3339, EventRecord, FullEvent, FullEventKind, IndexEvent,
     IndexEventKind,
@@ -23,6 +22,8 @@ use super::types::{KnotView, UpdateKnotPatch};
 use super::App;
 
 mod fields;
+mod state;
+use state::UpdateState;
 
 impl App {
     pub fn update_knot(&self, id: &str, patch: UpdateKnotPatch) -> Result<KnotView, AppError> {
@@ -48,66 +49,6 @@ impl App {
             db::get_knot_hot(&self.conn, &id)?.ok_or_else(|| AppError::NotFound(id.to_string()))?;
         ensure_profile_etag(&current, patch.expected_profile_etag.as_deref())?;
         update_knot_locked(self, &id, current, patch, approve_terminal_cascade)
-    }
-}
-
-struct UpdateState {
-    title: String,
-    state: String,
-    description: Option<String>,
-    body: Option<String>,
-    acceptance: Option<String>,
-    priority: Option<i64>,
-    knot_type: crate::domain::knot_type::KnotType,
-    deferred: Option<String>,
-    blocked: Option<String>,
-    tags: Vec<String>,
-    notes: Vec<crate::domain::metadata::MetadataEntry>,
-    handoff_capsules: Vec<crate::domain::metadata::MetadataEntry>,
-    invariants: Vec<crate::domain::invariant::Invariant>,
-    gate_data: crate::domain::gate::GateData,
-    execution_plan_data: crate::domain::execution_plan::ExecutionPlanData,
-    current_precondition: Option<String>,
-}
-
-impl UpdateState {
-    fn from_record(record: &KnotCacheRecord, precondition: Option<String>) -> Self {
-        Self {
-            title: record.title.clone(),
-            state: record.state.clone(),
-            description: record.description.clone(),
-            body: record.body.clone(),
-            acceptance: record.acceptance.clone(),
-            priority: record.priority,
-            knot_type: parse_knot_type(record.knot_type.as_deref()),
-            deferred: record.deferred_from_state.clone(),
-            blocked: record.blocked_from_state.clone(),
-            tags: record.tags.clone(),
-            notes: record.notes.clone(),
-            handoff_capsules: record.handoff_capsules.clone(),
-            invariants: record.invariants.clone(),
-            gate_data: record.gate_data.clone(),
-            execution_plan_data: record.execution_plan_data.clone(),
-            current_precondition: precondition,
-        }
-    }
-
-    fn refresh_from_record(&mut self, record: &KnotCacheRecord) {
-        self.title = record.title.clone();
-        self.state = record.state.clone();
-        self.description = record.description.clone();
-        self.body = record.body.clone();
-        self.acceptance = record.acceptance.clone();
-        self.priority = record.priority;
-        self.knot_type = parse_knot_type(record.knot_type.as_deref());
-        self.deferred = record.deferred_from_state.clone();
-        self.blocked = record.blocked_from_state.clone();
-        self.tags = record.tags.clone();
-        self.notes = record.notes.clone();
-        self.handoff_capsules = record.handoff_capsules.clone();
-        self.invariants = record.invariants.clone();
-        self.gate_data = record.gate_data.clone();
-        self.execution_plan_data = record.execution_plan_data.clone();
     }
 }
 
@@ -474,6 +415,7 @@ fn write_update_events_and_cache(
             notes: &us.notes,
             handoff_capsules: &us.handoff_capsules,
             invariants: &us.invariants,
+            verification_steps: &us.verification_steps,
             step_history: &apply_step_transition(
                 &current.step_history,
                 &current.state,

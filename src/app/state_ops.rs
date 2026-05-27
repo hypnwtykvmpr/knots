@@ -293,6 +293,7 @@ impl App {
                 notes: &current.notes,
                 handoff_capsules: &current.handoff_capsules,
                 invariants: &current.invariants,
+                verification_steps: &current.verification_steps,
                 step_history: &step_history,
                 gate_data: &current.gate_data,
                 lease_data: &current.lease_data,

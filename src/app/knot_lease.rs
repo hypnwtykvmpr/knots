@@ -44,6 +44,7 @@ impl App {
                 notes: &record.notes,
                 handoff_capsules: &record.handoff_capsules,
                 invariants: &record.invariants,
+                verification_steps: &record.verification_steps,
                 step_history: &record.step_history,
                 gate_data: &record.gate_data,
                 lease_data: &record.lease_data,

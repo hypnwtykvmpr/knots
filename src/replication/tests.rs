@@ -406,6 +406,7 @@ fn push_blocks_with_active_leases() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &gate_data,
             lease_data: &crate::domain::lease::LeaseData::default(),

@@ -67,6 +67,7 @@ fn apply_full_event_updates_acceptance_metadata() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),

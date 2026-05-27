@@ -64,6 +64,7 @@ fn seed_hot_knot(conn: &rusqlite::Connection, knot_id: &str) {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
@@ -212,13 +213,34 @@ fn apply_tag_note_handoff_events(applier: &IncrementalApplier<'_>, events_dir: &
         .expect("handoff event should apply");
 }
 
-fn apply_missing_hot_note_event(applier: &IncrementalApplier<'_>, events_dir: &Path) {
+fn apply_verification_steps_event(applier: &IncrementalApplier<'_>, events_dir: &Path) {
     write_event_file(
         events_dir,
-        "5005-knot.note_added.json",
+        "5005-knot.verification_steps_set.json",
         concat!(
             "{\n",
             "  \"event_id\": \"5005\",\n",
+            "  \"occurred_at\": \"2026-02-25T10:00:00Z\",\n",
+            "  \"knot_id\": \"K-1\",\n",
+            "  \"type\": \"knot.verification_steps_set\",\n",
+            "  \"data\": {\"verification_steps\": [\"cargo test\", \"make sanity\"]}\n",
+            "}\n"
+        ),
+    );
+    applier
+        .apply_full_event(Path::new(
+            ".knots/events/2026/02/25/5005-knot.verification_steps_set.json",
+        ))
+        .expect("verification steps event should apply");
+}
+
+fn apply_missing_hot_note_event(applier: &IncrementalApplier<'_>, events_dir: &Path) {
+    write_event_file(
+        events_dir,
+        "5006-knot.note_added.json",
+        concat!(
+            "{\n",
+            "  \"event_id\": \"5006\",\n",
             "  \"occurred_at\": \"2026-02-25T10:00:00Z\",\n",
             "  \"knot_id\": \"K-missing\",\n",
             "  \"type\": \"knot.note_added\",\n",
@@ -236,7 +258,7 @@ fn apply_missing_hot_note_event(applier: &IncrementalApplier<'_>, events_dir: &P
     );
     applier
         .apply_full_event(Path::new(
-            ".knots/events/2026/02/25/5005-knot.note_added.json",
+            ".knots/events/2026/02/25/5006-knot.note_added.json",
         ))
         .expect("missing-hot note event should still apply as ignored");
 }
@@ -312,6 +334,7 @@ fn apply_full_event_knot_created_does_not_overwrite_existing_description() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
@@ -377,6 +400,7 @@ fn apply_full_event_covers_priority_type_tag_remove_note_and_handoff() {
 
     apply_priority_and_type_events(&applier, &events_dir);
     apply_tag_note_handoff_events(&applier, &events_dir);
+    apply_verification_steps_event(&applier, &events_dir);
     apply_missing_hot_note_event(&applier, &events_dir);
 
     let updated = db::get_knot_hot(&conn, "K-1")
@@ -386,6 +410,10 @@ fn apply_full_event_covers_priority_type_tag_remove_note_and_handoff() {
     assert_eq!(updated.knot_type.as_deref(), Some("task"));
     assert_eq!(updated.notes.len(), 1);
     assert_eq!(updated.handoff_capsules.len(), 1);
+    assert_eq!(
+        updated.verification_steps,
+        vec!["cargo test".to_string(), "make sanity".to_string()]
+    );
 
     let _ = std::fs::remove_dir_all(root);
 }

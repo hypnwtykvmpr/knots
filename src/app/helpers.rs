@@ -121,6 +121,23 @@ pub(crate) fn normalize_tag(raw: &str) -> String {
     raw.trim().to_string()
 }
 
+pub(crate) fn normalize_verification_step(raw: &str) -> Option<String> {
+    non_empty(raw)
+}
+
+pub(crate) fn normalize_verification_steps(raw: &[String]) -> Vec<String> {
+    let mut normalized = Vec::new();
+    for step in raw {
+        let Some(step) = normalize_verification_step(step) else {
+            continue;
+        };
+        if !normalized.iter().any(|existing| existing == &step) {
+            normalized.push(step);
+        }
+    }
+    normalized
+}
+
 pub(crate) fn next_deferred_from_state(
     current: &KnotCacheRecord,
     next_state: &str,

@@ -15,8 +15,8 @@ use crate::workflow_runtime;
 use super::error::AppError;
 use super::helpers::{
     build_knot_head_data, non_empty, normalize_state_input, normalize_tag,
-    require_state_for_knot_type, resolve_step_metadata, validate_execution_plan_data_for_knot_type,
-    KnotHeadData,
+    normalize_verification_steps, require_state_for_knot_type, resolve_step_metadata,
+    validate_execution_plan_data_for_knot_type, KnotHeadData,
 };
 use super::types::{CreateKnotOptions, KnotView};
 use super::App;
@@ -31,6 +31,15 @@ struct CreateKnotHeadParams<'a> {
     terminal: bool,
     step_metadata: Option<&'a StepMetadata>,
     next_step_metadata: Option<&'a StepMetadata>,
+}
+
+struct OptionalCreateEvents<'a> {
+    knot_id: &'a str,
+    occurred_at: &'a str,
+    acceptance: Option<&'a str>,
+    description: Option<&'a str>,
+    options: &'a CreateKnotOptions,
+    verification_steps: &'a [String],
 }
 
 fn create_knot_head_data(params: CreateKnotHeadParams<'_>) -> serde_json::Value {
@@ -213,12 +222,16 @@ impl App {
         );
         self.writer.write(&EventRecord::full(full_event))?;
         let mut tags = Vec::new();
+        let verification_steps = normalize_verification_steps(&options.verification_steps);
         self.write_optional_create_events(
-            &knot_id,
-            &occurred_at,
-            acceptance.as_deref(),
-            description.as_deref(),
-            options,
+            OptionalCreateEvents {
+                knot_id: &knot_id,
+                occurred_at: &occurred_at,
+                acceptance: acceptance.as_deref(),
+                description: description.as_deref(),
+                options,
+                verification_steps: &verification_steps,
+            },
             &mut tags,
         )?;
         self.writer.write(&EventRecord::index(idx_event.clone()))?;
@@ -238,6 +251,7 @@ impl App {
                 notes: &[],
                 handoff_capsules: &[],
                 invariants: &[],
+                verification_steps: &verification_steps,
                 step_history: &[],
                 gate_data: &options.gate_data,
                 lease_data: &options.lease_data,
@@ -259,44 +273,51 @@ impl App {
 
     fn write_optional_create_events(
         &self,
-        knot_id: &str,
-        occurred_at: &str,
-        acceptance: Option<&str>,
-        description: Option<&str>,
-        options: &CreateKnotOptions,
+        params: OptionalCreateEvents<'_>,
         tags: &mut Vec<String>,
     ) -> Result<(), AppError> {
-        if let Some(description) = description {
+        if let Some(description) = params.description {
             let event = FullEvent::with_identity(
                 new_event_id(),
-                occurred_at.to_string(),
-                knot_id.to_string(),
+                params.occurred_at.to_string(),
+                params.knot_id.to_string(),
                 FullEventKind::KnotDescriptionSet.as_str(),
                 json!({ "description": description }),
             );
             self.writer.write(&EventRecord::full(event))?;
         }
-        if let Some(acceptance) = acceptance {
+        if let Some(acceptance) = params.acceptance {
             let event = FullEvent::with_identity(
                 new_event_id(),
-                occurred_at.to_string(),
-                knot_id.to_string(),
+                params.occurred_at.to_string(),
+                params.knot_id.to_string(),
                 FullEventKind::KnotAcceptanceSet.as_str(),
                 json!({ "acceptance": acceptance }),
             );
             self.writer.write(&EventRecord::full(event))?;
         }
-        if !options.scope_data.is_empty() {
+        if !params.options.scope_data.is_empty() {
             let event = FullEvent::with_identity(
                 new_event_id(),
-                occurred_at.to_string(),
-                knot_id.to_string(),
+                params.occurred_at.to_string(),
+                params.knot_id.to_string(),
                 FullEventKind::KnotScopeSet.as_str(),
-                serde_json::to_value(&options.scope_data).expect("scope data should serialize"),
+                serde_json::to_value(&params.options.scope_data)
+                    .expect("scope data should serialize"),
             );
             self.writer.write(&EventRecord::full(event))?;
         }
-        for raw_tag in &options.tags {
+        if !params.verification_steps.is_empty() {
+            let event = FullEvent::with_identity(
+                new_event_id(),
+                params.occurred_at.to_string(),
+                params.knot_id.to_string(),
+                FullEventKind::KnotVerificationStepsSet.as_str(),
+                json!({ "verification_steps": params.verification_steps }),
+            );
+            self.writer.write(&EventRecord::full(event))?;
+        }
+        for raw_tag in &params.options.tags {
             let normalized = normalize_tag(raw_tag);
             if normalized.is_empty() {
                 continue;
@@ -306,26 +327,26 @@ impl App {
                 self.writer
                     .write(&EventRecord::full(FullEvent::with_identity(
                         new_event_id(),
-                        occurred_at.to_string(),
-                        knot_id.to_string(),
+                        params.occurred_at.to_string(),
+                        params.knot_id.to_string(),
                         FullEventKind::KnotTagAdd.as_str(),
                         json!({"tag": normalized}),
                     )))?;
             }
         }
-        if options.knot_type == KnotType::Lease {
+        if params.options.knot_type == KnotType::Lease {
             let event = FullEvent::new(
-                knot_id.to_string(),
+                params.knot_id.to_string(),
                 FullEventKind::KnotLeaseDataSet,
-                json!({"lease_data": &options.lease_data}),
+                json!({"lease_data": &params.options.lease_data}),
             );
             self.writer.write(&EventRecord::full(event))?;
         }
-        if !options.execution_plan_data.is_empty() {
+        if !params.options.execution_plan_data.is_empty() {
             let event = FullEvent::new(
-                knot_id.to_string(),
+                params.knot_id.to_string(),
                 FullEventKind::KnotExecutionPlanDataSet,
-                json!({"execution_plan": &options.execution_plan_data}),
+                json!({"execution_plan": &params.options.execution_plan_data}),
             );
             self.writer.write(&EventRecord::full(event))?;
         }

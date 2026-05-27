@@ -78,6 +78,7 @@ fn seed_plan_with_waves(
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &GateData::default(),
             lease_data: &LeaseData::default(),

@@ -182,6 +182,10 @@ fn initializes_required_tables_and_schema_version() {
         column_default(&conn, "knot_hot", "workflow_id").as_deref(),
         Some("'work_sdlc'")
     );
+    assert_eq!(
+        column_default(&conn, "knot_hot", "verification_steps_json").as_deref(),
+        Some("'[]'")
+    );
 
     cleanup_db_files(&path);
 }
@@ -271,6 +275,7 @@ CREATE TABLE cold_catalog (
         "profile_id",
         "profile_etag",
         "deferred_from_state",
+        "verification_steps_json",
     ] {
         assert!(
             column_exists(&upgraded, "knot_hot", column),

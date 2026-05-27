@@ -335,5 +335,8 @@ mod tests_update_ext;
 #[path = "app/tests_update_normalize_ids.rs"]
 mod tests_update_normalize_ids;
 #[cfg(test)]
+#[path = "app/tests_verification_steps.rs"]
+mod tests_verification_steps;
+#[cfg(test)]
 #[path = "app/tests_workflow_roots.rs"]
 mod tests_workflow_roots;

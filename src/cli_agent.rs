@@ -203,6 +203,21 @@ pub struct UpdateArgs {
     pub remove_invariants: Vec<String>,
     #[arg(long = "clear-invariants", help = "Clear all invariants.")]
     pub clear_invariants: bool,
+    #[arg(
+        long = "add-verification-step",
+        help = "Add verification step (repeatable)."
+    )]
+    pub add_verification_steps: Vec<String>,
+    #[arg(
+        long = "remove-verification-step",
+        help = "Remove verification step (repeatable)."
+    )]
+    pub remove_verification_steps: Vec<String>,
+    #[arg(
+        long = "clear-verification-steps",
+        help = "Clear all verification steps."
+    )]
+    pub clear_verification_steps: bool,
     #[arg(long = "gate-owner-kind", help = "Gate owner kind: human or agent.")]
     pub gate_owner_kind: Option<String>,
     #[arg(
