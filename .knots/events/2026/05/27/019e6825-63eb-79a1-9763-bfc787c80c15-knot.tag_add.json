@@ -1,0 +1,9 @@
+{
+  "event_id": "019e6825-63eb-79a1-9763-bfc787c80c15",
+  "occurred_at": "2026-05-27T06:35:41.419862489Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-3aa9-verification-steps"
+  }
+}

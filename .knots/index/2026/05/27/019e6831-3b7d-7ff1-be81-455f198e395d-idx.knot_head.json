@@ -1,0 +1,21 @@
+{
+  "event_id": "019e6831-3b7d-7ff1-be81-455f198e395d",
+  "occurred_at": "2026-05-27T06:48:37.501423166Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-3aa9",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Make verification steps a first-class list field",
+    "type": "work",
+    "updated_at": "2026-05-27T06:48:37.501423166Z",
+    "workflow_id": "work_sdlc"
+  }
+}

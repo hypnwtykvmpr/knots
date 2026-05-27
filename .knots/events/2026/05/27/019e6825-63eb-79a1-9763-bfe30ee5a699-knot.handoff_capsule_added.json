@@ -1,0 +1,15 @@
+{
+  "event_id": "019e6825-63eb-79a1-9763-bfe30ee5a699",
+  "occurred_at": "2026-05-27T06:35:41.419862489Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-3aa9-verification-steps. Commit: 705dd87e8a3fa012238903a5c3c785b7a6dc8f63. Validation: make sanity passed locally and in the pre-push hook with 95.04% coverage.",
+    "datetime": "2026-05-27T06:35:41.419862489Z",
+    "entry_id": "019e6825-63eb-79a1-9763-bfd06c288d7d",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}
