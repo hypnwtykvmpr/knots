@@ -39,6 +39,7 @@ pub(super) struct MetadataProjection {
     pub notes: Vec<MetadataEntry>,
     pub handoff_capsules: Vec<MetadataEntry>,
     pub invariants: Vec<Invariant>,
+    pub verification_steps: Vec<String>,
     pub step_history: Vec<StepRecord>,
     pub gate_data: GateData,
     pub lease_data: LeaseData,
@@ -68,6 +69,7 @@ impl MetadataProjection {
             notes: existing.notes.clone(),
             handoff_capsules: existing.handoff_capsules.clone(),
             invariants: existing.invariants.clone(),
+            verification_steps: existing.verification_steps.clone(),
             step_history: existing.step_history.clone(),
             gate_data: existing.gate_data.clone(),
             lease_data: existing.lease_data.clone(),
@@ -100,6 +102,7 @@ impl MetadataProjection {
                 notes: &self.notes,
                 handoff_capsules: &self.handoff_capsules,
                 invariants: &self.invariants,
+                verification_steps: &self.verification_steps,
                 step_history: &self.step_history,
                 gate_data: &self.gate_data,
                 lease_data: &self.lease_data,
@@ -250,6 +253,18 @@ pub(super) fn parse_invariants(
         .map_err(|err| invalid_event(path, &format!("invalid 'invariants' payload: {}", err)))
 }
 
+pub(super) fn parse_string_vec(
+    object: &Map<String, Value>,
+    path: &Path,
+    key: &str,
+) -> Result<Vec<String>, SyncError> {
+    let raw = object
+        .get(key)
+        .ok_or_else(|| invalid_event(path, &format!("missing '{key}' array field")))?;
+    serde_json::from_value(raw.clone())
+        .map_err(|err| invalid_event(path, &format!("invalid '{key}' payload: {}", err)))
+}
+
 pub(super) fn parse_gate_data(
     object: &Map<String, Value>,
     path: &Path,
@@ -385,6 +400,7 @@ pub(super) fn build_index_upsert(
     if params.data.contains_key("invariants") {
         invariants = parse_invariants(params.data, params.absolute_path)?;
     }
+    let verification_steps = index_verification_steps(existing.as_ref(), params)?;
     let step_history = existing
         .as_ref()
         .map(|r| r.step_history.clone())
@@ -444,6 +460,7 @@ pub(super) fn build_index_upsert(
         notes,
         handoff_capsules,
         invariants,
+        verification_steps,
         step_history,
         gate_data,
         lease_data,
@@ -457,6 +474,18 @@ pub(super) fn build_index_upsert(
         blocked_from_state,
         created_at: Some(created_at),
     })
+}
+
+fn index_verification_steps(
+    existing: Option<&KnotCacheRecord>,
+    params: &IndexUpsertParams<'_>,
+) -> Result<Vec<String>, SyncError> {
+    if params.data.contains_key("verification_steps") {
+        return parse_string_vec(params.data, params.absolute_path, "verification_steps");
+    }
+    Ok(existing
+        .map(|record| record.verification_steps.clone())
+        .unwrap_or_default())
 }
 
 fn should_use_index_execution_plan(

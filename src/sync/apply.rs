@@ -3,24 +3,27 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 use serde_json::Value;
-use time::OffsetDateTime;
 
 use crate::db;
 use crate::events::{FullEvent, IndexEvent, IndexEventKind};
 use crate::snapshots::apply_latest_snapshots;
-use crate::tiering::{classify_knot_tier, CacheTier};
+use crate::tiering::CacheTier;
 
 use super::{GitAdapter, SyncError, SyncSummary};
 
 #[path = "apply_helpers.rs"]
 mod apply_helpers;
+#[path = "apply_state.rs"]
+mod apply_state;
 use apply_helpers::{
     build_index_upsert, current_unix_ms_string, invalid_event, is_stale_full_precondition,
     is_stale_precondition, optional_i64, optional_string, parse_execution_plan_data,
     parse_gate_data, parse_invariants, parse_lease_data, parse_metadata_entry, parse_scope_data,
-    read_json_file, required_profile_id, required_string, required_workflow_id, IndexUpsertParams,
-    MetadataProjection, WorkflowIdResolution,
+    parse_string_vec, read_json_file, required_profile_id, required_string, required_workflow_id,
+    IndexUpsertParams, MetadataProjection, WorkflowIdResolution,
 };
+use apply_state::resolve_tier;
+use apply_state::FullApplyOutcome;
 
 pub struct IncrementalApplier<'a> {
     conn: &'a Connection,
@@ -371,6 +374,10 @@ impl<'a> IncrementalApplier<'a> {
                 let invariants = parse_invariants(data, path)?;
                 self.apply_metadata_update(knot_id, |r| r.invariants = invariants)
             }
+            "knot.verification_steps_set" => {
+                let steps = parse_string_vec(data, path, "verification_steps")?;
+                self.apply_metadata_update(knot_id, |r| r.verification_steps = steps)
+            }
             "knot.gate_data_set" => {
                 let gate_data = parse_gate_data(data, path)?;
                 self.apply_metadata_update(knot_id, |r| r.gate_data = gate_data)
@@ -444,31 +451,6 @@ impl<'a> IncrementalApplier<'a> {
         mutate(&mut projection);
         projection.upsert(self.conn, knot_id)?;
         Ok(())
-    }
-}
-
-enum FullApplyOutcome {
-    EdgeAdded,
-    EdgeRemoved,
-    Ignored,
-}
-
-fn resolve_tier(
-    conn: &Connection,
-    data: &serde_json::Map<String, Value>,
-    state: &str,
-    updated_at: &str,
-) -> Result<CacheTier, SyncError> {
-    let hot_window_days = db::get_hot_window_days(conn)?;
-    let terminal_flag = data
-        .get("terminal")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let now = OffsetDateTime::now_utc();
-    if terminal_flag {
-        Ok(CacheTier::Cold)
-    } else {
-        Ok(classify_knot_tier(state, updated_at, hot_window_days, now))
     }
 }
 

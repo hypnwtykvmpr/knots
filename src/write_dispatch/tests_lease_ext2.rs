@@ -1,5 +1,5 @@
-use super::tests_lease_ext::{create_test_lease, open_app, parse, setup_repo, unique_workspace};
-use super::{execute_operation, operation_from_command};
+use super::execute_operation;
+use super::tests_lease_ext::{create_test_lease, open_app, setup_repo, unique_workspace};
 use crate::app::App;
 use crate::poll_claim::{self, PollResult};
 use crate::write_queue::{NextOperation, UpdateOperation, WriteOperation};
@@ -34,6 +34,9 @@ fn explicit_note_agent_flags_are_ignored_lease_wins() {
         add_invariants: vec![],
         remove_invariants: vec![],
         clear_invariants: false,
+        add_verification_steps: vec![],
+        remove_verification_steps: vec![],
+        clear_verification_steps: false,
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
@@ -98,6 +101,9 @@ fn note_defaults_preserved_without_lease() {
         add_invariants: vec![],
         remove_invariants: vec![],
         clear_invariants: false,
+        add_verification_steps: vec![],
+        remove_verification_steps: vec![],
+        clear_verification_steps: false,
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
@@ -159,6 +165,9 @@ fn handoff_capsule_auto_fills_from_lease_agent_info() {
         add_invariants: vec![],
         remove_invariants: vec![],
         clear_invariants: false,
+        add_verification_steps: vec![],
+        remove_verification_steps: vec![],
+        clear_verification_steps: false,
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
@@ -230,6 +239,9 @@ fn explicit_handoff_agent_flags_are_ignored_lease_wins() {
         add_invariants: vec![],
         remove_invariants: vec![],
         clear_invariants: false,
+        add_verification_steps: vec![],
+        remove_verification_steps: vec![],
+        clear_verification_steps: false,
         gate_owner_kind: None,
         gate_failure_modes: vec![],
         clear_gate_failure_modes: false,
@@ -270,74 +282,6 @@ fn explicit_handoff_agent_flags_are_ignored_lease_wins() {
     assert_eq!(hc.version, "4.6");
 
     let _ = std::fs::remove_dir_all(root);
-}
-
-#[test]
-fn operation_from_lease_create_includes_json() {
-    let cli = parse(&["kno", "lease", "create", "--nickname", "sess", "--json"]);
-    let op = operation_from_command(&cli.command);
-    match op {
-        Some(WriteOperation::LeaseCreate(c)) => {
-            assert!(c.json, "json flag should be true");
-        }
-        other => panic!("expected LeaseCreate, got {:?}", other),
-    }
-}
-
-#[test]
-fn operation_from_new_includes_lease_id() {
-    let cli = parse(&["kno", "new", "My title", "--lease", "lease-abc"]);
-    let op = operation_from_command(&cli.command);
-    match op {
-        Some(WriteOperation::New(n)) => {
-            assert_eq!(n.lease_id.as_deref(), Some("lease-abc"));
-        }
-        other => panic!("expected New, got {:?}", other),
-    }
-}
-
-#[test]
-fn operation_from_update_includes_lease_id() {
-    let cli = parse(&["kno", "update", "knot-xyz", "--lease", "lease-abc"]);
-    let op = operation_from_command(&cli.command);
-    match op {
-        Some(WriteOperation::Update(u)) => {
-            assert_eq!(u.lease_id.as_deref(), Some("lease-abc"));
-        }
-        other => panic!("expected Update, got {:?}", other),
-    }
-}
-
-#[test]
-fn operation_from_claim_includes_lease_id() {
-    let cli = parse(&["kno", "claim", "knot-xyz", "--lease", "lease-abc"]);
-    let op = operation_from_command(&cli.command);
-    match op {
-        Some(WriteOperation::Claim(c)) => {
-            assert_eq!(c.lease_id.as_deref(), Some("lease-abc"));
-        }
-        other => panic!("expected Claim, got {:?}", other),
-    }
-}
-
-#[test]
-fn operation_from_next_includes_lease_id() {
-    let cli = parse(&[
-        "kno",
-        "next",
-        "knot-xyz",
-        "--expected-state",
-        "implementation",
-        "--lease",
-        "lease-abc",
-    ]);
-    let op = operation_from_command(&cli.command);
-    match op {
-        Some(WriteOperation::Next(n)) => {
-            assert_eq!(n.lease_id.as_deref(), Some("lease-abc"));
-        }
-        other => panic!("expected Next, got {:?}", other),
-    }
 }
 
 #[test]

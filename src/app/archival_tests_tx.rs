@@ -51,6 +51,7 @@ fn seed_hot(app: &App, id: &str, state: &str, updated_at: &str) {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &gate,
             lease_data: &lease,

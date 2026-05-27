@@ -36,6 +36,7 @@ fn sample_record(id: &str, state: &str, deferred_from_state: Option<&str>) -> Kn
         notes: Vec::new(),
         handoff_capsules: Vec::new(),
         invariants: Vec::new(),
+        verification_steps: Vec::new(),
         step_history: Vec::new(),
         gate_data: crate::domain::gate::GateData::default(),
         lease_data: crate::domain::lease::LeaseData::default(),

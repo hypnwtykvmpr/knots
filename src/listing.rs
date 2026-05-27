@@ -205,6 +205,7 @@ mod tests {
             notes: Vec::new(),
             handoff_capsules: Vec::new(),
             invariants: Vec::new(),
+            verification_steps: Vec::new(),
             step_history: Vec::new(),
             gate: None,
             lease: None,
@@ -493,7 +494,6 @@ mod tests {
         assert_eq!(filtered[0].id, "K-2");
     }
 }
-
 #[cfg(test)]
 #[path = "listing_tests_ext.rs"]
 mod tests_ext;

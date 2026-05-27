@@ -43,6 +43,7 @@ fn sample_knot() -> KnotView {
             version: "v".to_string(),
         }],
         invariants: vec![],
+        verification_steps: vec![],
         step_history: vec![],
         gate: None,
         lease: None,

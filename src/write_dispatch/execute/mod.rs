@@ -112,6 +112,7 @@ fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<Str
             },
             scope_data,
             tags: args.tags.clone(),
+            verification_steps: args.verification_steps.clone(),
             ..CreateKnotOptions::default()
         },
     )?;

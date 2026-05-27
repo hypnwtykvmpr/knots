@@ -257,6 +257,7 @@ fn normalize_and_format_helpers() {
         notes: vec![],
         handoff_capsules: vec![],
         invariants: vec![],
+        verification_steps: vec![],
         step_history: vec![],
         gate: None,
         lease: None,

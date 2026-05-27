@@ -46,6 +46,7 @@ pub enum FullEventKind {
     KnotTagAdd,
     KnotTagRemove,
     KnotInvariantsSet,
+    KnotVerificationStepsSet,
     KnotGateDataSet,
     KnotExecutionPlanDataSet,
     KnotScopeSet,
@@ -74,6 +75,7 @@ impl FullEventKind {
             FullEventKind::KnotTagAdd => "knot.tag_add",
             FullEventKind::KnotTagRemove => "knot.tag_remove",
             FullEventKind::KnotInvariantsSet => "knot.invariants_set",
+            FullEventKind::KnotVerificationStepsSet => "knot.verification_steps_set",
             FullEventKind::KnotGateDataSet => "knot.gate_data_set",
             FullEventKind::KnotExecutionPlanDataSet => "knot.execution_plan_data_set",
             FullEventKind::KnotScopeSet => "knot.scope_set",
@@ -381,6 +383,14 @@ mod tests {
         assert_eq!(
             FullEventKind::KnotAcceptanceSet.as_str(),
             "knot.acceptance_set"
+        );
+    }
+
+    #[test]
+    fn verification_steps_event_kind_uses_expected_string() {
+        assert_eq!(
+            FullEventKind::KnotVerificationStepsSet.as_str(),
+            "knot.verification_steps_set"
         );
     }
 

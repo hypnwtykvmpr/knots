@@ -6,7 +6,8 @@ use crate::workflow::normalize_profile_id;
 
 use super::{
     parse_execution_plan_data_value, parse_gate_data_value, parse_invariants_value,
-    parse_metadata_entry_for_rehydrate, parse_scope_data_value, RehydrateProjection,
+    parse_metadata_entry_for_rehydrate, parse_scope_data_value, parse_string_vec_value,
+    RehydrateProjection,
 };
 
 pub(crate) fn apply_rehydrate_event(projection: &mut RehydrateProjection, event: &FullEvent) {
@@ -46,6 +47,9 @@ pub(crate) fn apply_rehydrate_event(projection: &mut RehydrateProjection, event:
         "knot.invariants_set" => {
             apply_invariants_set(projection, data, event);
         }
+        "knot.verification_steps_set" => {
+            apply_verification_steps_set(projection, data, event);
+        }
         _ => {}
     }
 }
@@ -79,6 +83,9 @@ fn apply_created(
         .map(ToString::to_string);
     if data.contains_key("invariants") {
         p.invariants = parse_invariants_value(data.get("invariants"));
+    }
+    if data.contains_key("verification_steps") {
+        p.verification_steps = parse_string_vec_value(data.get("verification_steps"));
     }
     if let Some(raw_type) = data.get("type").and_then(Value::as_str) {
         p.knot_type = parse_knot_type(Some(raw_type));
@@ -290,5 +297,14 @@ fn apply_invariants_set(
     event: &FullEvent,
 ) {
     p.invariants = parse_invariants_value(data.get("invariants"));
+    p.updated_at = event.occurred_at.clone();
+}
+
+fn apply_verification_steps_set(
+    p: &mut RehydrateProjection,
+    data: &serde_json::Map<String, Value>,
+    event: &FullEvent,
+) {
+    p.verification_steps = parse_string_vec_value(data.get("verification_steps"));
     p.updated_at = event.occurred_at.clone();
 }

@@ -262,6 +262,7 @@ fn show_json_value_hides_lease_id_and_keeps_lease_agent_metadata() {
         notes: Vec::new(),
         handoff_capsules: Vec::new(),
         invariants: Vec::new(),
+        verification_steps: Vec::new(),
         step_history: Vec::new(),
         gate: None,
         lease: None,

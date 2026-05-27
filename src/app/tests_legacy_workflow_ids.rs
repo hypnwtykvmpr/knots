@@ -275,6 +275,7 @@ fn show_knot_fails_when_cache_contains_legacy_workflow_id() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),

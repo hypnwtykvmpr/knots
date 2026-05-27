@@ -17,6 +17,7 @@ fn upsert_and_get_knot_hot_round_trips_invariants() {
         Invariant::new(InvariantType::Scope, "only touch src/db.rs").unwrap(),
         Invariant::new(InvariantType::State, "coverage >= 95%").unwrap(),
     ];
+    let verification_steps = vec!["cargo test".to_string(), "kno show --json".to_string()];
 
     upsert_knot_hot(
         &conn,
@@ -34,6 +35,7 @@ fn upsert_and_get_knot_hot_round_trips_invariants() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &invariants,
+            verification_steps: &verification_steps,
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
@@ -57,6 +59,7 @@ fn upsert_and_get_knot_hot_round_trips_invariants() {
     assert_eq!(record.invariants[0].condition, "only touch src/db.rs");
     assert_eq!(record.invariants[1].invariant_type, InvariantType::State);
     assert_eq!(record.invariants[1].condition, "coverage >= 95%");
+    assert_eq!(record.verification_steps, verification_steps);
 
     cleanup_db_files(&path);
 }
@@ -84,6 +87,7 @@ fn upsert_knot_hot_with_empty_invariants_round_trips() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
@@ -103,6 +107,7 @@ fn upsert_knot_hot_with_empty_invariants_round_trips() {
         .expect("get should succeed")
         .expect("record should exist");
     assert!(record.invariants.is_empty());
+    assert!(record.verification_steps.is_empty());
 
     cleanup_db_files(&path);
 }
@@ -147,6 +152,7 @@ fn count_active_leases_returns_count() {
                 notes: &[],
                 handoff_capsules: &[],
                 invariants: &[],
+                verification_steps: &[],
                 step_history: &[],
                 gate_data: &gate_data,
                 lease_data: &LeaseData::default(),
@@ -197,6 +203,7 @@ fn get_knot_hot_accepts_legacy_empty_lease_data_json() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
@@ -284,6 +291,7 @@ fn upsert_and_get_knot_hot_round_trips_execution_plan_data() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),
@@ -330,6 +338,7 @@ fn get_knot_hot_accepts_legacy_empty_execution_plan_data_json() {
             notes: &[],
             handoff_capsules: &[],
             invariants: &[],
+            verification_steps: &[],
             step_history: &[],
             gate_data: &crate::domain::gate::GateData::default(),
             lease_data: &crate::domain::lease::LeaseData::default(),

@@ -5,7 +5,8 @@ use crate::events::{new_event_id, FullEvent, FullEventKind};
 
 use crate::app::error::AppError;
 use crate::app::helpers::{
-    metadata_entry_from_input, non_empty, normalize_tag, require_gate_metadata_scope,
+    metadata_entry_from_input, non_empty, normalize_tag, normalize_verification_step,
+    require_gate_metadata_scope,
 };
 use crate::app::types::UpdateKnotPatch;
 
@@ -40,6 +41,7 @@ where
     )?;
     collect_tags(patch, events, id, at, &mut us.tags);
     collect_invariants(patch, events, id, at, &mut us.invariants, current);
+    collect_verification_steps(patch, events, id, at, us, current);
     collect_note(patch, events, id, at, &mut us.notes)?;
     collect_handoff(patch, events, id, at, &mut us.handoff_capsules)?;
     Ok(())
@@ -302,6 +304,47 @@ fn collect_invariants(
             id.to_string(),
             FullEventKind::KnotInvariantsSet.as_str(),
             json!({"invariants": &*invariants}),
+        ));
+    }
+}
+
+fn collect_verification_steps(
+    patch: &UpdateKnotPatch,
+    events: &mut Vec<FullEvent>,
+    id: &str,
+    at: &str,
+    us: &mut UpdateState,
+    current: &KnotCacheRecord,
+) {
+    if patch.clear_verification_steps {
+        us.verification_steps.clear();
+    }
+    for step in &patch.add_verification_steps {
+        let Some(normalized) = normalize_verification_step(step) else {
+            continue;
+        };
+        if !us
+            .verification_steps
+            .iter()
+            .any(|existing| existing == &normalized)
+        {
+            us.verification_steps.push(normalized);
+        }
+    }
+    for step in &patch.remove_verification_steps {
+        let Some(normalized) = normalize_verification_step(step) else {
+            continue;
+        };
+        us.verification_steps
+            .retain(|existing| existing != &normalized);
+    }
+    if us.verification_steps != current.verification_steps {
+        events.push(FullEvent::with_identity(
+            new_event_id(),
+            at.to_string(),
+            id.to_string(),
+            FullEventKind::KnotVerificationStepsSet.as_str(),
+            json!({"verification_steps": &us.verification_steps}),
         ));
     }
 }

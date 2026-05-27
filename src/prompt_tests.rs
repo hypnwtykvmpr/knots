@@ -30,6 +30,7 @@ fn sample_knot() -> KnotView {
         }],
         handoff_capsules: vec![],
         invariants: vec![],
+        verification_steps: vec![],
         step_history: vec![],
         gate: None,
         lease: None,

@@ -16,7 +16,7 @@ use crate::domain::metadata::MetadataEntry;
 use crate::domain::scope::ScopeData;
 use crate::domain::step_history::StepRecord;
 
-pub const CURRENT_SCHEMA_VERSION: i64 = 18;
+pub const CURRENT_SCHEMA_VERSION: i64 = 19;
 
 mod catalog;
 mod migrations;
@@ -136,6 +136,8 @@ pub struct KnotCacheRecord {
     #[serde(default)]
     pub invariants: Vec<Invariant>,
     #[serde(default)]
+    pub verification_steps: Vec<String>,
+    #[serde(default)]
     pub step_history: Vec<StepRecord>,
     #[serde(default)]
     pub gate_data: GateData,
@@ -185,6 +187,7 @@ pub struct UpsertKnotHot<'a> {
     pub notes: &'a [MetadataEntry],
     pub handoff_capsules: &'a [MetadataEntry],
     pub invariants: &'a [Invariant],
+    pub verification_steps: &'a [String],
     pub step_history: &'a [StepRecord],
     pub gate_data: &'a GateData,
     pub lease_data: &'a LeaseData,
@@ -203,6 +206,7 @@ pub fn upsert_knot_hot(conn: &Connection, args: &UpsertKnotHot<'_>) -> Result<()
     let notes_json = to_json_text(args.notes)?;
     let handoff_capsules_json = to_json_text(args.handoff_capsules)?;
     let invariants_json = to_json_text(args.invariants)?;
+    let verification_steps_json = to_json_text(args.verification_steps)?;
     let step_history_json = to_json_text(args.step_history)?;
     let gate_data_json = to_json_text(args.gate_data)?;
     let lease_data_json = to_json_text(args.lease_data)?;
@@ -213,7 +217,7 @@ pub fn upsert_knot_hot(conn: &Connection, args: &UpsertKnotHot<'_>) -> Result<()
 INSERT INTO knot_hot (
     id, title, state, updated_at, body, description, acceptance,
     priority, knot_type, tags_json, notes_json,
-    handoff_capsules_json, invariants_json, step_history_json,
+    handoff_capsules_json, invariants_json, verification_steps_json, step_history_json,
     gate_data_json, lease_data_json, execution_plan_data_json, lease_id,
     workflow_id, profile_id, profile_etag,
     deferred_from_state, blocked_from_state, created_at
@@ -222,9 +226,9 @@ VALUES (
     ?1, ?2, ?3, ?4, ?5, ?6, ?7,
     ?8, ?9, ?10, ?11,
     ?12, ?13, ?14, ?15, ?16,
-    ?17, ?18,
-    ?19, ?20, ?21,
-    ?22, ?23, ?24
+    ?17, ?18, ?19,
+    ?20, ?21, ?22,
+    ?23, ?24, ?25
 )
 ON CONFLICT(id) DO UPDATE SET
     title = excluded.title,
@@ -239,6 +243,7 @@ ON CONFLICT(id) DO UPDATE SET
     notes_json = excluded.notes_json,
     handoff_capsules_json = excluded.handoff_capsules_json,
     invariants_json = excluded.invariants_json,
+    verification_steps_json = excluded.verification_steps_json,
     step_history_json = excluded.step_history_json,
     gate_data_json = excluded.gate_data_json,
     lease_data_json = excluded.lease_data_json,
@@ -265,6 +270,7 @@ ON CONFLICT(id) DO UPDATE SET
                 notes_json.as_str(),
                 handoff_capsules_json.as_str(),
                 invariants_json.as_str(),
+                verification_steps_json.as_str(),
                 step_history_json.as_str(),
                 gate_data_json.as_str(),
                 lease_data_json.as_str(),
@@ -304,7 +310,7 @@ pub fn get_knot_hot(conn: &Connection, id: &str) -> Result<Option<KnotCacheRecor
         r#"
 SELECT id, title, state, updated_at, body, description, acceptance,
        priority, knot_type, tags_json, notes_json,
-       handoff_capsules_json, invariants_json, step_history_json,
+       handoff_capsules_json, invariants_json, verification_steps_json, step_history_json,
        gate_data_json, lease_data_json, execution_plan_data_json, lease_id, lease_expiry_ts,
        workflow_id, profile_id, profile_etag, scope_data_json,
        deferred_from_state, blocked_from_state, created_at
@@ -322,7 +328,7 @@ pub fn list_knot_hot(conn: &Connection) -> Result<Vec<KnotCacheRecord>> {
         r#"
 SELECT id, title, state, updated_at, body, description, acceptance,
        priority, knot_type, tags_json, notes_json,
-       handoff_capsules_json, invariants_json, step_history_json,
+       handoff_capsules_json, invariants_json, verification_steps_json, step_history_json,
        gate_data_json, lease_data_json, execution_plan_data_json, lease_id, lease_expiry_ts,
        workflow_id, profile_id, profile_etag, scope_data_json,
        deferred_from_state, blocked_from_state, created_at
@@ -345,11 +351,12 @@ fn row_to_knot_cache_record(row: &rusqlite::Row<'_>) -> Result<KnotCacheRecord> 
     let notes_json: String = row.get(10)?;
     let handoff_capsules_json: String = row.get(11)?;
     let invariants_json: String = row.get(12)?;
-    let step_history_json: String = row.get(13)?;
-    let gate_data_json: String = row.get(14)?;
-    let lease_data_json: String = row.get(15)?;
-    let execution_plan_data_json: String = row.get(16)?;
-    let scope_data_json: String = row.get(22)?;
+    let verification_steps_json: String = row.get(13)?;
+    let step_history_json: String = row.get(14)?;
+    let gate_data_json: String = row.get(15)?;
+    let lease_data_json: String = row.get(16)?;
+    let execution_plan_data_json: String = row.get(17)?;
+    let scope_data_json: String = row.get(23)?;
     Ok(KnotCacheRecord {
         id: row.get(0)?,
         title: row.get(1)?,
@@ -364,19 +371,20 @@ fn row_to_knot_cache_record(row: &rusqlite::Row<'_>) -> Result<KnotCacheRecord> 
         notes: from_json_text(notes_json, 10)?,
         handoff_capsules: from_json_text(handoff_capsules_json, 11)?,
         invariants: from_json_text(invariants_json, 12)?,
-        step_history: from_json_text(step_history_json, 13)?,
-        gate_data: from_json_text(gate_data_json, 14)?,
-        lease_data: from_json_text(lease_data_json, 15)?,
-        execution_plan_data: from_json_text(execution_plan_data_json, 16)?,
-        lease_id: row.get(17)?,
-        lease_expiry_ts: row.get(18)?,
-        workflow_id: row.get(19)?,
-        profile_id: row.get(20)?,
-        profile_etag: row.get(21)?,
-        scope_data: from_json_text(scope_data_json, 22)?,
-        deferred_from_state: row.get(23)?,
-        blocked_from_state: row.get(24)?,
-        created_at: row.get(25)?,
+        verification_steps: from_json_text(verification_steps_json, 13)?,
+        step_history: from_json_text(step_history_json, 14)?,
+        gate_data: from_json_text(gate_data_json, 15)?,
+        lease_data: from_json_text(lease_data_json, 16)?,
+        execution_plan_data: from_json_text(execution_plan_data_json, 17)?,
+        lease_id: row.get(18)?,
+        lease_expiry_ts: row.get(19)?,
+        workflow_id: row.get(20)?,
+        profile_id: row.get(21)?,
+        profile_etag: row.get(22)?,
+        scope_data: from_json_text(scope_data_json, 23)?,
+        deferred_from_state: row.get(24)?,
+        blocked_from_state: row.get(25)?,
+        created_at: row.get(26)?,
     })
 }
 

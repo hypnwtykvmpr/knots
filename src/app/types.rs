@@ -30,6 +30,7 @@ pub struct KnotView {
     pub notes: Vec<MetadataEntry>,
     pub handoff_capsules: Vec<MetadataEntry>,
     pub invariants: Vec<Invariant>,
+    pub verification_steps: Vec<String>,
     pub step_history: Vec<StepRecord>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gate: Option<GateData>,
@@ -126,6 +127,9 @@ pub struct UpdateKnotPatch {
     pub add_invariants: Vec<Invariant>,
     pub remove_invariants: Vec<Invariant>,
     pub clear_invariants: bool,
+    pub add_verification_steps: Vec<String>,
+    pub remove_verification_steps: Vec<String>,
+    pub clear_verification_steps: bool,
     pub gate_owner_kind: Option<crate::domain::gate::GateOwnerKind>,
     pub gate_failure_modes: Option<std::collections::BTreeMap<String, Vec<String>>>,
     pub clear_gate_failure_modes: bool,
@@ -151,6 +155,9 @@ impl UpdateKnotPatch {
             || !self.add_invariants.is_empty()
             || !self.remove_invariants.is_empty()
             || self.clear_invariants
+            || !self.add_verification_steps.is_empty()
+            || !self.remove_verification_steps.is_empty()
+            || self.clear_verification_steps
             || self.gate_owner_kind.is_some()
             || self.gate_failure_modes.is_some()
             || self.clear_gate_failure_modes
@@ -170,6 +177,7 @@ pub struct CreateKnotOptions {
     pub scope_data: ScopeData,
     pub acceptance: Option<String>,
     pub tags: Vec<String>,
+    pub verification_steps: Vec<String>,
 }
 
 impl From<KnotCacheRecord> for KnotView {
@@ -196,6 +204,7 @@ impl From<KnotCacheRecord> for KnotView {
             notes: value.notes,
             handoff_capsules: value.handoff_capsules,
             invariants: value.invariants,
+            verification_steps: value.verification_steps,
             step_history: value.step_history,
             gate,
             lease,

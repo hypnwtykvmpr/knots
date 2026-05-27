@@ -57,6 +57,7 @@ fn seed(app: &App, knots: &[SeedKnot<'_>]) {
                 notes: &[],
                 handoff_capsules: &[],
                 invariants: &[],
+                verification_steps: &[],
                 step_history: &[],
                 gate_data: &gate,
                 lease_data: &lease,

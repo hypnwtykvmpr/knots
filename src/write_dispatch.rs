@@ -132,5 +132,9 @@ mod tests_lease_ext4;
 mod tests_lease_ext5;
 
 #[cfg(test)]
+#[path = "write_dispatch/tests_lease_ext6.rs"]
+mod tests_lease_ext6;
+
+#[cfg(test)]
 #[path = "write_dispatch/tests_lease_deprecation.rs"]
 mod tests_lease_deprecation;

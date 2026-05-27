@@ -195,6 +195,9 @@ pub struct NewArgs {
     #[arg(long, help = "Optional acceptance criteria.")]
     pub acceptance: Option<String>,
 
+    #[arg(long = "verification-step", help = "Verification step (repeatable).")]
+    pub verification_steps: Vec<String>,
+
     #[arg(
         short = 's',
         long,

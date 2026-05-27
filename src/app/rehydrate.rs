@@ -32,6 +32,7 @@ pub(crate) struct RehydrateProjection {
     pub notes: Vec<MetadataEntry>,
     pub handoff_capsules: Vec<MetadataEntry>,
     pub invariants: Vec<Invariant>,
+    pub verification_steps: Vec<String>,
     pub step_history: Vec<StepRecord>,
     pub gate_data: GateData,
     pub lease_data: LeaseData,
@@ -75,6 +76,7 @@ fn new_projection(title: String, state: String, updated_at: String) -> Rehydrate
         notes: Vec::new(),
         handoff_capsules: Vec::new(),
         invariants: Vec::new(),
+        verification_steps: Vec::new(),
         step_history: Vec::new(),
         gate_data: GateData::default(),
         lease_data: LeaseData::default(),
@@ -226,6 +228,9 @@ fn apply_index_head(
     if data.contains_key("invariants") {
         projection.invariants = parse_invariants_value(data.get("invariants"));
     }
+    if data.contains_key("verification_steps") {
+        projection.verification_steps = parse_string_vec_value(data.get("verification_steps"));
+    }
     if data.contains_key("gate") {
         projection.gate_data = parse_gate_data_value(data.get("gate"));
     }
@@ -276,6 +281,13 @@ fn resolve_subdir(store_root: &Path, name: &str) -> std::path::PathBuf {
 }
 
 pub(crate) fn parse_invariants_value(value: Option<&Value>) -> Vec<Invariant> {
+    let Some(value) = value.cloned() else {
+        return Vec::new();
+    };
+    serde_json::from_value(value).unwrap_or_default()
+}
+
+pub(crate) fn parse_string_vec_value(value: Option<&Value>) -> Vec<String> {
     let Some(value) = value.cloned() else {
         return Vec::new();
     };
