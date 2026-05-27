@@ -1,0 +1,9 @@
+{
+  "event_id": "019e6801-b5d4-7f31-a298-f6857d41f476",
+  "occurred_at": "2026-05-27T05:56:43.078290293Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.description_set",
+  "data": {
+    "description": "verification steps becomes a first class field, a list of strings\nmake sure to update all related cli-surfaces (new, update, show, --json option, etc.)"
+  }
+}

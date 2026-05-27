@@ -1,0 +1,9 @@
+{
+  "event_id": "019e6801-f819-7a52-8edf-5d45ddacc648",
+  "occurred_at": "2026-05-27T05:57:00.057823582Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Promote verification steps to a first-class work item field stored as a list of strings. Update the CLI surfaces that create, modify, display, and serialize work items so verification steps can be set, updated, shown, and emitted in JSON consistently."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "event_id": "019e6801-b5c6-70b3-8aea-ddc1595a45c1",
+  "occurred_at": "2026-05-27T05:56:43.078290293Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.created",
+  "data": {
+    "body": "verification steps becomes a first class field, a list of strings\nmake sure to update all related cli-surfaces (new, update, show, --json option, etc.)",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Add Verification Steps as a first class list field",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

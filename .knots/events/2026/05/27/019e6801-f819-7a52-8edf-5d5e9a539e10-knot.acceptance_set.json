@@ -1,0 +1,9 @@
+{
+  "event_id": "019e6801-f819-7a52-8edf-5d5e9a539e10",
+  "occurred_at": "2026-05-27T05:57:00.057823582Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "Verification steps are stored as a list of strings on the work item model and persisted correctly; `kno new` can set verification steps when creating a work item; `kno update` can add, replace, or otherwise modify verification steps without affecting unrelated fields; `kno show` displays verification steps clearly as a list; `--json` output includes verification steps in the work item payload; all updated CLI surfaces handle the field consistently and existing non-related behavior remains unchanged."
+  }
+}

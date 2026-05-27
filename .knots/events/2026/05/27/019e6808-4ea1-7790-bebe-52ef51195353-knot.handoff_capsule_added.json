@@ -1,0 +1,15 @@
+{
+  "event_id": "019e6808-4ea1-7790-bebe-52ef51195353",
+  "occurred_at": "2026-05-27T06:03:55.425884758Z",
+  "knot_id": "knots-3aa9",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Plan summary for the reviewer / next step (plan_review):\n\nApproach: additive promotion of verification steps to a first-class\n`Vec<String>` field. New schema migration v19 adds\n`verification_steps_json TEXT NOT NULL DEFAULT '[]'`. New event kind\n`KnotVerificationStepsSet` carries the full list on each change. New CLI\nflags: `kno new --verification-step` (repeatable) and `kno update`\n`--add-verification-step` / `--remove-verification-step` /\n`--clear-verification-steps`. `kno show` renders the list and JSON always\nemits the `verification_steps` key (empty array by default).\n\nSub-module structure: list management lives in\n`src/app/knot_update/fields.rs::collect_verification_steps`, mirroring\n`collect_invariants`. Create-path mirrors the optional acceptance event\nemission. Rehydration replaces the projection's list on each event.\n\nFile-size budget: `write_queue.rs` (499) and `ui.rs` (493) sit at the\n500-line ceiling. Plan extracts queue IO plumbing to\n`src/write_queue/io.rs` and (if needed) ui show-field helpers to\n`src/ui/show_fields.rs` before adding the new fields.\n\nRisk surface: schema migration is forward-only with safe default; coverage\ngate (95%) requires new tests mirroring the invariants tests; the\n`make sanity` step enforces formatting, clippy, file-size script, tests,\nand coverage.\n\nOut of scope: updating `skills/knots_create.md` (the skill still mentions\nverification under `-d`) — follow-up.",
+    "datetime": "2026-05-27T06:03:55.425884758Z",
+    "entry_id": "019e6808-4ea1-7790-bebe-52ddc4c28a68",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.7"
+  }
+}
