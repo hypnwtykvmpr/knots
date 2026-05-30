@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use time::format_description::well_known::Rfc3339;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::db;
@@ -36,6 +38,10 @@ fn init_repo(root: &Path) {
     run_git(root, &["add", "README.md"]);
     run_git(root, &["commit", "-m", "init"]);
     run_git(root, &["branch", "-M", "main"]);
+}
+
+fn fmt_rfc3339(ts: OffsetDateTime) -> String {
+    ts.format(&Rfc3339).expect("timestamp should format")
 }
 
 #[test]
@@ -280,6 +286,68 @@ fn sync_reduces_description_tag_and_note_events() {
     assert!(knot.tags.contains(&"migration".to_string()));
     assert_eq!(knot.notes.len(), 1);
     assert_eq!(knot.notes[0].entry_id, "note-1");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn sync_keeps_recent_terminal_heads_hot() {
+    let root = unique_workspace();
+    init_repo(&root);
+    run_git(&root, &["checkout", "-b", "knots"]);
+
+    let recent = fmt_rfc3339(OffsetDateTime::now_utc() - Duration::hours(1));
+    let idx = root
+        .join(".knots")
+        .join("index")
+        .join("2026")
+        .join("05")
+        .join("30")
+        .join("0202-idx.knot_head.json");
+    std::fs::create_dir_all(idx.parent().expect("index parent should exist"))
+        .expect("index directory should be creatable");
+    std::fs::write(
+        &idx,
+        format!(
+            r#"{{
+  "event_id": "0202",
+  "occurred_at": "{recent}",
+  "type": "idx.knot_head",
+  "data": {{
+    "knot_id": "K-recent",
+    "title": "Recently shipped",
+    "state": "shipped",
+    "workflow_id": "work_sdlc",
+    "profile_id": "autopilot",
+    "updated_at": "{recent}",
+    "terminal": true
+  }}
+}}
+"#
+        ),
+    )
+    .expect("recent terminal index event should be writable");
+
+    run_git(&root, &["add", ".knots"]);
+    run_git(&root, &["commit", "-m", "seed recent terminal"]);
+    run_git(&root, &["checkout", "main"]);
+
+    let db_path = root.join(".knots/cache/state.sqlite");
+    std::fs::create_dir_all(db_path.parent().expect("db parent should exist"))
+        .expect("db parent should be creatable");
+    let conn = db::open_connection(db_path.to_str().expect("utf8 path"))
+        .expect("sync test database should open");
+    let service = SyncService::new(&conn, root.clone());
+    let summary = service.sync().expect("sync should succeed");
+    assert_eq!(summary.index_files, 1);
+
+    let hot = db::get_knot_hot(&conn, "K-recent").expect("hot lookup should succeed");
+    assert_eq!(
+        hot.expect("recent terminal should stay hot").state,
+        "shipped"
+    );
+    let cold = db::get_cold_catalog(&conn, "K-recent").expect("cold lookup should succeed");
+    assert!(cold.is_none(), "recent terminal must not be cold");
 
     let _ = std::fs::remove_dir_all(root);
 }

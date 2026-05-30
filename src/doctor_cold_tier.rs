@@ -1,16 +1,18 @@
 //! `cold_tier_imbalance` doctor check + --fix helper.
 //!
-//! Measures three real tier invariants and surfaces any violation as `WARN`:
+//! Measures four real tier invariants and surfaces any violation as `WARN`:
 //!
 //! 1. **Disjointness.** No id appears in both `knot_hot` and `cold_catalog`.
 //! 2. **Cold is terminal-only.** Every `cold_catalog` row's `state` is in
 //!    `tiering::TERMINAL_STATES`.
-//! 3. **No stale-terminal hot rows.** No `knot_hot` row has a terminal state
+//! 3. **No recent-terminal cold rows.** Cold terminal rows are older than 72h.
+//! 4. **No stale-terminal hot rows.** No `knot_hot` row has a terminal state
 //!    AND `updated_at < now - ARCHIVE_AGE_HOURS` (72h).
 //!
 //! `--fix` restores each invariant: prune shadow rows, rehydrate non-terminal
 //! cold rows back to hot (or drop the cold pointer if events are missing),
-//! and demote stale-terminal hot rows to cold via the same upsert+delete
+//! rehydrate recent-terminal cold rows back to hot, and demote stale-terminal
+//! hot rows to cold via the same upsert+delete
 //! pair the cold sweep uses. After one `--fix`, the everyday flows
 //! (`run_cold_sweep`, `sync::apply`, snapshot bootstrap) all uphold the
 //! invariants, so doctor stays `pass` through normal use.
@@ -59,6 +61,7 @@ fn check_cold_tier_imbalance_at_time(
     let shadow = db::count_cold_catalog_shadowed_by_hot(conn).map_err(io_err)?;
     let non_terminal_cold =
         db::count_non_terminal_in_cold(conn, TERMINAL_STATES).map_err(io_err)?;
+    let recent_terminal_cold = count_recent_terminal_in_cold(conn, &cutoff).map_err(io_err)?;
     let stale_terminal_hot =
         db::count_stale_terminal_in_hot(conn, TERMINAL_STATES, &cutoff).map_err(io_err)?;
 
@@ -67,10 +70,12 @@ fn check_cold_tier_imbalance_at_time(
         "cold_count": cold,
         "shadow": shadow,
         "non_terminal_cold": non_terminal_cold,
+        "recent_terminal_cold": recent_terminal_cold,
         "stale_terminal_hot": stale_terminal_hot,
     }));
 
-    if shadow == 0 && non_terminal_cold == 0 && stale_terminal_hot == 0 {
+    if shadow == 0 && non_terminal_cold == 0 && recent_terminal_cold == 0 && stale_terminal_hot == 0
+    {
         return Ok(with_data(
             DoctorStatus::Pass,
             format!("{hot} hot / {cold} cold; tier invariants hold"),
@@ -82,6 +87,7 @@ fn check_cold_tier_imbalance_at_time(
         DoctorStatus::Warn,
         format!(
             "shadow={shadow} non_terminal_cold={non_terminal_cold} \
+             recent_terminal_cold={recent_terminal_cold} \
              stale_terminal_hot={stale_terminal_hot}; run doctor --fix",
         ),
         data,
@@ -106,13 +112,57 @@ fn format_rfc3339(ts: OffsetDateTime) -> String {
         .expect("RFC3339 formatting for UTC timestamp should never fail")
 }
 
-/// Implements the `--fix` action for `cold_tier_imbalance`. Restores the three
+fn count_recent_terminal_in_cold(conn: &Connection, cutoff: &str) -> rusqlite::Result<i64> {
+    let placeholders = vec!["?"; TERMINAL_STATES.len()].join(",");
+    let sql = format!(
+        "SELECT COUNT(*) FROM cold_catalog \
+         WHERE state IN ({placeholders}) AND updated_at >= ?"
+    );
+    let mut params: Vec<&dyn rusqlite::ToSql> = TERMINAL_STATES
+        .iter()
+        .map(|s| s as &dyn rusqlite::ToSql)
+        .collect();
+    params.push(&cutoff);
+    conn.query_row(&sql, params.as_slice(), |row| row.get(0))
+}
+
+fn list_recent_terminal_in_cold(
+    conn: &Connection,
+    cutoff: &str,
+) -> rusqlite::Result<Vec<db::ColdCatalogRecord>> {
+    let placeholders = vec!["?"; TERMINAL_STATES.len()].join(",");
+    let sql = format!(
+        "SELECT id, title, state, updated_at FROM cold_catalog \
+         WHERE state IN ({placeholders}) AND updated_at >= ? \
+         ORDER BY updated_at DESC, id ASC"
+    );
+    let mut params: Vec<&dyn rusqlite::ToSql> = TERMINAL_STATES
+        .iter()
+        .map(|s| s as &dyn rusqlite::ToSql)
+        .collect();
+    params.push(&cutoff);
+    let mut stmt = conn.prepare(&sql)?;
+    let mut rows = stmt.query(params.as_slice())?;
+    let mut result = Vec::new();
+    while let Some(row) = rows.next()? {
+        result.push(db::ColdCatalogRecord {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            state: row.get(2)?,
+            updated_at: row.get(3)?,
+        });
+    }
+    Ok(result)
+}
+
+/// Implements the `--fix` action for `cold_tier_imbalance`. Restores the four
 /// tier invariants:
 ///
 /// 1. Prune cold rows whose id is also in hot (shadow).
 /// 2. Rehydrate non-terminal cold rows. If event replay fails, drop the cold
 ///    pointer — the warm row stays so the catalog still remembers it.
-/// 3. Demote stale-terminal hot rows to cold (mirrors `run_cold_sweep`'s
+/// 3. Rehydrate recent-terminal cold rows back to hot.
+/// 4. Demote stale-terminal hot rows to cold (mirrors `run_cold_sweep`'s
 ///    move).
 ///
 /// Each step is idempotent; running `--fix` a second time is a no-op.
@@ -137,6 +187,8 @@ pub fn fix_cold_tier_imbalance(repo_root: &Path) {
     // Step 2: rehydrate non-terminal cold rows; fall back to delete if events
     // are missing so the warning can clear.
     let non_terminal = db::list_non_terminal_in_cold(&conn, TERMINAL_STATES).unwrap_or_default();
+    let cutoff = format_rfc3339(OffsetDateTime::now_utc() - Duration::hours(ARCHIVE_AGE_HOURS));
+    let recent_terminal = list_recent_terminal_in_cold(&conn, &cutoff).unwrap_or_default();
     drop(conn);
     for record in &non_terminal {
         if app.rehydrate(&record.id).is_err() {
@@ -145,12 +197,14 @@ pub fn fix_cold_tier_imbalance(repo_root: &Path) {
             }
         }
     }
+    for record in &recent_terminal {
+        let _ = app.rehydrate(&record.id);
+    }
 
-    // Step 3: demote stale-terminal hot rows to cold.
+    // Step 4: demote stale-terminal hot rows to cold.
     let Ok(conn) = crate::db::open_connection(db_str) else {
         return;
     };
-    let cutoff = format_rfc3339(OffsetDateTime::now_utc() - Duration::hours(ARCHIVE_AGE_HOURS));
     let stale = db::list_stale_terminal_in_hot(&conn, TERMINAL_STATES, &cutoff).unwrap_or_default();
     for (id, title, state, updated_at) in stale {
         let _ = db::upsert_cold_catalog(&conn, &id, &title, &state, &updated_at);

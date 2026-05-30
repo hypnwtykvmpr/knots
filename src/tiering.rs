@@ -21,14 +21,15 @@ pub enum CacheTier {
     Cold,
 }
 
-pub fn classify_knot_tier(
+pub fn classify_knot_head_tier(
     state: &str,
     updated_at: &str,
+    terminal_flag: bool,
     _hot_window_days: i64,
     now: OffsetDateTime,
 ) -> CacheTier {
     let normalized = normalize_state_input(state);
-    let is_terminal = TERMINAL_STATES.iter().any(|s| *s == normalized);
+    let is_terminal = terminal_flag || TERMINAL_STATES.iter().any(|s| *s == normalized);
 
     if !is_terminal {
         return CacheTier::Hot;
@@ -47,7 +48,7 @@ pub fn classify_knot_tier(
 
 #[cfg(test)]
 mod tests {
-    use super::{classify_knot_tier, CacheTier, ARCHIVE_AGE_HOURS};
+    use super::{classify_knot_head_tier, CacheTier, ARCHIVE_AGE_HOURS};
     use time::format_description::well_known::Rfc3339;
     use time::{Duration, OffsetDateTime};
 
@@ -64,8 +65,26 @@ mod tests {
         // age < 72h → hot
         let recent = fmt(now() - Duration::hours(10));
         assert_eq!(
-            classify_knot_tier("shipped", &recent, 7, now()),
+            classify_knot_head_tier("shipped", &recent, false, 7, now()),
             CacheTier::Hot
+        );
+    }
+
+    #[test]
+    fn terminal_flag_recent_is_hot() {
+        let recent = fmt(now() - Duration::hours(2));
+        assert_eq!(
+            super::classify_knot_head_tier("done", &recent, true, 7, now()),
+            CacheTier::Hot
+        );
+    }
+
+    #[test]
+    fn terminal_flag_stale_is_cold() {
+        let stale = fmt(now() - Duration::hours(ARCHIVE_AGE_HOURS + 4));
+        assert_eq!(
+            super::classify_knot_head_tier("done", &stale, true, 7, now()),
+            CacheTier::Cold
         );
     }
 
@@ -74,7 +93,7 @@ mod tests {
         // age == 71h → hot (below 72h boundary)
         let recent = fmt(now() - Duration::hours(71));
         assert_eq!(
-            classify_knot_tier("abandoned", &recent, 7, now()),
+            classify_knot_head_tier("abandoned", &recent, false, 7, now()),
             CacheTier::Hot
         );
     }
@@ -84,7 +103,7 @@ mod tests {
         // age > 72h → cold
         let stale = fmt(now() - Duration::hours(ARCHIVE_AGE_HOURS + 1));
         assert_eq!(
-            classify_knot_tier("shipped", &stale, 7, now()),
+            classify_knot_head_tier("shipped", &stale, false, 7, now()),
             CacheTier::Cold
         );
     }
@@ -93,7 +112,7 @@ mod tests {
     fn terminal_abandoned_stale_is_cold() {
         let stale = fmt(now() - Duration::hours(200));
         assert_eq!(
-            classify_knot_tier("abandoned", &stale, 7, now()),
+            classify_knot_head_tier("abandoned", &stale, false, 7, now()),
             CacheTier::Cold
         );
     }
@@ -103,7 +122,7 @@ mod tests {
         // deferred is passive, not terminal, so it remains visible regardless of age.
         let recent = fmt(now() - Duration::days(400));
         assert_eq!(
-            classify_knot_tier("deferred", &recent, 7, now()),
+            classify_knot_head_tier("deferred", &recent, false, 7, now()),
             CacheTier::Hot
         );
     }
@@ -112,26 +131,26 @@ mod tests {
     fn recent_non_terminal_is_hot() {
         let recent = fmt(now() - Duration::hours(25));
         assert_eq!(
-            classify_knot_tier("implementing", &recent, 7, now()),
+            classify_knot_head_tier("implementing", &recent, false, 7, now()),
             CacheTier::Hot
         );
     }
 
     #[test]
     fn old_non_terminal_is_hot() {
-        let tier = classify_knot_tier("work_item", "2025-12-01T00:00:00Z", 7, now());
+        let tier = classify_knot_head_tier("work_item", "2025-12-01T00:00:00Z", false, 7, now());
         assert_eq!(tier, CacheTier::Hot);
     }
 
     #[test]
     fn unparseable_date_non_terminal_stays_hot() {
-        let tier = classify_knot_tier("implementing", "not-a-date", 7, now());
+        let tier = classify_knot_head_tier("implementing", "not-a-date", false, 7, now());
         assert_eq!(tier, CacheTier::Hot);
     }
 
     #[test]
     fn unparseable_date_terminal_falls_back_to_warm() {
-        let tier = classify_knot_tier("shipped", "not-a-date", 7, now());
+        let tier = classify_knot_head_tier("shipped", "not-a-date", false, 7, now());
         assert_eq!(tier, CacheTier::Warm);
     }
 }
