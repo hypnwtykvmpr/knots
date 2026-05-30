@@ -1,0 +1,15 @@
+{
+  "event_id": "019e77f8-1f0f-76f1-922a-89f4e7638027",
+  "occurred_at": "2026-05-30T08:20:10.127836433Z",
+  "knot_id": "knots-b928",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-b928-recent-terminal-hot. Commit: a1f055e3ad5b86fe80b0ac9ccde69f283e576991. Validation: focused tiering/sync/CLI doctor tests; make lint; make install-hooks; make sanity at 95.02% coverage; pre-push make sanity at 95.02% coverage; live Foolery repair with fixed doctor --fix and list verification for foolery-e8a2.",
+    "datetime": "2026-05-30T08:20:10.127836433Z",
+    "entry_id": "019e77f8-1f0f-76f1-922a-89ed8069ae29",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "event_id": "019e77f8-64ae-7740-90af-6e8a882340da",
+  "occurred_at": "2026-05-30T08:20:27.950220325Z",
+  "knot_id": "knots-b928",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation review approved. Branch worktree-knots-b928-recent-terminal-hot at a1f055e3ad5b86fe80b0ac9ccde69f283e576991 matches the plan: terminal sync heads now use the 72h tier classifier, recent-terminal cold rows are detected/fixed by doctor, docs updated, and regressions cover sync, CLI list visibility, and doctor repair. Gates passed: make sanity 95.02% coverage and pre-push make sanity 95.02% coverage.",
+    "datetime": "2026-05-30T08:20:27.950220325Z",
+    "entry_id": "019e77f8-64ae-7740-90af-6e7af6cef3de",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

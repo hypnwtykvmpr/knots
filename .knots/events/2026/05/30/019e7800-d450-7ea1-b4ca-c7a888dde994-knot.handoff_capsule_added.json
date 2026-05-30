@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7800-d450-7ea1-b4ca-c7a888dde994",
+  "occurred_at": "2026-05-30T08:29:40.816737863Z",
+  "knot_id": "knots-b928",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment complete. Merged branch worktree-knots-b928-recent-terminal-hot into main as ee1b702fdcbda57cf3748c87baa1ae5aae0a7e10 and pushed origin/main. Validation: RUST_TEST_THREADS=1 make sanity passed locally with 95.02% coverage; pre-push make sanity passed with 95.02% coverage; GitHub workflows Release, Repo Hygiene, Changesets Version PR, and CI all completed successfully for ee1b702fdcbda57cf3748c87baa1ae5aae0a7e10. Live Foolery check: doctor --fix restored recent terminal cold rows and foolery-e8a2 is visible via ls -a --query and --state shipped.",
+    "datetime": "2026-05-30T08:29:40.816737863Z",
+    "entry_id": "019e7800-d450-7ea1-b4ca-c793baf08ffa",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

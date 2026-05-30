@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7801-69de-7773-aee1-97ee1a9cbcd5",
+  "occurred_at": "2026-05-30T08:30:19.102305488Z",
+  "knot_id": "knots-b928",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Shipment review approved. Reviewed main at ee1b702fdcbda57cf3748c87baa1ae5aae0a7e10: working tree clean, git diff --check clean, implementation commit a1f055e3ad5b86fe80b0ac9ccde69f283e576991 is contained in main, and knot tags include commit:a1f055e3ad5b86fe80b0ac9ccde69f283e576991 plus commit:ee1b702fdcbda57cf3748c87baa1ae5aae0a7e10. CI/CD for ee1b702fdcbda57cf3748c87baa1ae5aae0a7e10 is green across Release, Repo Hygiene, Changesets Version PR, and CI. Dependent Foolery repro passes: e8a2 is list-visible and no longer present in cold search.",
+    "datetime": "2026-05-30T08:30:19.102305488Z",
+    "entry_id": "019e7801-69de-7773-aee1-97dade51ec72",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}
