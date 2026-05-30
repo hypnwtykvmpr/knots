@@ -8,11 +8,13 @@ re-introducing the imbalance.
 
 ## The three tiers
 
-| Tier            | Table          | Holds                                                                | Detail                                                |
-|-----------------|----------------|----------------------------------------------------------------------|-------------------------------------------------------|
-| Hot             | `knot_hot`     | Recently active knots and recently terminated knots (≤ 72h)          | Full body, gates, leases, plan data, history, edges   |
-| Warm            | `knot_warm`    | Old non-terminal knots beyond the hot window                         | `id` + `title` only                                   |
-| Cold            | `cold_catalog` | Terminal knots (`shipped`, `abandoned`, `lease_terminated`) >72h old | `id`, `title`, `state`, `updated_at`                  |
+- Hot (`knot_hot`): Recently active knots and recently terminated knots
+  (<= 72h). Holds full body, gates, leases, plan data, history, and edges.
+- Warm (`knot_warm`): Old non-terminal knots beyond the hot window. Holds
+  `id` and `title` only.
+- Cold (`cold_catalog`): Terminal knots (`shipped`, `abandoned`,
+  `lease_terminated`) older than 72h. Holds `id`, `title`, `state`,
+  and `updated_at`.
 
 `HOT_TARGET = 100` and `HOT_HIGH_WATER = 110` (`src/app/archival.rs:26-30`)
 control the *cold sweep*. They are not population floors — they are the band
@@ -20,16 +22,18 @@ that decides when archival kicks in.
 
 ## Tier invariants
 
-A repo is in healthy tier balance when **all three** of the following hold:
+A repo is in healthy tier balance when **all four** of the following hold:
 
 1. **Disjointness.** No knot id appears in both `knot_hot` and `cold_catalog`.
 2. **Cold is terminal-only.** Every `cold_catalog` row has a state in
    `TERMINAL_STATES = ["shipped", "abandoned", "lease_terminated"]`
    (`src/tiering.rs:10`).
-3. **Hot has no stale-terminal rows.** No `knot_hot` row has both a terminal
+3. **Cold has no recent-terminal rows.** No `cold_catalog` row has both a
+   terminal state AND `updated_at >= now - ARCHIVE_AGE_HOURS`.
+4. **Hot has no stale-terminal rows.** No `knot_hot` row has both a terminal
    state AND `updated_at < now - ARCHIVE_AGE_HOURS` (72h, `src/tiering.rs:15`).
 
-The `cold_tier_imbalance` doctor check measures exactly these three conditions
+The `cold_tier_imbalance` doctor check measures exactly these four conditions
 — nothing more. A repo with `hot = 5` and `cold = 50` is *healthy* if those 50
 cold rows are all terminal, all >72h old, and none of their ids leak into hot.
 
@@ -40,8 +44,8 @@ flowchart LR
     new[kno new] --> hot[knot_hot]
     hot -->|"updated_at &gt; 7d &amp; non-terminal"| warm[knot_warm]
     warm -->|"kno show / claim"| hot
-    hot -->|"terminal &amp; updated_at &gt; 72h<br/>(run_cold_sweep when hot &gt; 110)"| cold[cold_catalog]
-    hot -->|"terminal flag in synced event<br/>(sync/apply::apply_index_event)"| cold
+    hot -->|"terminal &amp; updated_at &gt; 72h<br/>sweep when hot &gt; 110"| cold[cold_catalog]
+    hot -->|"terminal synced event &amp; updated_at &gt; 72h"| cold
     cold -->|"kno rehydrate / kno show"| hot
     cold -->|"non-terminal in cold (bug)<br/>kno doctor --fix"| hot
 ```
@@ -67,11 +71,11 @@ sequenceDiagram
     Sweep->>Hot: delete_knot_hot(...) (same tx)
 
     U->>Sync: kno sync
-    Sync->>Sync: classify_knot_tier(state, updated_at)
-    alt event is terminal
+    Sync->>Sync: classify_knot_head_tier(state, updated_at, terminal)
+    alt event is terminal and older than 72h
         Sync->>Hot: delete_knot_hot(...)
         Sync->>Cold: upsert_cold_catalog(...)
-    else event is hot
+    else event is recent terminal or non-terminal hot
         Sync->>Cold: delete_cold_catalog(...)
         Sync->>Hot: upsert_knot_hot(...)
     end
@@ -88,10 +92,9 @@ Every mover in the maintenance loop already enforces the invariants:
   (`src/app/archival.rs:131-159`). It cannot create a shadow row, cannot put a
   non-terminal row in cold, and *removes* stale-terminal rows from hot.
 - `sync::apply::apply_index_event` (`src/sync/apply.rs:233-240`) deletes from
-  hot before upserting cold whenever an event classifies as `Cold`. The cold
-  branch is only taken when `terminal: true` or
-  `classify_knot_tier == CacheTier::Cold`, both of which require a terminal
-  state.
+  hot before upserting cold whenever an event classifies as `Cold`.
+  `terminal: true` is terminal evidence, but it still goes through the
+  72-hour archive cutoff. Recent shipped work stays hot and list-visible.
 - `apply_latest_snapshots` (`src/snapshots.rs:211-223`) replays whatever was
   written by a prior `write_snapshots_at_store`. As long as the source repo had
   the invariants, the destination does too — invariants are preserved across
@@ -107,19 +110,19 @@ flowchart TD
     shadow -- yes --> prune[prune_cold_catalog_shadowed_by_hot]
     shadow -- no --> nonterm
     prune --> nonterm{non-terminal<br/>rows in cold}
-    nonterm -- yes --> rehydrate["for each: app.rehydrate(id)<br/>fallback: delete_cold_catalog(id)"]
+    nonterm -- yes --> rehydrate["app.rehydrate(id)<br/>fallback: delete_cold_catalog(id)"]
     nonterm -- no --> stale
     rehydrate --> stale{stale-terminal<br/>rows in hot}
     stale -- yes --> demote["for each:<br/>upsert_cold_catalog(...)<br/>delete_knot_hot(...)"]
     stale -- no --> commit
     demote --> commit[COMMIT]
     commit --> verify[run cold_tier_imbalance check]
-    verify --> pass([all three counts == 0 → PASS])
+    verify --> pass([all violation counts == 0 → PASS])
 ```
 
 Each pass is **idempotent**: running `--fix` a second time finds zero
 violations and does nothing. After the first fix, the maintenance loop above
-preserves all three invariants on every subsequent operation, so the next
+preserves all four invariants on every subsequent operation, so the next
 `kno doctor` is `pass` — and stays `pass` through normal use.
 
 ## What used to go wrong
@@ -138,7 +141,7 @@ repo. `--fix` would rehydrate cold rows into hot to chase a population floor of
 - Rehydrate failures (events missing) were swallowed silently, leaving the cold
   row in place forever and the warn permanently lit.
 
-The fix replaces a count comparison with the three invariant checks listed
+The fix replaces a count comparison with the invariant checks listed
 above. Cold is no longer treated as a problem to drain — it is treated as the
 catalog's terminal-knot archive, which is exactly what it was always meant to
 be.

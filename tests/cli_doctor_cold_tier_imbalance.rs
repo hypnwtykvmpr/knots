@@ -3,6 +3,8 @@ use std::process::{Command, Output};
 
 use rusqlite::Connection;
 use serde_json::Value;
+use time::format_description::well_known::Rfc3339;
+use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 fn unique_workspace(prefix: &str) -> PathBuf {
@@ -87,6 +89,10 @@ fn run_knots(repo_root: &Path, db_path: &Path, args: &[&str]) -> Output {
         .args(args)
         .output()
         .expect("knots command should run")
+}
+
+fn fmt_rfc3339(ts: OffsetDateTime) -> String {
+    ts.format(&Rfc3339).expect("timestamp should format")
 }
 
 fn assert_success(output: &Output) {
@@ -277,6 +283,56 @@ fn doctor_fix_demotes_stale_terminal_hot_to_cold() {
     let report: Value = serde_json::from_slice(&after.stdout).expect("doctor json should parse");
     let check = find_check(&report, "cold_tier_imbalance");
     assert_eq!(check["status"], "pass");
+}
+
+#[test]
+fn doctor_fix_rehydrates_recent_terminal_cold_rows() {
+    let root = unique_workspace("knots-cli-cold-tier-recent-cold");
+    setup_repo_with_remote(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    bootstrap_workflows(&root, &db);
+
+    let created = run_knots(
+        &root,
+        &db,
+        &[
+            "new",
+            "Recent shipped",
+            "--profile",
+            "default",
+            "--state",
+            "shipped",
+        ],
+    );
+    assert_success(&created);
+    let id = resolve_full_id(&root, &db, &parse_created_id(&created));
+    let recent = fmt_rfc3339(OffsetDateTime::now_utc() - Duration::hours(1));
+    demote_to_cold_terminal(&db, &id, "Recent shipped", &recent);
+
+    let before = run_knots(&root, &db, &["doctor", "--json"]);
+    assert_success(&before);
+    let before_report: Value =
+        serde_json::from_slice(&before.stdout).expect("doctor json should parse");
+    let before_check = find_check(&before_report, "cold_tier_imbalance");
+    assert_eq!(before_check["status"], "warn");
+    assert!(before_check["detail"]
+        .as_str()
+        .expect("detail")
+        .contains("recent_terminal_cold=1"));
+
+    let fix = run_knots(&root, &db, &["doctor", "--fix"]);
+    assert_success(&fix);
+
+    assert_eq!(count_knot_hot(&db), 1, "recent cold row should rehydrate");
+    assert_eq!(
+        count_cold_catalog(&db),
+        0,
+        "recent cold row should leave cold"
+    );
+    let listed = run_knots(&root, &db, &["ls", "-a", "--query", &id, "--json"]);
+    assert_success(&listed);
+    let rows: Value = serde_json::from_slice(&listed.stdout).expect("list json should parse");
+    assert_eq!(rows[0]["id"], id);
 }
 
 fn insert_shadow_cold(db: &Path, id: &str, title: &str, updated_at: &str) {
