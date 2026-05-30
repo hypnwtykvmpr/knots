@@ -1,0 +1,17 @@
+{
+  "event_id": "019e77d7-fb0d-7f70-922d-c8ae6122214c",
+  "occurred_at": "2026-05-30T07:45:03.757224Z",
+  "knot_id": "knots-b928",
+  "type": "knot.created",
+  "data": {
+    "body": "Investigate why a newly shipped Foolery knot was moved into Knots cold storage almost immediately. Concrete repro: /Users/cartine/foolery knot foolery-e8a2 shipped at 2026-05-30T04:15:31.523469211Z, 06:15 Europe/Stockholm. Direct lookup sees it: kno -C /Users/cartine/foolery show foolery-e8a2 --json and GET /api/beats/foolery-e8a2 with repo=/Users/cartine/foolery both show state shipped. List paths omit it: kno -C /Users/cartine/foolery ls -a --json, kno -C /Users/cartine/foolery ls -a --state shipped --json, GET /api/beats with repo=/Users/cartine/foolery, and GET /api/beats?scope=all. SQLite inspection showed foolery-e8a2 in .knots/cache/state.sqlite cold_catalog, not knot_hot; kno cold search e8a2 --json finds it. This made Foolery Retakes miss current shipped work because Retakes consumes the list endpoint backed by kno ls. Determine how and why a same-day shipped knot enters cold_catalog, whether this is intended compaction policy or a bug, and fix or document the behavior so recent terminal work remains list-visible or has an explicit list API that includes cold terminal records. Acceptance: root cause identified; regression test or reproducible check added; behavior fixed or deliberately documented with a Foolery-compatible API path; verify kno ls or an appropriate list command can surface recent shipped work such as this case.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Investigate rapid cold-tiering of newly shipped knots",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
