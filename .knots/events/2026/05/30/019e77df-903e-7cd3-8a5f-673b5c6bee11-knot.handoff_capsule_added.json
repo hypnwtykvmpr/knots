@@ -1,0 +1,15 @@
+{
+  "event_id": "019e77df-903e-7cd3-8a5f-673b5c6bee11",
+  "occurred_at": "2026-05-30T07:53:20.702046666Z",
+  "knot_id": "knots-b928",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Planning complete. Repro is confirmed in /home/cartine/foolery: foolery-e8a2 is shipped and same-day, show/cold search find it, list paths omit it. Root cause is sync apply resolving terminal true directly to Cold, bypassing the 72 hour recent-terminal grace in tiering.rs. Implement a terminal-flag-aware age classifier, add sync and CLI regressions for recent terminal list visibility, preserve stale terminal cold routing, and add a doctor --fix repair for recent_terminal_cold rows so existing misclassified caches can recover.",
+    "datetime": "2026-05-30T07:53:20.702046666Z",
+    "entry_id": "019e77df-903e-7cd3-8a5f-6724b0c59aac",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}
