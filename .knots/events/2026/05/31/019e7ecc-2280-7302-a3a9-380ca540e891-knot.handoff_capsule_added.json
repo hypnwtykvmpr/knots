@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7ecc-2280-7302-a3a9-380ca540e891",
+  "occurred_at": "2026-05-31T16:09:27.936592057Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Branch: worktree-knots-3a29-workflow-parity\nCommit: 557758809da1f4a3f1a5a18ceca3ec96ee6759a2\nVerification: make sanity passed with 95.02% coverage; pushed branch to origin.",
+    "datetime": "2026-05-31T16:09:27.936592057Z",
+    "entry_id": "019e7ecc-2280-7302-a3a9-37f539961221",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

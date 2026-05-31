@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7ec9-05f4-7f02-89d8-71492b37487d",
+  "occurred_at": "2026-05-31T16:06:04.02036292Z",
+  "knot_id": "knots-1201",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implementation artifact: branch:worktree-knots-1201-managed-skill-notice, commit:b64e4e590384bb25a68359bcd14fa270690775df. Managed skill update now appends a commit notice for tracked skill files left dirty by refresh. Verification: cargo test managed_skills; RUST_TEST_THREADS=1 make sanity; pre-push sanity.",
+    "datetime": "2026-05-31T16:06:04.02036292Z",
+    "entry_id": "019e7ec9-05f4-7f02-89d8-713450e433a5",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

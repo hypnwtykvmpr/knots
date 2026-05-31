@@ -1,0 +1,9 @@
+{
+  "event_id": "019e7ec8-f9f9-7531-bc24-481506fb25ec",
+  "occurred_at": "2026-05-31T16:06:00.953243573Z",
+  "knot_id": "knots-1201",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-1201-managed-skill-notice"
+  }
+}

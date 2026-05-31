@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7ebb-11e4-78f2-8c63-0d5118f993be",
+  "occurred_at": "2026-05-31T15:50:49.572499651Z",
+  "knot_id": "knots-1201",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "PLAN COMPLETE. Add a git-based trailing notice to the skills updater so the daily updater stops silently leaving tracked SKILL.md files dirty. Approach: after write_skills in update_managed (managed_skills_ops.rs:51-83), call a new changed_tracked_paths(repo_root, &updated_paths) helper (new module managed_skills_git.rs, shells `git -C <repo> status --porcelain -- <paths>`, returns dirty subset, empty on any git failure). If non-empty, append format_commit_notice(repo_root, dirty) (new fn in managed_skills_output.rs) to the returned output. All managed destinations are Project-scope inside the repo. Tests in managed_skills_tests_ext.rs (real git repos): positive (committed stale skill -> update rewrites -> notice), negative (clean -> no notice), non-repo (no notice/no error). Respect <500/<100/<100 limits and 95% coverage; run make sanity before merge. Scope = update path only; install can adopt the helper later.",
+    "datetime": "2026-05-31T15:50:49.572499651Z",
+    "entry_id": "019e7ebb-11e4-78f2-8c63-0d4594bf8039",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.8"
+  }
+}

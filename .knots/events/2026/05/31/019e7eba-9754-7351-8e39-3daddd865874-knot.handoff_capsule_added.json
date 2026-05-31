@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7eba-9754-7351-8e39-3daddd865874",
+  "occurred_at": "2026-05-31T15:50:18.196157611Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete. Key finding: current warning is for `knots-d816` latest worktree head event `019ca290-e32c-7ee1-a91e-07c4d4d4ad14`, which is missing `workflow_id` and `type`; the knot is absent from local cache, so the existing fix likely skips it while progress still reports fixed. Implement richer stale-head diagnostics, fallback repair from legacy head payload using sync's inference rules, and honest fixed/skipped accounting.",
+    "datetime": "2026-05-31T15:50:18.196157611Z",
+    "entry_id": "019e7eba-9754-7351-8e39-3d92ca231636",
+    "model": "GPT",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "019e7ecc-2280-7302-a3a9-37e8e9945f26",
+  "occurred_at": "2026-05-31T16:09:27.936592057Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-3a29-workflow-parity"
+  }
+}

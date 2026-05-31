@@ -1,0 +1,15 @@
+{
+  "event_id": "019e7ecf-5b35-7cf0-a518-689550087285",
+  "occurred_at": "2026-05-31T16:12:59.061500759Z",
+  "knot_id": "knots-1201",
+  "type": "knot.note_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Implementation complete and verified. Branch: worktree-knots-1201-managed-skill-notice (pushed to origin), commit b64e4e590384bb25a68359bcd14fa270690775df. Adds managed_skills_git::changed_tracked_paths (git porcelain check) + format_commit_notice; update_managed now appends a trailing commit-them notice listing tracked skill files left dirty by refresh. Tests cover changed/clean/non-repo branches. Verification: RUST_TEST_THREADS=1 make sanity passed (exit 0), coverage 95.05% (>=95). Review artifact = remote branch.",
+    "datetime": "2026-05-31T16:12:59.061500759Z",
+    "entry_id": "019e7ecf-5b35-7cf0-a518-688a95a43290",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.8"
+  }
+}
