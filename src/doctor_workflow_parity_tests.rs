@@ -410,3 +410,10 @@ fn read_single_repair_payload(root: &Path) -> serde_json::Value {
     }
     panic!("no repair event found");
 }
+
+#[test]
+fn inferred_terminal_matches_terminal_states() {
+    assert!(super::inferred_terminal("shipped"));
+    assert!(super::inferred_terminal("SHIPPED"));
+    assert!(!super::inferred_terminal("implementation"));
+}
