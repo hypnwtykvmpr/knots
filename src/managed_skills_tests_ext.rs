@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 use super::{
     doctor_check, fix_doctor_check, install_missing, managed_skills, render_skill, update_managed,
@@ -9,8 +9,7 @@ use super::{
 };
 
 fn env_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
+    super::tests::env_lock()
 }
 
 fn unique_root(label: &str) -> PathBuf {
