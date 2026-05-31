@@ -53,6 +53,26 @@ fn write_worktree_event(
     occurred_at: &str,
     include_workflow_id: bool,
 ) {
+    write_worktree_event_with_type(
+        root,
+        seq,
+        knot_id,
+        occurred_at,
+        include_workflow_id,
+        Some("work"),
+        true,
+    );
+}
+
+fn write_worktree_event_with_type(
+    root: &Path,
+    seq: u64,
+    knot_id: &str,
+    occurred_at: &str,
+    include_workflow_id: bool,
+    knot_type: Option<&str>,
+    include_state: bool,
+) {
     let dir = root
         .join(".knots")
         .join("_worktree")
@@ -68,6 +88,14 @@ fn write_worktree_event(
     } else {
         ""
     };
+    let state_line = if include_state {
+        "    \"state\": \"implementation\",\n"
+    } else {
+        ""
+    };
+    let type_line = knot_type
+        .map(|value| format!("    \"type\": \"{value}\",\n"))
+        .unwrap_or_default();
     let body = format!(
         concat!(
             "{{\n",
@@ -77,11 +105,11 @@ fn write_worktree_event(
             "  \"data\": {{\n",
             "    \"knot_id\": \"{knot_id}\",\n",
             "    \"title\": \"t\",\n",
-            "    \"state\": \"implementation\",\n",
+            "{state_line}",
             "{workflow_line}",
             "    \"profile_id\": \"autopilot\",\n",
             "    \"updated_at\": \"{occurred_at}\",\n",
-            "    \"type\": \"work\",\n",
+            "{type_line}",
             "    \"terminal\": false\n",
             "  }}\n",
             "}}\n"
@@ -89,7 +117,9 @@ fn write_worktree_event(
         seq = seq,
         occurred_at = occurred_at,
         knot_id = knot_id,
+        state_line = state_line,
         workflow_line = workflow_line,
+        type_line = type_line,
     );
     std::fs::write(&path, body).expect("event should be writable");
 }
@@ -158,6 +188,35 @@ fn check_warns_when_latest_event_missing_workflow_id() {
 }
 
 #[test]
+fn check_warn_data_names_stale_head_event_and_path() {
+    let root = unique_workspace();
+    write_worktree_event_with_type(&root, 1, "K-1", "2026-03-12T10:00:00Z", false, None, true);
+    let store_paths = StorePaths {
+        root: root.join(".knots"),
+    };
+
+    let check = check_workflow_id_parity_at(&store_paths).expect("check should run");
+    let data = check.data.expect("warn should carry stale head data");
+    let head = &data["stale_heads"][0];
+
+    assert_eq!(head["knot_id"], "K-1");
+    assert_eq!(head["event_id"], "1");
+    assert_eq!(
+        head["path"],
+        ".knots/index/2026/03/12/0001-idx.knot_head.json"
+    );
+    assert_eq!(head["state"], "implementation");
+    assert_eq!(head["profile_id"], "autopilot");
+    assert_eq!(
+        head["missing_fields"],
+        serde_json::json!(["workflow_id", "type"])
+    );
+    assert!(check.detail.contains("K-1"));
+    assert!(check.detail.contains("0001-idx.knot_head.json"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn check_only_considers_latest_event_per_knot() {
     let root = unique_workspace();
     write_worktree_event(&root, 1, "K-1", "2026-03-12T10:00:00Z", false);
@@ -203,17 +262,84 @@ fn fix_emits_repair_event_for_stale_knot_in_db() {
 }
 
 #[test]
-fn fix_skips_stale_knots_absent_from_db() {
+fn fix_repairs_cache_absent_stale_head_with_legacy_type_inference() {
     let root = unique_workspace();
     let _conn = open_db(&root);
-    write_worktree_event(&root, 1, "K-missing", "2026-03-12T10:00:00Z", false);
+    write_worktree_event_with_type(
+        &root,
+        1,
+        "K-missing",
+        "2026-03-12T10:00:00Z",
+        false,
+        None,
+        true,
+    );
 
-    fix_workflow_id_parity(&root);
+    let summary = fix_workflow_id_parity(&root);
+    assert_eq!(summary.emitted, 1);
     assert_eq!(
         count_local_repair_events(&root),
-        0,
-        "no repair event when source of truth is missing"
+        1,
+        "cache-absent legacy heads should get a repair event"
     );
+    let payload = read_single_repair_payload(&root);
+    assert_eq!(payload["data"]["knot_id"], "K-missing");
+    assert_eq!(payload["data"]["workflow_id"], "work_sdlc");
+    assert_eq!(payload["data"]["type"], "work");
+    assert_eq!(payload["data"]["state"], "implementation");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn fix_does_not_duplicate_pending_local_repair_before_sync() {
+    let root = unique_workspace();
+    let _conn = open_db(&root);
+    write_worktree_event_with_type(
+        &root,
+        1,
+        "K-missing",
+        "2026-03-12T10:00:00Z",
+        false,
+        None,
+        true,
+    );
+
+    let first = fix_workflow_id_parity(&root);
+    let second = fix_workflow_id_parity(&root);
+
+    assert_eq!(first.emitted, 1);
+    assert_eq!(second.emitted, 0);
+    assert_eq!(second.pending, 1);
+    assert_eq!(
+        count_local_repair_events(&root),
+        1,
+        "the second run should reuse the pending local repair event"
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn fix_reports_precise_skip_when_stale_head_cannot_build_payload() {
+    let root = unique_workspace();
+    let _conn = open_db(&root);
+    write_worktree_event_with_type(
+        &root,
+        1,
+        "K-missing-state",
+        "2026-03-12T10:00:00Z",
+        false,
+        Some("work"),
+        false,
+    );
+
+    let summary = fix_workflow_id_parity(&root);
+
+    assert_eq!(summary.emitted, 0);
+    assert_eq!(summary.skipped, 1);
+    assert!(summary.messages[0].contains("K-missing-state"));
+    assert!(summary.messages[0].contains("event 1"));
+    assert!(summary.messages[0].contains("lacks title, state, or updated_at"));
+    assert_eq!(count_local_repair_events(&root), 0);
     let _ = std::fs::remove_dir_all(root);
 }
 

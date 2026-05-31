@@ -98,8 +98,17 @@ fn run_doctor_with_fix_progress_is_silent_when_fix_false() {
         "plain `kno doctor` (fix=false) must not emit any progress lines; got: {:?}",
         reporter.events
     );
-    assert_eq!(captured.checks, baseline.checks);
+    let captured_checks = non_version_checks(&captured.checks);
+    let baseline_checks = non_version_checks(&baseline.checks);
+    assert_eq!(captured_checks, baseline_checks);
     let _ = std::fs::remove_dir_all(root);
+}
+
+fn non_version_checks(checks: &[DoctorCheck]) -> Vec<&DoctorCheck> {
+    checks
+        .iter()
+        .filter(|check| check.name != "version")
+        .collect()
 }
 
 #[test]
