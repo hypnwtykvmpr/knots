@@ -1,0 +1,21 @@
+{
+  "event_id": "019e7ee3-f74f-7770-8d62-f4fd8c49561e",
+  "occurred_at": "2026-05-31T16:35:29.743302123Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-3a29",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Investigate persistent workflow_id_parity doctor warning",
+    "type": "work",
+    "updated_at": "2026-05-31T16:35:29.743302123Z",
+    "workflow_id": "work_sdlc"
+  }
+}
