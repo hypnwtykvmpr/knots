@@ -4,8 +4,11 @@ use std::path::{Path, PathBuf};
 
 use crate::app::AppError;
 
+use super::git::changed_tracked_paths;
 use super::gitignore::{ensure_agents_skills_gitignore, ensure_claude_skills_gitignore};
-use super::output::{format_changed_paths, format_existing_skills, skill_paths};
+use super::output::{
+    format_changed_paths, format_commit_notice, format_existing_skills, skill_paths,
+};
 use super::state::inspect_location;
 use super::{managed_skills, ManagedSkill, SkillLocation, SkillTool};
 
@@ -79,7 +82,13 @@ pub(super) fn update_managed(
     let installed = installed_skills(&destination);
     let updated_paths = write_skills(&destination, &installed)?;
     finalize_install(repo_root, home, tool)?;
-    Ok(format_changed_paths(tool, "updated", &updated_paths))
+    let mut output = format_changed_paths(tool, "updated", &updated_paths);
+    let changed_paths = changed_tracked_paths(repo_root, &updated_paths);
+    if !changed_paths.is_empty() {
+        output.push_str("\n\n");
+        output.push_str(&format_commit_notice(repo_root, &changed_paths));
+    }
+    Ok(output)
 }
 
 pub(super) fn prompt_install_missing<W: Write, R: BufRead>(

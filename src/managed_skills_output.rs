@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::{installed_skills, skill_path, ManagedSkill, SkillLocation, SkillTool};
 
@@ -28,6 +28,19 @@ pub(super) fn format_changed_paths(tool: SkillTool, verb: &str, paths: &[PathBuf
         output.push('\n');
         output.push_str("- ");
         output.push_str(&path.display().to_string());
+    }
+    output
+}
+
+pub(super) fn format_commit_notice(repo_root: &Path, paths: &[PathBuf]) -> String {
+    let mut output = format!(
+        "Note: managed skill updates changed files in {}; commit them:",
+        repo_root.display()
+    );
+    for path in paths {
+        output.push('\n');
+        output.push_str("- ");
+        output.push_str(&display_repo_path(repo_root, path));
     }
     output
 }
@@ -83,4 +96,11 @@ fn display_paths(paths: &[PathBuf]) -> String {
         .map(|path| path.display().to_string())
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn display_repo_path(repo_root: &Path, path: &Path) -> String {
+    path.strip_prefix(repo_root)
+        .unwrap_or(path)
+        .display()
+        .to_string()
 }
