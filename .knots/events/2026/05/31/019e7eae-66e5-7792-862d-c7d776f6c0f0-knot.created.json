@@ -1,0 +1,17 @@
+{
+  "event_id": "019e7eae-66e5-7792-862d-c7d776f6c0f0",
+  "occurred_at": "2026-05-31T15:36:59.365764857Z",
+  "knot_id": "knots-1201",
+  "type": "knot.created",
+  "data": {
+    "body": "When the Manhattan daily update workflow runs kno skills update / managed skill refreshes, it can leave tracked files modified in ~/knots (observed: .agents/skills/knots-e2e/SKILL.md and .claude/skills/knots-e2e/SKILL.md). Instead of silently leaving this, the update path should print a trailing notice to the user that new skill updates should be committed.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Daily updater should notice uncommitted managed skill updates",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

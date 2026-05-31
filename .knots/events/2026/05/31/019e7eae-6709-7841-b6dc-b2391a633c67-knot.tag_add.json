@@ -1,0 +1,9 @@
+{
+  "event_id": "019e7eae-6709-7841-b6dc-b2391a633c67",
+  "occurred_at": "2026-05-31T15:36:59.365764857Z",
+  "knot_id": "knots-1201",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "skills"
+  }
+}
