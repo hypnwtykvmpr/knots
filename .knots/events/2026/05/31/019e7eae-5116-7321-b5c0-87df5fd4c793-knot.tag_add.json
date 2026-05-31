@@ -1,0 +1,9 @@
+{
+  "event_id": "019e7eae-5116-7321-b5c0-87df5fd4c793",
+  "occurred_at": "2026-05-31T15:36:53.741532869Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "doctor"
+  }
+}

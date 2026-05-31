@@ -1,0 +1,9 @@
+{
+  "event_id": "019e7eae-5103-7891-bf81-c49225c27f52",
+  "occurred_at": "2026-05-31T15:36:53.741532869Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "kno doctor --fix either clears workflow_id_parity in ~/knots or reports a precise non-fixable cause with the offending knot/event identified."
+  }
+}

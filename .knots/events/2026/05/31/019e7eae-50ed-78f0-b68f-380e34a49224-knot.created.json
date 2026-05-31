@@ -1,0 +1,17 @@
+{
+  "event_id": "019e7eae-50ed-78f0-b68f-380e34a49224",
+  "occurred_at": "2026-05-31T15:36:53.741532869Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.created",
+  "data": {
+    "body": "After upgrading to kno 0.16.1 on Manhattan, running kno doctor --fix in ~/knots repeatedly reports it fixed workflow_id_parity, but a follow-up kno doctor still shows: workflow_id_parity: ⚠ 1 knot(s) have a latest idx.knot_head event missing workflow_id; run doctor --fix to publish repair events. Need investigate whether doctor/fix is publishing an ineffective repair event, checking the wrong cache/index, or missing a specific knot/event edge case.",
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "Investigate persistent workflow_id_parity doctor warning",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}

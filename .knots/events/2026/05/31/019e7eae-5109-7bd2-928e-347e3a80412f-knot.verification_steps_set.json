@@ -1,0 +1,11 @@
+{
+  "event_id": "019e7eae-5109-7bd2-928e-347e3a80412f",
+  "occurred_at": "2026-05-31T15:36:53.741532869Z",
+  "knot_id": "knots-3a29",
+  "type": "knot.verification_steps_set",
+  "data": {
+    "verification_steps": [
+      "Run kno -C ~/knots doctor --fix, then kno -C ~/knots doctor, and verify workflow_id_parity is green or the diagnostic names the remaining offender."
+    ]
+  }
+}
