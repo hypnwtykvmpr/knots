@@ -1,0 +1,21 @@
+{
+  "event_id": "019e7ee8-4470-7df2-8420-0d6f90cfd5dc",
+  "occurred_at": "2026-05-31T16:40:11.632262797Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-1201",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Daily updater should notice uncommitted managed skill updates",
+    "type": "work",
+    "updated_at": "2026-05-31T16:40:11.632262797Z",
+    "workflow_id": "work_sdlc"
+  }
+}
