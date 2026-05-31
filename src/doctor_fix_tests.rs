@@ -75,6 +75,31 @@ fn sample_check(name: &str, status: DoctorStatus) -> DoctorCheck {
     }
 }
 
+fn write_legacy_worktree_head(repo_root: &Path, knot_id: &str) {
+    let dir = repo_root.join(".knots/_worktree/.knots/index/2026/03/12");
+    std::fs::create_dir_all(&dir).expect("worktree index dir should be creatable");
+    let body = format!(
+        concat!(
+            "{{\n",
+            "  \"event_id\": \"1\",\n",
+            "  \"occurred_at\": \"2026-03-12T10:00:00Z\",\n",
+            "  \"type\": \"idx.knot_head\",\n",
+            "  \"data\": {{\n",
+            "    \"knot_id\": \"{knot_id}\",\n",
+            "    \"title\": \"legacy\",\n",
+            "    \"state\": \"implementation\",\n",
+            "    \"profile_id\": \"autopilot\",\n",
+            "    \"updated_at\": \"2026-03-12T10:00:00Z\",\n",
+            "    \"terminal\": false\n",
+            "  }}\n",
+            "}}\n"
+        ),
+        knot_id = knot_id,
+    );
+    std::fs::write(dir.join("0001-idx.knot_head.json"), body)
+        .expect("legacy head should be writable");
+}
+
 struct StubLoomBundleBuilder {
     bundle_json: String,
 }
@@ -325,9 +350,8 @@ fn apply_fixes_reconciles_terminal_parents() {
 #[test]
 fn apply_fixes_reports_event_log_touched_for_workflow_id_parity() {
     let (root, local) = setup_repo_with_origin();
-    // The fix opens a DB connection via open_connection, which requires the
-    // cache dir to exist. A no-op scan (empty worktree) still flips the flag
-    // because dispatching to the fix is what we're verifying.
+    std::fs::create_dir_all(local.join(".knots/cache")).expect("cache dir");
+    write_legacy_worktree_head(&local, "K-legacy");
     let checks = vec![sample_check("workflow_id_parity", DoctorStatus::Warn)];
     let outcome = apply_fixes(&local, &checks);
     assert!(
@@ -355,8 +379,7 @@ fn apply_fixes_leaves_event_log_touched_false_for_non_event_fixes() {
 }
 
 #[test]
-fn apply_fixes_workflow_registry_repairs_missing_builtin_entries_without_clobbering_custom_work_selection(
-) {
+fn workflow_registry_fix_preserves_custom_work_selection() {
     let root = unique_workspace();
     let custom_workflow_id = install_custom_workflow(&root, "custom_flow");
     assert_eq!(custom_workflow_id, "custom_flow");

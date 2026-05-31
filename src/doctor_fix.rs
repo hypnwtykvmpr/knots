@@ -59,6 +59,11 @@ pub(crate) struct FixProgress {
     pub summary: FixProgressSummary,
 }
 
+enum FixResult {
+    Fixed,
+    Skipped(Option<String>),
+}
+
 pub(crate) fn apply_fixes_with_progress(
     repo_root: &Path,
     checks: &[DoctorCheck],
@@ -72,76 +77,18 @@ pub(crate) fn apply_fixes_with_progress(
             continue;
         }
 
-        let fix_result = match check.name.as_str() {
-            "lock_health" => {
-                fix_lock_health(repo_root);
-                Ok(true)
-            }
-            "worktree" => {
-                fix_worktree(repo_root);
-                Ok(true)
-            }
-            "remote" => {
-                fix_remote(repo_root);
-                Ok(true)
-            }
-            "gitignore" => {
-                fix_gitignore(repo_root);
-                Ok(true)
-            }
-            "version" => {
-                fix_version();
-                Ok(true)
-            }
-            "hooks" => {
-                fix_hooks(repo_root);
-                Ok(true)
-            }
-            "workflow_registry" => {
-                fix_workflow_registry(repo_root);
-                Ok(true)
-            }
-            "schema_version" => {
-                fix_schema_version(repo_root);
-                Ok(true)
-            }
-            "stuck_leases" => {
-                fix_stuck_leases(repo_root);
-                Ok(true)
-            }
-            "terminal_parents" => {
-                fix_terminal_parents(repo_root);
-                outcome.event_log_touched = true;
-                Ok(true)
-            }
-            "cold_tier_imbalance" => {
-                crate::doctor_cold_tier::fix_cold_tier_imbalance(repo_root);
-                Ok(true)
-            }
-            "workflow_id_parity" => {
-                crate::doctor_workflow_parity::fix_workflow_id_parity(repo_root);
-                outcome.event_log_touched = true;
-                Ok(true)
-            }
-            "knot_type_backfill" => {
-                crate::doctor_knot_type_backfill::fix_knot_type_backfill(repo_root);
-                Ok(true)
-            }
-            name if name.starts_with("skills_") => {
-                crate::managed_skills::try_fix_doctor_check(repo_root, name)
-                    .map_err(|err| err.to_string())
-            }
-            _ => Ok(false),
-        };
+        let fix_result = dispatch_fix(repo_root, check, &mut outcome);
 
         let result = match fix_result {
-            Ok(true) => {
+            Ok(FixResult::Fixed) => {
                 summary.fixed += 1;
                 "ok".to_string()
             }
-            Ok(false) => {
+            Ok(FixResult::Skipped(reason)) => {
                 summary.skipped += 1;
-                "skip".to_string()
+                reason
+                    .map(|message| format!("skip: {message}"))
+                    .unwrap_or_else(|| "skip".to_string())
             }
             Err(err) => {
                 summary.failed += 1;
@@ -155,6 +102,77 @@ pub(crate) fn apply_fixes_with_progress(
         );
     }
     FixProgress { outcome, summary }
+}
+
+fn dispatch_fix(
+    repo_root: &Path,
+    check: &DoctorCheck,
+    outcome: &mut FixOutcome,
+) -> Result<FixResult, String> {
+    match check.name.as_str() {
+        "lock_health" => fixed_repo(fix_lock_health, repo_root),
+        "worktree" => fixed_repo(fix_worktree, repo_root),
+        "remote" => fixed_repo(fix_remote, repo_root),
+        "gitignore" => fixed_repo(fix_gitignore, repo_root),
+        "version" => fixed_noarg(fix_version),
+        "hooks" => fixed_repo(fix_hooks, repo_root),
+        "workflow_registry" => fixed_repo(fix_workflow_registry, repo_root),
+        "schema_version" => fixed_repo(fix_schema_version, repo_root),
+        "stuck_leases" => fixed_repo(fix_stuck_leases, repo_root),
+        "terminal_parents" => {
+            outcome.event_log_touched = true;
+            fixed_repo(fix_terminal_parents, repo_root)
+        }
+        "cold_tier_imbalance" => {
+            fixed_repo(crate::doctor_cold_tier::fix_cold_tier_imbalance, repo_root)
+        }
+        "workflow_id_parity" => fix_workflow_id_parity(repo_root, outcome),
+        "knot_type_backfill" => fixed_repo(
+            crate::doctor_knot_type_backfill::fix_knot_type_backfill,
+            repo_root,
+        ),
+        name if name.starts_with("skills_") => fix_managed_skills(repo_root, name),
+        _ => Ok(FixResult::Skipped(None)),
+    }
+}
+
+fn fixed_repo(fix: fn(&Path), repo_root: &Path) -> Result<FixResult, String> {
+    fix(repo_root);
+    Ok(FixResult::Fixed)
+}
+
+fn fixed_noarg(fix: fn()) -> Result<FixResult, String> {
+    fix();
+    Ok(FixResult::Fixed)
+}
+
+fn fix_workflow_id_parity(repo_root: &Path, outcome: &mut FixOutcome) -> Result<FixResult, String> {
+    let parity = crate::doctor_workflow_parity::fix_workflow_id_parity(repo_root);
+    outcome.event_log_touched |= parity.needs_sync();
+    if parity.failed > 0 && parity.emitted == 0 && parity.pending == 0 {
+        Err(parity
+            .first_message()
+            .unwrap_or("workflow_id_parity repair failed")
+            .to_string())
+    } else if parity.emitted > 0 {
+        Ok(FixResult::Fixed)
+    } else {
+        Ok(FixResult::Skipped(
+            parity.first_message().map(str::to_string),
+        ))
+    }
+}
+
+fn fix_managed_skills(repo_root: &Path, name: &str) -> Result<FixResult, String> {
+    crate::managed_skills::try_fix_doctor_check(repo_root, name)
+        .map(|fixed| {
+            if fixed {
+                FixResult::Fixed
+            } else {
+                FixResult::Skipped(None)
+            }
+        })
+        .map_err(|err| err.to_string())
 }
 
 fn fix_gitignore(repo_root: &Path) {

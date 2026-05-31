@@ -79,3 +79,16 @@ fn apply_fixes_with_progress_none_matches_silent_apply_fixes() {
     assert_eq!(progress.summary.failed, 0);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn workflow_id_parity_noop_is_skipped_not_counted_fixed() {
+    let root = unique_workspace();
+    let checks = vec![sample_check("workflow_id_parity", DoctorStatus::Warn)];
+    let progress = apply_fixes_with_progress(&root, &checks, &mut None);
+
+    assert!(!progress.outcome.event_log_touched);
+    assert_eq!(progress.summary.fixed, 0);
+    assert_eq!(progress.summary.skipped, 1);
+    assert_eq!(progress.summary.failed, 0);
+    let _ = std::fs::remove_dir_all(root);
+}
