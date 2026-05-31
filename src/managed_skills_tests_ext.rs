@@ -4,8 +4,8 @@ use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 
 use super::{
-    doctor_check, fix_doctor_check, install_missing, managed_skills, render_skill, DoctorStatus,
-    SkillTool,
+    doctor_check, fix_doctor_check, install_missing, managed_skills, render_skill, update_managed,
+    DoctorStatus, SkillTool,
 };
 
 fn env_lock() -> &'static Mutex<()> {
@@ -41,6 +41,31 @@ fn check_ignore(root: &PathBuf, path: &str) -> bool {
         .status()
         .expect("git check-ignore should run")
         .success()
+}
+
+fn run_git(root: &PathBuf, args: &[&str]) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(args)
+        .output()
+        .expect("git command should run");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: {}",
+        args,
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn commit_all(root: &PathBuf, message: &str) {
+    run_git(root, &["config", "user.name", "Knots Tests"]);
+    run_git(
+        root,
+        &["config", "user.email", "knots-tests@example.invalid"],
+    );
+    run_git(root, &["add", "."]);
+    run_git(root, &["commit", "-m", message]);
 }
 
 #[test]
@@ -109,6 +134,59 @@ fn knots_plan_orchestrator_skill_describes_plan_execution_protocol() {
     assert!(rendered.contains("BLOCKED"));
     assert!(rendered.contains("DEFERRED"));
     assert!(rendered.contains("your own protocol for launching and managing coding"));
+}
+
+#[test]
+fn update_prints_commit_notice_for_tracked_skill_changes() {
+    let repo = unique_root("managed-skills-update-commit-notice");
+    let home = unique_root("managed-skills-home");
+    init_git_repo(&repo);
+    fs::create_dir_all(repo.join(".agents")).expect("agents root");
+    install_missing(&repo, Some(&home), SkillTool::Codex).expect("install");
+
+    let stale_skill = repo.join(".agents/skills/knots-e2e/SKILL.md");
+    fs::write(&stale_skill, "stale managed skill\n").expect("stale skill");
+    commit_all(&repo, "commit stale managed skills");
+
+    let output = update_managed(&repo, Some(&home), false, SkillTool::Codex).expect("update");
+    let (_, notice) = output
+        .split_once("Note: managed skill updates changed files")
+        .expect("commit notice should be appended");
+
+    assert!(notice.contains("commit them"));
+    assert!(notice.contains("- .agents/skills/knots-e2e/SKILL.md"));
+    assert!(
+        !notice.contains("- .agents/skills/knots/SKILL.md"),
+        "notice should list git-reported changes, not every rewritten skill"
+    );
+}
+
+#[test]
+fn update_skips_commit_notice_when_tracked_skills_are_clean() {
+    let repo = unique_root("managed-skills-update-clean-notice");
+    let home = unique_root("managed-skills-home");
+    init_git_repo(&repo);
+    fs::create_dir_all(repo.join(".agents")).expect("agents root");
+    install_missing(&repo, Some(&home), SkillTool::Codex).expect("install");
+    commit_all(&repo, "commit canonical managed skills");
+
+    let output = update_managed(&repo, Some(&home), false, SkillTool::Codex).expect("update");
+
+    assert!(output.contains("updated"));
+    assert!(!output.contains("commit them"));
+}
+
+#[test]
+fn update_skips_commit_notice_outside_git_repo() {
+    let repo = unique_root("managed-skills-update-nonrepo-notice");
+    let home = unique_root("managed-skills-home");
+    fs::create_dir_all(repo.join(".agents")).expect("agents root");
+    install_missing(&repo, Some(&home), SkillTool::Codex).expect("install");
+
+    let output = update_managed(&repo, Some(&home), false, SkillTool::Codex).expect("update");
+
+    assert!(output.contains("updated"));
+    assert!(!output.contains("commit them"));
 }
 
 #[test]

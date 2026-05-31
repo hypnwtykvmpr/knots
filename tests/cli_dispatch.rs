@@ -225,6 +225,7 @@ fn doctor_without_fix_prints_hint_and_fix_creates_knots_branch() {
         doctor_fix_stdout.contains("3 fixed, 1 skipped, 0 failed")
             || doctor_fix_stdout.contains("4 fixed, 1 skipped, 0 failed")
             || doctor_fix_stdout.contains("4 fixed, 0 skipped, 0 failed")
+            || doctor_fix_stdout.contains("4 fixed, 1 skipped, 0 failed")
             || doctor_fix_stdout.contains("5 fixed, 0 skipped, 0 failed"),
         "doctor --fix summary should report fixed/skipped counts; got stdout:\n{doctor_fix_stdout}"
     );

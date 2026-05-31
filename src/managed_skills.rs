@@ -8,6 +8,8 @@ use crate::doctor::{DoctorCheck, DoctorStatus};
 #[path = "managed_skills_inventory.rs"]
 mod inventory;
 use inventory::managed_skills;
+#[path = "managed_skills_git.rs"]
+mod git;
 #[path = "managed_skills_gitignore.rs"]
 mod gitignore;
 use gitignore::{
