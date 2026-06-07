@@ -1,0 +1,9 @@
+{
+  "event_id": "019ea2d5-430c-7081-b907-aef8b889171c",
+  "occurred_at": "2026-06-07T16:05:45.843648Z",
+  "knot_id": "knots-7048",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "handoff"
+  }
+}

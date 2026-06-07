@@ -1,0 +1,9 @@
+{
+  "event_id": "019ea2d5-42fe-78e3-a027-2deca6c87e36",
+  "occurred_at": "2026-06-07T16:05:45.843648Z",
+  "knot_id": "knots-7048",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. knots-create documents the handoff-capsule step: `kno update <id> -H \"<capsule>\"`, and states that capsule/note authorship comes from the bound lease.\n2. The skills document the lease flow: `kno lease create` -> `kno claim <id> --lease <id>` (or `kno new --lease`), and note that `--*-agentname/model/version` are deprecated and ignored.\n3. Guidance explicitly warns against copying the deprecated identity flags from old telemetry / command history.\n4. The lease + handoff-capsule guidance appears consistently in knots-create and knots (and knots-e2e where claim/advance occurs), not just one skill."
+  }
+}
