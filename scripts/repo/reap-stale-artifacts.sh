@@ -39,7 +39,7 @@ removed=0
 
 if [ -d "$ROOT/target" ]; then
   while IFS= read -r -d '' artifact; do
-    if [ "$artifact" -newer "$STAMP" ]; then
+    if [[ "$artifact" -nt "$STAMP" ]]; then
       continue
     fi
 
