@@ -1,0 +1,15 @@
+{
+  "event_id": "019ead8d-df07-7202-8af3-ef2d7328c7ef",
+  "occurred_at": "2026-06-09T18:03:36.58394Z",
+  "type": "idx.knot_head",
+  "data": {
+    "knot_id": "knots-d816",
+    "profile_id": "autopilot_no_planning",
+    "state": "shipped",
+    "terminal": true,
+    "title": "add 'kno ready <optional_ready_type>' command",
+    "type": "work",
+    "updated_at": "2026-02-28T04:53:00.950883Z",
+    "workflow_id": "work_sdlc"
+  }
+}
