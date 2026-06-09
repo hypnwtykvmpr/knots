@@ -110,6 +110,49 @@ fn knots_create_skill_describes_structured_creation_inputs() {
 }
 
 #[test]
+fn managed_skills_document_lease_identity_and_handoff_capsules() {
+    let by_name = |name: &str| {
+        let skill = managed_skills()
+            .iter()
+            .copied()
+            .find(|skill| skill.deploy_name == name)
+            .expect("managed skill should exist");
+        render_skill(skill)
+    };
+
+    let knots = by_name("knots");
+    assert!(knots.contains("kno lease create"));
+    assert!(knots.contains("kno claim <id> --lease <lease-id>"));
+    assert!(knots.contains("kno next <id> --expected-state <current_state> --lease <lease-id>"));
+    assert!(knots.contains("kno update <id> -H \"<capsule>\" --lease <lease-id>"));
+    assert!(knots.contains("Agent identity for notes, handoff capsules"));
+    assert!(knots.contains("legacy `--*-agentname/model/version` identity flags"));
+    assert!(knots.contains("deprecated, ignored by current `kno`"));
+
+    let create = by_name("knots-create");
+    assert!(create.contains("kno lease create"));
+    assert!(create.contains("--lease <lease-id>"));
+    assert!(create.contains("kno update <id> -H \"<capsule>\" --lease <lease-id>"));
+    assert!(create.contains("Authorship for notes"));
+    assert!(create.contains("comes from the bound lease"));
+    assert!(create.contains("`[unknown <date>]`"));
+    assert!(create.contains("legacy `--*-agentname/model/version` identity flags"));
+
+    let e2e = by_name("knots-e2e");
+    assert!(e2e.contains("kno claim --e2e <id> --lease <lease-id>"));
+    assert!(e2e.contains("kno next <id> --expected-state <current_state> --lease <lease-id>"));
+    assert!(e2e.contains("kno update <id> -H \"<capsule>\" --lease <lease-id>"));
+    assert!(e2e.contains("transitions, and gate decisions"));
+    assert!(e2e.contains("deprecated, ignored by current `kno`"));
+
+    let orchestrator = by_name("knots-plan-orchestrator");
+    assert!(orchestrator.contains("kno lease create"));
+    assert!(orchestrator.contains("claim its assigned knot with `--lease <lease-id>`"));
+    assert!(orchestrator.contains("metadata authorship"));
+    assert!(orchestrator.contains("kno update <plan-id> -H \"<capsule>\" --lease <lease-id>"));
+}
+
+#[test]
 fn knots_plan_orchestrator_skill_describes_plan_execution_protocol() {
     let skill = managed_skills()
         .iter()

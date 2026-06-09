@@ -108,15 +108,6 @@ pub(crate) fn supplied_agent_flag_names<'a>(
     flags
 }
 
-pub(crate) fn reject_non_claim_lease_binding(lease_id: Option<&str>) -> Result<(), AppError> {
-    if let Some(provided_lease) = lease_id {
-        return Err(AppError::InvalidArgument(format!(
-            "{CLAIM_ONLY_LEASE_BINDING}: caller provided '{provided_lease}'"
-        )));
-    }
-    Ok(())
-}
-
 pub(crate) fn validate_non_claim_lease(
     knot: &crate::app::KnotView,
     lease_id: Option<&str>,
