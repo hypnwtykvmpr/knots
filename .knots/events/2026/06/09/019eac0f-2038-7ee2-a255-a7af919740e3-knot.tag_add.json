@@ -1,0 +1,9 @@
+{
+  "event_id": "019eac0f-2038-7ee2-a255-a7af919740e3",
+  "occurred_at": "2026-06-09T11:05:32.984884483Z",
+  "knot_id": "knots-7048",
+  "type": "knot.tag_add",
+  "data": {
+    "tag": "branch:worktree-knots-7048-lease-handoff"
+  }
+}

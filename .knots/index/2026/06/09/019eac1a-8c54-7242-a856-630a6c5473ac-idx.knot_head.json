@@ -1,0 +1,21 @@
+{
+  "event_id": "019eac1a-8c54-7242-a856-630a6c5473ac",
+  "occurred_at": "2026-06-09T11:18:01.556650068Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-7048",
+    "profile_id": "autopilot",
+    "state": "shipped",
+    "terminal": true,
+    "title": "Document leases and handoff capsules in the knots agent skills",
+    "type": "work",
+    "updated_at": "2026-06-09T11:18:01.556650068Z",
+    "workflow_id": "work_sdlc"
+  }
+}

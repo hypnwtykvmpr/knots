@@ -1,0 +1,15 @@
+{
+  "event_id": "019eac0f-2e10-7920-bde0-d0d9f233ad47",
+  "occurred_at": "2026-06-09T11:05:36.527991416Z",
+  "knot_id": "knots-7048",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Implemented lease-backed managed skill guidance and enabled kno new --lease so knots-create can attach a lease-authored handoff capsule. Branch: worktree-knots-7048-lease-handoff. Commit: 0465f3eec82a170ce23ff6cb4290ec22a0989b6e. Verification: grep lease/handoff across skills; installed copies match canonical skills; knots-create smoke produced handoff author codex; make sanity passed with 95.03% coverage.",
+    "datetime": "2026-06-09T11:05:36.527991416Z",
+    "entry_id": "019eac0f-2e0f-7022-b7ec-db4ddfbe7659",
+    "model": "unknown",
+    "username": "codex",
+    "version": "unknown"
+  }
+}

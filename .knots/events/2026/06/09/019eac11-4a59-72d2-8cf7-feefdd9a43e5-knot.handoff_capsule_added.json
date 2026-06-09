@@ -1,0 +1,15 @@
+{
+  "event_id": "019eac11-4a59-72d2-8cf7-feefdd9a43e5",
+  "occurred_at": "2026-06-09T11:07:54.84113993Z",
+  "knot_id": "knots-7048",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Claude",
+    "content": "Implementation verified for review. Artifact: branch worktree-knots-7048-lease-handoff (pushed to origin), commit 0465f3eec82a170ce23ff6cb4290ec22a0989b6e. Skills (skills/*.md + installed .claude/.agents copies) now document the lease-based identity model and the handoff-capsule workflow (kno update -H), warn against deprecated --*-agentname/model/version flags, and src/ adds kno new --lease so creation can attach a lease-authored capsule. Verified: build clean; managed_skills (33), tests_lease_ext7 (2), cli_skills (9) tests pass; prior make sanity 95.03% coverage. This capsule is authored from bound lease knots-9c89 (not [unknown]), demonstrating the delivered behavior.",
+    "datetime": "2026-06-09T11:07:54.84113993Z",
+    "entry_id": "019eac11-4a59-72d2-8cf7-fede1bd277ac",
+    "model": "Opus",
+    "username": "Claude",
+    "version": "4.8"
+  }
+}
