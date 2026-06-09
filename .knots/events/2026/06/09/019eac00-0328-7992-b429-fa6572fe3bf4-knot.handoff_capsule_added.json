@@ -1,0 +1,15 @@
+{
+  "event_id": "019eac00-0328-7992-b429-fa6572fe3bf4",
+  "occurred_at": "2026-06-09T10:49:02.504187568Z",
+  "knot_id": "knots-7048",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "Codex",
+    "content": "Planning complete. Implement by updating canonical skill sources in skills/ for knots, knots-create, knots-e2e, and knots-plan-orchestrator; refresh .agents/.claude installed copies; add managed-skill render/install assertions; verify grep coverage plus a knots-create lease-and-handoff smoke so capsule authorship is not unknown. No child knots needed.",
+    "datetime": "2026-06-09T10:49:02.504187568Z",
+    "entry_id": "019eac00-0328-7992-b429-fa5478a0c75b",
+    "model": "GPT",
+    "username": "Codex",
+    "version": "5.5"
+  }
+}
