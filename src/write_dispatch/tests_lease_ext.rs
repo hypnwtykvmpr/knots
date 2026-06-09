@@ -10,8 +10,7 @@ use crate::app::App;
 use crate::cli::Cli;
 use crate::poll_claim;
 use crate::write_queue::{
-    LeaseCreateOperation, LeaseTerminateOperation, NewOperation, NextOperation, UpdateOperation,
-    WriteOperation,
+    LeaseCreateOperation, LeaseTerminateOperation, NextOperation, UpdateOperation, WriteOperation,
 };
 
 pub(super) fn unique_workspace() -> PathBuf {
@@ -283,52 +282,6 @@ pub(super) fn create_test_lease(app: &App) -> String {
     execute_operation(app, &op).expect("lease create should succeed");
     let leases = crate::lease::list_active_leases(app).expect("list");
     leases.into_iter().last().expect("at least one lease").id
-}
-
-#[test]
-fn new_with_lease_flag_rejects() {
-    let root = unique_workspace();
-    setup_repo(&root);
-    let app = open_app(&root);
-
-    let lease_id = create_test_lease(&app);
-
-    let op = WriteOperation::New(NewOperation {
-        title: "Lease-bound new".to_string(),
-        description: None,
-        acceptance: None,
-        verification_steps: vec![],
-        state: None,
-        profile: None,
-        workflow: None,
-        fast: false,
-        exploration: false,
-        knot_type: None,
-        objective: None,
-        gate_owner_kind: None,
-        gate_failure_modes: vec![],
-        tags: vec![],
-        scope: crate::cli_scope::ScopeArgs::default(),
-        lease_id: Some(lease_id.clone()),
-    });
-    let err = execute_operation(&app, &op).expect_err("new should reject lease binding");
-    let err_msg = err.to_string();
-    assert!(
-        err_msg.contains("lease binding is only allowed during claim operations"),
-        "error should mention claim-only lease binding: {err_msg}"
-    );
-
-    let knots = app.list_knots().expect("list");
-    assert_eq!(
-        knots
-            .iter()
-            .filter(|k| k.title == "Lease-bound new")
-            .count(),
-        0,
-        "knot should not be created when --lease is rejected"
-    );
-
-    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]

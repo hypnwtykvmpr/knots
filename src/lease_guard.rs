@@ -55,6 +55,35 @@ pub(crate) fn validate_claim_external_lease(app: &App, lease_id: &str) -> Result
     Ok(())
 }
 
+pub(crate) fn validate_bindable_external_lease(app: &App, lease_id: &str) -> Result<(), AppError> {
+    let Some(lease_knot) = app.show_knot(lease_id)? else {
+        warn_invalid_lease_state("lease binding rejected", "lease knot is missing");
+        return Err(AppError::InvalidArgument(
+            "external lease was not found in local cache".to_string(),
+        ));
+    };
+    if lease_knot.knot_type != KnotType::Lease {
+        warn_invalid_lease_state("lease binding rejected", "bound knot is not a lease");
+        return Err(AppError::InvalidArgument(
+            "external lease reference does not point to a lease knot".to_string(),
+        ));
+    }
+    let state = effective_lease_state(&lease_knot.state, lease_knot.lease_expiry_ts);
+    if matches!(
+        state,
+        workflow_runtime::LEASE_READY | workflow_runtime::LEASE_ACTIVE
+    ) {
+        return Ok(());
+    }
+    warn_invalid_lease_state("lease binding rejected", &lease_knot.state);
+    Err(AppError::InvalidArgument(format!(
+        "external lease is in state '{}' -- expected '{}' or '{}'",
+        state,
+        workflow_runtime::LEASE_READY,
+        workflow_runtime::LEASE_ACTIVE
+    )))
+}
+
 /// Validate that a bound lease is active before `kno next`.
 ///
 /// **Exception**: if the lease has expired but is still bound to this

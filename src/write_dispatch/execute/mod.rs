@@ -11,7 +11,7 @@ use crate::write_queue::{
 
 use super::helpers::{
     format_json, lease_state_actor, parse_gate_data_args, parse_gate_decision, parse_knot_type_arg,
-    reject_non_claim_lease_binding, supplied_agent_flag_names, warn_deprecated_agent_metadata,
+    supplied_agent_flag_names, warn_deprecated_agent_metadata,
 };
 
 pub(crate) mod execute_plan_ops;
@@ -57,7 +57,6 @@ pub(crate) fn execute_operation(app: &App, operation: &WriteOperation) -> Result
 }
 
 fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<String, AppError> {
-    reject_non_claim_lease_binding(args.lease_id.as_deref())?;
     if args.fast && args.exploration {
         return Err(AppError::InvalidArgument(
             "cannot combine -f (fast) and -e (exploration)".to_string(),
@@ -113,6 +112,7 @@ fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<Str
             scope_data,
             tags: args.tags.clone(),
             verification_steps: args.verification_steps.clone(),
+            lease_id: args.lease_id.clone(),
             ..CreateKnotOptions::default()
         },
     )?;

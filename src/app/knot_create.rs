@@ -113,6 +113,9 @@ impl App {
             options.knot_type,
             &options.execution_plan_data,
         )?;
+        if let Some(lease_id) = options.lease_id.as_deref() {
+            crate::lease_guard::validate_bindable_external_lease(self, lease_id)?;
+        }
         let (profile, state) =
             self.resolve_create_params(profile_id, workflow_id, initial_state, options.knot_type)?;
         require_state_for_knot_type(options.knot_type, profile, &state)?;
@@ -256,7 +259,7 @@ impl App {
                 gate_data: &options.gate_data,
                 lease_data: &options.lease_data,
                 execution_plan_data: &options.execution_plan_data,
-                lease_id: None,
+                lease_id: options.lease_id.as_deref(),
                 workflow_id: profile.workflow_id.as_str(),
                 profile_id: profile.id.as_str(),
                 profile_etag: Some(&idx_event.event_id),
@@ -339,6 +342,16 @@ impl App {
                 params.knot_id.to_string(),
                 FullEventKind::KnotLeaseDataSet,
                 json!({"lease_data": &params.options.lease_data}),
+            );
+            self.writer.write(&EventRecord::full(event))?;
+        }
+        if let Some(lease_id) = params.options.lease_id.as_deref() {
+            let event = FullEvent::with_identity(
+                new_event_id(),
+                params.occurred_at.to_string(),
+                params.knot_id.to_string(),
+                FullEventKind::KnotLeaseIdSet.as_str(),
+                json!({ "lease_id": lease_id }),
             );
             self.writer.write(&EventRecord::full(event))?;
         }

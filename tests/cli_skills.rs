@@ -191,6 +191,16 @@ fn skills_install_and_uninstall_round_trip_for_codex() {
     assert!(root
         .join(".agents/skills/knots-plan-orchestrator/SKILL.md")
         .exists());
+    let installed_knots = std::fs::read_to_string(root.join(".agents/skills/knots/SKILL.md"))
+        .expect("installed knots skill");
+    let installed_create =
+        std::fs::read_to_string(root.join(".agents/skills/knots-create/SKILL.md"))
+            .expect("installed create skill");
+    assert!(installed_knots.contains("kno claim <id> --lease <lease-id>"));
+    assert!(installed_knots.contains("kno update <id> -H \"<capsule>\" --lease <lease-id>"));
+    assert!(installed_create.contains("kno lease create"));
+    assert!(installed_create.contains("kno update <id> -H \"<capsule>\" --lease <lease-id>"));
+    assert!(installed_create.contains("comes from the bound lease"));
     let gitignore = std::fs::read_to_string(root.join(".gitignore"))
         .expect(".gitignore should exist after managed install");
     assert!(gitignore.lines().any(|line| line.trim() == "/.agents/**"));

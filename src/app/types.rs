@@ -178,6 +178,7 @@ pub struct CreateKnotOptions {
     pub acceptance: Option<String>,
     pub tags: Vec<String>,
     pub verification_steps: Vec<String>,
+    pub lease_id: Option<String>,
 }
 
 impl From<KnotCacheRecord> for KnotView {
