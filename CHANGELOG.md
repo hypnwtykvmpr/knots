@@ -1,5 +1,11 @@
 # kno
 
+## 0.16.5
+
+### Patch Changes
+
+- df8efff: Repair `kno sync-ref migrate` for large Knots refs by batching remote blob reads, avoiding full repository clones, skipping unchanged publishes, and filtering migration inputs to canonical Knots JSON store paths.
+
 ## 0.16.4
 
 ### Patch Changes
