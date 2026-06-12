@@ -47,6 +47,7 @@ if [[ -z "${built_version}" ]]; then
   exit 1
 fi
 VERSION="v${built_version#v}"
+STALE_VERSION="v0.0.1"
 built_sha="$(${SHA_CMD[@]} "${binary_path}" | awk '{print $1}')"
 
 tmp="$(mktemp -d)"
@@ -93,12 +94,24 @@ import http.server, functools, os, sys
 
 root = '${tmp}'
 version = '${VERSION}'
-redirect = '/local/knots/releases/tag/' + version
+stale_version = '${STALE_VERSION}'
+redirect = '/local/knots/releases/tag/' + stale_version
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=root, **kw)
+    def latest_api(self):
+        body = ('{\"tag_name\":\"' + version + '\"}\\n').encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        if self.command != 'HEAD':
+            self.wfile.write(body)
     def do_HEAD(self):
+        if self.path.rstrip('/') == '/api/repos/local/knots/releases/latest':
+            self.latest_api()
+            return
         if self.path.rstrip('/') == '/local/knots/releases/latest':
             self.send_response(302)
             self.send_header('Location', redirect)
@@ -106,6 +119,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             super().do_HEAD()
     def do_GET(self):
+        if self.path.rstrip('/') == '/api/repos/local/knots/releases/latest':
+            self.latest_api()
+            return
         if self.path.rstrip('/') == '/local/knots/releases/latest':
             self.send_response(302)
             self.send_header('Location', redirect)
@@ -129,12 +145,16 @@ mkdir -p "${install_dir}"
 KNOTS_GITHUB_REPO="local/knots" \
 KNOTS_INSTALL_DIR="${install_dir}" \
 KNOTS_RELEASE_DOWNLOAD_BASE="http://127.0.0.1:${port}" \
+KNOTS_GITHUB_API_BASE="http://127.0.0.1:${port}/api" \
+PATH="${install_dir}:${PATH}" \
 "${INSTALLER}"
 
 KNOTS_GITHUB_REPO="local/knots" \
 KNOTS_INSTALL_DIR="${install_dir}" \
 KNOTS_RELEASE_DOWNLOAD_BASE="http://127.0.0.1:${port}" \
+KNOTS_GITHUB_API_BASE="http://127.0.0.1:${port}/api" \
 KNOTS_VERSION="${VERSION}" \
+PATH="${install_dir}:${PATH}" \
 "${INSTALLER}"
 
 if [[ ! -x "${install_dir}/knots" ]]; then

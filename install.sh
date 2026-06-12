@@ -5,6 +5,7 @@ DEFAULT_REPO="acartine/knots"
 REPO="${KNOTS_GITHUB_REPO:-${DEFAULT_REPO}}"
 INSTALL_DIR="${KNOTS_INSTALL_DIR:-${HOME}/.local/bin}"
 DOWNLOAD_BASE="${KNOTS_RELEASE_DOWNLOAD_BASE:-https://github.com}"
+API_BASE="${KNOTS_GITHUB_API_BASE:-https://api.github.com}"
 REQUESTED_VERSION="${KNOTS_VERSION:-}"
 
 usage() {
@@ -16,6 +17,7 @@ Environment variables:
   KNOTS_VERSION             release tag (example: v0.1.0). default: latest
   KNOTS_INSTALL_DIR         target dir for kno/knots binaries (default: ~/.local/bin)
   KNOTS_RELEASE_DOWNLOAD_BASE  override download base for release assets
+  KNOTS_GITHUB_API_BASE     override API base for latest release lookup
 USAGE
 }
 
@@ -62,14 +64,22 @@ resolve_version() {
   if [ -n "${REQUESTED_VERSION}" ]; then
     RESOLVED_TAG="${REQUESTED_VERSION}"
   else
-    # Resolve latest tag via the redirect on /releases/latest (no API quota).
+    api_url="${API_BASE%/}/repos/${REPO}/releases/latest"
+    RESOLVED_TAG="$(curl -fsSL "${api_url}" 2>/dev/null | \
+      sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | \
+      head -n 1 || true)"
+
+    # GitHub's web redirect can lag immediately after publishing; keep it as a
+    # fallback for mirrors and local smoke tests that do not implement the API.
     latest_url="${DOWNLOAD_BASE%/}/${REPO}/releases/latest"
-    redirect="$(curl -fsSI "${latest_url}" | \
-      tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | head -n 1)"
-    RESOLVED_TAG="${redirect##*/}"
+    if [ -z "${RESOLVED_TAG}" ]; then
+      redirect="$(curl -fsSI "${latest_url}" | \
+        tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | head -n 1)"
+      RESOLVED_TAG="${redirect##*/}"
+    fi
 
     if [ -z "${RESOLVED_TAG}" ]; then
-      echo "error: failed to resolve latest release tag from ${latest_url}" >&2
+      echo "error: failed to resolve latest release tag from ${api_url} or ${latest_url}" >&2
       exit 1
     fi
   fi

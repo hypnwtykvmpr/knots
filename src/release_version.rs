@@ -1,9 +1,31 @@
 use std::process::Command;
 
 pub(crate) const RELEASES_LATEST_URL: &str = "https://github.com/acartine/knots/releases/latest";
+const RELEASES_LATEST_API_URL: &str = "https://api.github.com/repos/acartine/knots/releases/latest";
 
 pub(crate) fn fetch_latest_tag(url: &str, timeout_secs: u32) -> Option<String> {
-    // Use HEAD + redirect to avoid GitHub API rate limits.
+    api_url_for_latest_redirect(url)
+        .and_then(|api_url| fetch_latest_tag_from_api(api_url, timeout_secs))
+        .or_else(|| fetch_latest_tag_from_redirect(url, timeout_secs))
+}
+
+fn api_url_for_latest_redirect(url: &str) -> Option<&'static str> {
+    (url == RELEASES_LATEST_URL).then_some(RELEASES_LATEST_API_URL)
+}
+
+fn fetch_latest_tag_from_api(url: &str, timeout_secs: u32) -> Option<String> {
+    let output = Command::new("curl")
+        .args(["--max-time", &timeout_secs.to_string(), "-fsS", url])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let body = String::from_utf8_lossy(&output.stdout);
+    parse_tag_name_json(&body)
+}
+
+fn fetch_latest_tag_from_redirect(url: &str, timeout_secs: u32) -> Option<String> {
     let output = Command::new("curl")
         .args(["--max-time", &timeout_secs.to_string(), "-fsS", "-I", url])
         .output()
@@ -35,6 +57,23 @@ pub(crate) fn parse_location_tag(headers: &str) -> Option<String> {
     None
 }
 
+fn parse_tag_name_json(body: &str) -> Option<String> {
+    let key_pos = body.find("\"tag_name\"")?;
+    let after_key = &body[key_pos + "\"tag_name\"".len()..];
+    let value = after_key
+        .trim_start()
+        .strip_prefix(':')?
+        .trim_start()
+        .strip_prefix('"')?;
+    let end = value.find('"')?;
+    let value = &value[..end];
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
+}
+
 pub(crate) fn strip_v_prefix(tag: &str) -> &str {
     tag.strip_prefix('v').unwrap_or(tag)
 }
@@ -57,13 +96,20 @@ pub(crate) fn is_outdated(current: &str, latest: &str) -> Option<bool> {
 #[cfg(test)]
 mod tests {
     use super::{
-        fetch_latest_tag, is_outdated, latest_available_version, parse_location_tag, strip_v_prefix,
+        api_url_for_latest_redirect, fetch_latest_tag, is_outdated, latest_available_version,
+        parse_location_tag, parse_tag_name_json, strip_v_prefix, RELEASES_LATEST_URL,
     };
 
     #[test]
     fn fetch_latest_tag_returns_none_for_unreachable_url() {
         let result = fetch_latest_tag("http://127.0.0.1:1/nonexistent", 1);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn api_url_is_only_used_for_canonical_latest_redirect() {
+        assert!(api_url_for_latest_redirect(RELEASES_LATEST_URL).is_some());
+        assert!(api_url_for_latest_redirect("https://example.com/releases/latest").is_none());
     }
 
     #[test]
@@ -104,6 +150,26 @@ mod tests {
     fn parse_location_tag_returns_none_when_missing() {
         assert_eq!(parse_location_tag("HTTP/2 200\r\n"), None);
         assert_eq!(parse_location_tag(""), None);
+    }
+
+    #[test]
+    fn parse_tag_name_json_extracts_latest_tag() {
+        let body = r#"{
+          "url": "https://api.github.com/repos/acartine/knots/releases/1",
+          "tag_name": "v1.2.3",
+          "draft": false
+        }"#;
+        assert_eq!(parse_tag_name_json(body), Some("v1.2.3".to_string()));
+        assert_eq!(
+            parse_tag_name_json(r#"{"tag_name":"v1.2.4"}"#),
+            Some("v1.2.4".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_tag_name_json_returns_none_when_missing_or_empty() {
+        assert_eq!(parse_tag_name_json("{}"), None);
+        assert_eq!(parse_tag_name_json(r#"{ "tag_name": "" }"#), None);
     }
 
     #[test]
