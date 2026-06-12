@@ -6,6 +6,11 @@ use crate::app::AppError;
 use crate::cli_sync_ref::{SyncRefArgs, SyncRefSubcommands};
 use crate::sync_ref::{normalize_ref, write_sync_ref_config, SyncRefConfig};
 
+mod git_io;
+mod publish;
+
+use publish::publish_target;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RefEndpoint {
     remote: String,
@@ -51,13 +56,22 @@ fn migrate(
 ) -> Result<MigrationSummary, AppError> {
     ensure_git_repo(repo_root)?;
     let target = parse_target(repo_root, raw_target)?;
-    let mut files = BTreeMap::new();
+    let mut target_files = BTreeMap::new();
 
-    harvest_remote(repo_root, &target, &mut files, MissingRemoteRef::Skip)?;
+    let target_exists = harvest_remote(
+        repo_root,
+        &target,
+        &mut target_files,
+        MissingRemoteRef::Skip,
+    )?;
+    let mut files = target_files.clone();
     for raw in raw_sources {
         match parse_source(raw)? {
             Source::Local => harvest_local(repo_root, &mut files)?,
             Source::Remote(endpoint) => {
+                if endpoint == target {
+                    continue;
+                }
                 ensure_remote_exists(repo_root, &endpoint.remote)?;
                 harvest_remote(repo_root, &endpoint, &mut files, MissingRemoteRef::Skip)?;
             }
@@ -70,7 +84,11 @@ fn migrate(
         ));
     }
 
-    let commit = publish_target(repo_root, &target, &files)?;
+    let commit = if target_exists && files == target_files {
+        None
+    } else {
+        publish_target(repo_root, &target, &files)?
+    };
     write_sync_ref_config(repo_root, &target.remote, &target.refname)?;
     Ok(MigrationSummary {
         files: files.len(),
@@ -162,23 +180,24 @@ fn harvest_remote(
     endpoint: &RefEndpoint,
     files: &mut BTreeMap<PathBuf, Vec<u8>>,
     missing: MissingRemoteRef,
-) -> Result<(), AppError> {
+) -> Result<bool, AppError> {
     ensure_remote_exists(repo_root, &endpoint.remote)?;
     if !remote_ref_exists(repo_root, endpoint)? {
         match missing {
-            MissingRemoteRef::Skip => return Ok(()),
+            MissingRemoteRef::Skip => return Ok(false),
         }
     }
     git_checked(
         repo_root,
         &["fetch", "--no-tags", &endpoint.remote, &endpoint.refname],
     )?;
-    let paths = git_checked_bytes(
+    let listing = git_checked_bytes(
         repo_root,
         &[
             "ls-tree",
             "-r",
-            "--name-only",
+            "-z",
+            "--full-tree",
             "FETCH_HEAD",
             "--",
             ".knots/index",
@@ -186,14 +205,11 @@ fn harvest_remote(
             ".knots/snapshots",
         ],
     )?;
-    for path in String::from_utf8_lossy(&paths)
-        .lines()
-        .filter(|p| !p.is_empty())
-    {
-        let contents = git_checked_bytes(repo_root, &["show", &format!("FETCH_HEAD:{path}")])?;
-        add_file(files, PathBuf::from(path), contents)?;
+    let blobs = git_io::parse_ls_tree_blobs(&listing)?;
+    for (path, contents) in git_io::cat_file_blobs(repo_root, &blobs)? {
+        add_file(files, path, contents)?;
     }
-    Ok(())
+    Ok(true)
 }
 
 fn add_file(
@@ -211,72 +227,6 @@ fn add_file(
         return Ok(());
     }
     files.insert(path, contents);
-    Ok(())
-}
-
-fn publish_target(
-    repo_root: &Path,
-    target: &RefEndpoint,
-    files: &BTreeMap<PathBuf, Vec<u8>>,
-) -> Result<Option<String>, AppError> {
-    let remote_url = git_checked(repo_root, &["remote", "get-url", &target.remote])?;
-    let work_root =
-        std::env::temp_dir().join(format!("knots-sync-ref-migrate-{}", uuid::Uuid::now_v7()));
-    std::fs::create_dir_all(&work_root)?;
-    let publish = work_root.join("publish");
-    git_checked(
-        repo_root,
-        &["clone", "--no-checkout", &remote_url, path_str(&publish)?],
-    )?;
-
-    let target_exists = remote_ref_exists(repo_root, target)?;
-    if target_exists {
-        git_checked(&publish, &["fetch", "--no-tags", "origin", &target.refname])?;
-        git_checked(&publish, &["checkout", "-B", "knots-migrate", "FETCH_HEAD"])?;
-    } else {
-        git_checked(&publish, &["checkout", "--orphan", "knots-migrate"])?;
-        let _ = git_output(&publish, &["rm", "-r", "--ignore-unmatch", "."])?;
-    }
-
-    git_checked(&publish, &["config", "user.email", "knots@example.com"])?;
-    git_checked(&publish, &["config", "user.name", "Knots"])?;
-    replace_knots_dirs(&publish, files)?;
-    git_checked(&publish, &["add", "-A", "-f", "--", ".knots"])?;
-
-    let changed = !git_output(&publish, &["diff", "--cached", "--quiet"])?
-        .status
-        .success();
-    if changed {
-        git_checked(&publish, &["commit", "-m", "knots: migrate sync ref"])?;
-    }
-    let commit = git_checked(&publish, &["rev-parse", "HEAD"])?;
-    git_checked(
-        &publish,
-        &[
-            "push",
-            "--no-verify",
-            "origin",
-            &format!("HEAD:{}", target.refname),
-        ],
-    )?;
-    let _ = std::fs::remove_dir_all(work_root);
-    Ok(changed.then_some(commit))
-}
-
-fn replace_knots_dirs(publish: &Path, files: &BTreeMap<PathBuf, Vec<u8>>) -> Result<(), AppError> {
-    for dir in [".knots/index", ".knots/events", ".knots/snapshots"] {
-        let path = publish.join(dir);
-        if path.exists() {
-            std::fs::remove_dir_all(path)?;
-        }
-    }
-    for (relative, contents) in files {
-        let path = publish.join(relative);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(path, contents)?;
-    }
     Ok(())
 }
 
@@ -337,6 +287,7 @@ fn git_checked_bytes(repo_root: &Path, args: &[&str]) -> Result<Vec<u8>, AppErro
 }
 
 fn git_output(repo_root: &Path, args: &[&str]) -> Result<Output, AppError> {
+    record_git_command();
     Command::new("git")
         .arg("-C")
         .arg(repo_root)
@@ -347,18 +298,45 @@ fn git_output(repo_root: &Path, args: &[&str]) -> Result<Output, AppError> {
 
 fn command_failure(repo_root: &Path, args: &[&str], output: Output) -> AppError {
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    command_status_failure(repo_root, args, output.status.code(), stderr)
+}
+
+fn command_status_failure(
+    repo_root: &Path,
+    args: &[&str],
+    code: Option<i32>,
+    stderr: String,
+) -> AppError {
     AppError::InvalidArgument(format!(
         "git command failed (code {:?}): git -C {} {} ({})",
-        output.status.code(),
+        code,
         repo_root.display(),
         args.join(" "),
         stderr
     ))
 }
 
-fn path_str(path: &Path) -> Result<&str, AppError> {
-    path.to_str()
-        .ok_or_else(|| AppError::InvalidArgument(format!("path is not UTF-8: {}", path.display())))
+#[cfg(test)]
+fn reset_git_command_count() {
+    GIT_COMMAND_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn git_command_count() -> usize {
+    GIT_COMMAND_COUNT.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+fn record_git_command() {
+    GIT_COMMAND_COUNT.with(|count| count.set(count.get() + 1));
+}
+
+#[cfg(not(test))]
+fn record_git_command() {}
+
+#[cfg(test)]
+thread_local! {
+    static GIT_COMMAND_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
