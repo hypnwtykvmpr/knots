@@ -1,5 +1,13 @@
 # kno
 
+## 0.16.6
+
+### Patch Changes
+
+- Pin managed sync hooks to the installed `kno` binary before falling back to
+  `PATH`, so post-merge Knots sync works in non-interactive shells such as SSH
+  host migrations.
+
 ## 0.16.5
 
 ### Patch Changes

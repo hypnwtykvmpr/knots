@@ -246,6 +246,14 @@ fn apply_fixes_cleans_legacy_and_reinstalls_hooks() {
 
     let pm = std::fs::read_to_string(hooks_dir.join("post-merge")).unwrap();
     assert!(
+        pm.contains("KNO_BIN="),
+        "post-merge should pin the installed binary before falling back to PATH"
+    );
+    assert!(
+        pm.contains("\"$KNO_BIN\" pull"),
+        "post-merge should run the pinned binary when it is executable"
+    );
+    assert!(
         pm.contains("kno pull"),
         "post-merge should have current template with `kno pull`"
     );

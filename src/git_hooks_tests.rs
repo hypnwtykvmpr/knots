@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::doctor::DoctorStatus;
 use crate::git_hooks::{
-    check_hooks, cleanup_legacy_hooks, hook_template, hooks_status, install_hooks,
-    resolve_hooks_dir, uninstall_hooks, HookInstallOutcome, KNOTS_HOOK_MARKER,
+    check_hooks, cleanup_legacy_hooks, hook_template, hook_template_with_command, hooks_status,
+    install_hooks, resolve_hooks_dir, uninstall_hooks, HookInstallOutcome, KNOTS_HOOK_MARKER,
 };
 
 fn unique_workspace() -> PathBuf {
@@ -28,6 +28,17 @@ fn run_git(root: &Path, args: &[&str]) {
         args,
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+#[cfg(unix)]
+fn make_executable(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut perms = std::fs::metadata(path)
+        .expect("executable fixture should exist")
+        .permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(path, perms).expect("fixture should be executable");
 }
 
 fn setup_git_repo() -> PathBuf {
@@ -74,6 +85,8 @@ fn install_hooks_creates_managed_hooks() {
         assert!(path.exists());
         let contents = std::fs::read_to_string(&path).unwrap();
         assert!(contents.contains(KNOTS_HOOK_MARKER));
+        assert!(contents.contains("KNO_BIN="));
+        assert!(contents.contains("\"$KNO_BIN\" pull"));
         assert!(contents.contains("kno pull"));
     }
     let _ = std::fs::remove_dir_all(root);
@@ -193,9 +206,57 @@ fn hooks_status_reports_installation_state() {
 fn hook_template_contains_marker_and_sync() {
     let tmpl = hook_template("post-merge");
     assert!(tmpl.contains("knots-managed-post-merge-hook"));
+    assert!(tmpl.contains("KNO_BIN="));
+    assert!(tmpl.contains("\"$KNO_BIN\" pull"));
+    assert!(tmpl.contains("command -v kno"));
     assert!(tmpl.contains("kno pull"));
     assert!(tmpl.contains("post-merge.local"));
     assert!(tmpl.starts_with("#!/usr/bin/env bash"));
+}
+
+#[cfg(unix)]
+#[test]
+fn hook_template_uses_installed_binary_when_path_is_stripped() {
+    let root = unique_workspace();
+    let tools_dir = root.join("tools");
+    let hooks_dir = root.join("hooks");
+    std::fs::create_dir_all(&tools_dir).expect("tools dir should be creatable");
+    std::fs::create_dir_all(&hooks_dir).expect("hooks dir should be creatable");
+
+    let fake_kno = tools_dir.join("kno with spaces");
+    std::fs::write(
+        &fake_kno,
+        "#!/usr/bin/env bash\n\
+         script_dir=\"$(cd \"$(dirname \"$0\")\" && pwd)\"\n\
+         printf '%s\\n' \"$*\" > \"$script_dir/invoked\"\n",
+    )
+    .expect("fake kno should be writable");
+    make_executable(&fake_kno);
+
+    let hook_path = hooks_dir.join("post-merge");
+    std::fs::write(
+        &hook_path,
+        hook_template_with_command("post-merge", fake_kno.to_str().expect("utf8 path")),
+    )
+    .expect("hook should be writable");
+    make_executable(&hook_path);
+
+    let output = Command::new(&hook_path)
+        .current_dir(&root)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .output()
+        .expect("hook should run");
+    assert!(
+        output.status.success(),
+        "hook failed with stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let invoked = std::fs::read_to_string(tools_dir.join("invoked"))
+        .expect("fake kno should record invocation");
+    assert_eq!(invoked, "pull\n");
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]

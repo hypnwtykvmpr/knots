@@ -62,14 +62,35 @@ fn is_hook_current(path: &Path, hook_name: &str) -> bool {
 }
 
 pub(crate) fn hook_template(hook_name: &str) -> String {
+    let kno_bin = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.into_os_string().into_string().ok())
+        .unwrap_or_else(|| "kno".to_string());
+    hook_template_with_command(hook_name, &kno_bin)
+}
+
+pub(crate) fn hook_template_with_command(hook_name: &str, kno_bin: &str) -> String {
+    let kno_bin = shell_quote(kno_bin);
     format!(
         "#!/usr/bin/env bash\n\
          # {KNOTS_HOOK_MARKER}-{hook_name}-hook\n\
+         KNO_BIN={kno_bin}\n\
          if [ -x \"$(dirname \"$0\")/{hook_name}.local\" ]; then\n\
          \x20 \"$(dirname \"$0\")/{hook_name}.local\" \"$@\"\n\
          fi\n\
-         kno pull\n"
+         if [ -x \"$KNO_BIN\" ]; then\n\
+         \x20 \"$KNO_BIN\" pull\n\
+         elif command -v kno >/dev/null 2>&1; then\n\
+         \x20 kno pull\n\
+         else\n\
+         \x20 echo \"knots: kno not found; install kno and run 'kno doctor --fix'\" \\\n\
+         \x20   >&2\n\
+         fi\n"
     )
+}
+
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 fn install_hook(hooks_dir: &Path, hook_name: &str) -> std::io::Result<HookInstallOutcome> {
