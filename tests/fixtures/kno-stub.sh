@@ -162,11 +162,22 @@ JSON
 }
 JSON
     ;;
+  push)
+    if [[ "${KNOTS_ALLOW_ACTIVE_LEASE_REPLICATION:-}" == "1" ]]; then
+      echo '{"allow_active_leases":true}'
+    else
+      echo '{"allow_active_leases":false}'
+    fi
+    ;;
   sync)
     echo '{"status":"deferred","active_leases":1}'
     ;;
   lease)
-    echo '{"id":"L1","title":"mcp-session","state":"active","agent_info":{"model":"test-model"}}'
+    if [[ " ${args[*]} " == *" --agent-name other-client "* ]]; then
+      echo '{"id":"L2","title":"mcp-session","state":"active","agent_info":{"model":"other"}}'
+    else
+      echo '{"id":"L1","title":"mcp-session","state":"active","agent_info":{"model":"test-model"}}'
+    fi
     ;;
   *)
     echo '{}'

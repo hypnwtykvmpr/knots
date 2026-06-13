@@ -22,13 +22,32 @@ impl KnoRunner {
     }
 
     pub fn run(&self, subcommand: &str, args: &[String]) -> Result<Value, KnoFailure> {
-        let output = Command::new(&self.kno_bin)
-            .args(build_argv(&self.repo, subcommand, args))
-            .output()
-            .map_err(|err| KnoFailure {
-                exit_code: None,
-                stderr: err.to_string(),
-            })?;
+        self.run_with_env(subcommand, args, false)
+    }
+
+    pub fn run_allowing_active_leases(
+        &self,
+        subcommand: &str,
+        args: &[String],
+    ) -> Result<Value, KnoFailure> {
+        self.run_with_env(subcommand, args, true)
+    }
+
+    fn run_with_env(
+        &self,
+        subcommand: &str,
+        args: &[String],
+        allow_active_leases: bool,
+    ) -> Result<Value, KnoFailure> {
+        let mut command = Command::new(&self.kno_bin);
+        command.args(build_argv(&self.repo, subcommand, args));
+        if allow_active_leases {
+            command.env("KNOTS_ALLOW_ACTIVE_LEASE_REPLICATION", "1");
+        }
+        let output = command.output().map_err(|err| KnoFailure {
+            exit_code: None,
+            stderr: err.to_string(),
+        })?;
         if !output.status.success() {
             return Err(KnoFailure {
                 exit_code: output.status.code(),
@@ -147,6 +166,15 @@ mod tests {
         let result = runner.run_tool("ls", &[]);
         assert_eq!(result.is_error, Some(false));
         assert_eq!(result.structured_content.unwrap()["total"], 1);
+    }
+
+    #[test]
+    fn runner_can_allow_active_lease_replication() {
+        let runner = KnoRunner::new(fixture_kno(), PathBuf::from("/tmp/repo"));
+        let value = runner
+            .run_allowing_active_leases("push", &[])
+            .expect("push json");
+        assert_eq!(value["allow_active_leases"], true);
     }
 
     #[test]

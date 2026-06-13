@@ -517,12 +517,12 @@ esac</code></pre>
   <div class="uhead"><span class="uid">U2.4</span><span class="utitle">Manhattan deployment (service + dedicated checkout)</span></div>
   <div class="ubody">
     <h4>Steps</h4><ol class="small">
-      <li>Provision a git checkout at <code>/var/lib/knots/repo</code> with <code>origin</code> = the Knots remote and the sync credential available to the service user only.</li>
-      <li>Install a systemd unit (Linux) / launchd plist (macOS) running <code>kno-mcp serve --repo /var/lib/knots/repo --bind &lt;tailnet-ip&gt;:7777 --token-file … --sync-interval 15s</code>, <code>Restart=always</code>.</li>
+      <li>Provision a dedicated git checkout with <code>origin</code> = the Knots remote and the sync credential available to the service user only.</li>
+      <li>Install a systemd unit (system unit, or lingering user unit on Linux) / launchd plist (macOS) running <code>kno-mcp serve --repo &lt;checkout&gt; --bind &lt;tailnet-ip&gt;:7777 --token-file … --sync-interval 15s</code>, <code>Restart=always</code>.</li>
     </ol>
     <div class="ac"><b>Acceptance:</b> the service starts on boot, restarts on crash, and answers MCP requests; the git credential is not present in any sandbox.</div>
     <div class="go verify-cmd">
-      <b>V2.4a</b> <span class="pill">systemctl is-active kno-mcp</span> (or <code>launchctl print</code>) → <code>active/running</code> → <span class="check">GO</span>.<br>
+      <b>V2.4a</b> <span class="pill">systemctl is-active kno-mcp</span> (or <code>systemctl --user is-active kno-mcp</code> for a lingering user unit, or <code>launchctl print</code>) → <code>active/running</code> → <span class="check">GO</span>.<br>
       <b>V2.4b</b> kill the process; within 5s <code>is-active</code> is again <code>active</code> → <span class="check">GO</span>.<br>
       <b>V2.4c</b> from the service host, an authenticated <code>initialize</code> returns <code>serverInfo</code> → <span class="check">GO</span>.
     </div>
@@ -535,7 +535,7 @@ esac</code></pre>
     <h4>Steps</h4><ol class="small"><li>Bind to the tailnet interface (or front with Tailscale Serve for TLS).</li><li>Set a tailnet ACL allowing only sandbox nodes to reach :7777.</li></ol>
     <div class="ac"><b>Acceptance:</b> a node on the tailnet (with token) can reach the endpoint; a host off the tailnet cannot.</div>
     <div class="go verify-cmd">
-      <b>V2.5a</b> from a second tailnet node: authenticated <code>initialize</code> to <code>https://manhattan.&lt;tailnet&gt;.ts.net/mcp</code> → <code>serverInfo</code> → <span class="check">GO</span>.<br>
+      <b>V2.5a</b> from a second tailnet node: authenticated <code>initialize</code> to <code>https://manhattan.&lt;tailnet&gt;.ts.net/mcp</code> (or the direct tailnet listener <code>http://&lt;tailnet-ip&gt;:7777/mcp</code>) → <code>serverInfo</code> → <span class="check">GO</span>.<br>
       <b>V2.5b</b> from a non-tailnet host: <span class="pill">curl --max-time 5</span> to the same name/IP → connection refused/timeout (non-zero curl exit) → <span class="check">GO</span>.
     </div>
   </div>

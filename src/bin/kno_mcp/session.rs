@@ -5,11 +5,17 @@ use rmcp::model::Implementation;
 
 use crate::runner::KnoRunner;
 
-const SESSION_ID: &str = "mcp-session";
+const SESSION_NICKNAME: &str = "mcp-session";
 
 #[derive(Debug, Clone, Default)]
 pub struct LeaseRegistry {
-    inner: Arc<Mutex<HashMap<String, String>>>,
+    inner: Arc<Mutex<LeaseState>>,
+}
+
+#[derive(Debug, Default)]
+struct LeaseState {
+    leases: HashMap<String, String>,
+    current: Option<String>,
 }
 
 impl LeaseRegistry {
@@ -19,19 +25,18 @@ impl LeaseRegistry {
         client: &Implementation,
         timeout_seconds: u64,
     ) -> Result<String, String> {
-        if let Some(id) = self
-            .inner
-            .lock()
-            .expect("lease map poisoned")
-            .get(SESSION_ID)
-        {
-            return Ok(id.clone());
+        let key = client_key(client);
+        let mut state = self.inner.lock().expect("lease map poisoned");
+        if let Some(id) = state.leases.get(&key).cloned() {
+            state.current = Some(id.clone());
+            return Ok(id);
         }
+        drop(state);
+
         let lease = create_session_lease(runner, client, timeout_seconds)?;
-        self.inner
-            .lock()
-            .expect("lease map poisoned")
-            .insert(SESSION_ID.to_string(), lease.clone());
+        let mut state = self.inner.lock().expect("lease map poisoned");
+        state.leases.insert(key, lease.clone());
+        state.current = Some(lease.clone());
         Ok(lease)
     }
 
@@ -39,9 +44,18 @@ impl LeaseRegistry {
         self.inner
             .lock()
             .expect("lease map poisoned")
-            .get(SESSION_ID)
-            .cloned()
+            .current
+            .clone()
     }
+}
+
+fn client_key(client: &Implementation) -> String {
+    format!(
+        "{}\0{}\0{}",
+        client.name,
+        client.version,
+        client.title.as_deref().unwrap_or_default()
+    )
 }
 
 fn create_session_lease(
@@ -52,7 +66,7 @@ fn create_session_lease(
     let mut args = vec![
         "create".to_string(),
         "--nickname".to_string(),
-        "mcp-session".to_string(),
+        SESSION_NICKNAME.to_string(),
         "--type".to_string(),
         "agent".to_string(),
         "--agent-type".to_string(),
@@ -108,6 +122,23 @@ mod tests {
 
         assert_eq!(first, "L1");
         assert_eq!(second, "L1");
+        assert_eq!(registry.current(), Some("L1".to_string()));
+    }
+
+    #[test]
+    fn current_tracks_latest_initialized_client() {
+        let registry = LeaseRegistry::default();
+        let runner = KnoRunner::new(fixture_kno(), PathBuf::from("/tmp/repo"));
+        let first = Implementation::new("test-client", "1.2.3");
+        let second = Implementation::new("other-client", "1.2.3");
+
+        assert_eq!(registry.get_or_create(&runner, &first, 30), Ok("L1".into()));
+        assert_eq!(
+            registry.get_or_create(&runner, &second, 30),
+            Ok("L2".into())
+        );
+        assert_eq!(registry.current(), Some("L2".to_string()));
+        assert_eq!(registry.get_or_create(&runner, &first, 30), Ok("L1".into()));
         assert_eq!(registry.current(), Some("L1".to_string()));
     }
 

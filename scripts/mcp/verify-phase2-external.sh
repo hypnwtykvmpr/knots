@@ -2,13 +2,14 @@
 set -u -o pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
 URL="${KNO_MCP_URL:-https://manhattan.tailfd2e8e.ts.net/mcp}"
 TAILNET_URL="${KNO_MCP_TAILNET_URL:-$URL}"
 SSH_HOST="${KNO_MCP_SSH_HOST:-manhattan}"
 SSH_TRANSPORT="${KNO_MCP_SSH_TRANSPORT:-ssh}"
 SERVICE_NAME="${KNO_MCP_SERVICE_NAME:-kno-mcp}"
-MACBOOK_REPO="${KNO_MCP_MACBOOK_REPO:-$ROOT_DIR}"
+SERVICE_SCOPE="${KNO_MCP_SERVICE_SCOPE:-system}"; SYSTEMCTL_REMOTE="systemctl"
+[[ "$SERVICE_SCOPE" == "user" ]] && SYSTEMCTL_REMOTE="systemctl --user"
+MACBOOK_REPO="${KNO_MCP_MACBOOK_REPO:-$ROOT_DIR}"; LOCAL_KNO="${KNO_MCP_LOCAL_KNO:-kno}"
 LOCAL_SERVICE_URL="${KNO_MCP_SERVICE_LOCAL_URL:-http://127.0.0.1:7777/mcp}"
 REMOTE_TOKEN_FILE="${KNO_MCP_REMOTE_TOKEN_FILE:-/etc/kno-mcp/token}"
 ALLOW_RESTART_CHECK="${KNO_MCP_ALLOW_RESTART_CHECK:-0}"
@@ -16,7 +17,6 @@ SSH_TIMEOUT_SECONDS="${KNO_MCP_SSH_TIMEOUT_SECONDS:-8}"
 PROBE_CLIENT_NAME="${KNO_MCP_PROBE_CLIENT_NAME:-sandbox-probe}"
 PROBE_CLIENT_VERSION="${KNO_MCP_PROBE_CLIENT_VERSION:-1.0.0}"
 PROBE_CLIENT_PROVIDER="${KNO_MCP_PROBE_CLIENT_PROVIDER:-sandbox-probe-provider}"
-
 TOTAL=0
 FAILED=0
 
@@ -92,11 +92,12 @@ load_token() {
 }
 
 ssh_run() {
-  local stdout stderr pid waited status
+  local stdin stdout stderr pid waited status
+  stdin="$(mktemp)"; cat >"$stdin"
   stdout="$(mktemp)"
   stderr="$(mktemp)"
   remote_shell "$@" \
-    >"$stdout" 2>"$stderr" &
+    <"$stdin" >"$stdout" 2>"$stderr" &
   pid=$!
   waited=0
   while kill -0 "$pid" >/dev/null 2>&1; do
@@ -104,7 +105,7 @@ ssh_run() {
       kill "$pid" >/dev/null 2>&1 || true
       wait "$pid" >/dev/null 2>&1 || true
       cat "$stdout" "$stderr"
-      rm -f "$stdout" "$stderr"
+      rm -f "$stdin" "$stdout" "$stderr"
       printf 'SSH timed out after %ss\n' "$SSH_TIMEOUT_SECONDS"
       return 124
     fi
@@ -114,7 +115,7 @@ ssh_run() {
   wait "$pid"
   status=$?
   cat "$stdout" "$stderr"
-  rm -f "$stdout" "$stderr"
+  rm -f "$stdin" "$stdout" "$stderr"
   return "$status"
 }
 
@@ -235,7 +236,7 @@ check_requirements() {
 
 check_service_active() {
   local out
-  if ! out=$(ssh_run "systemctl is-active $(shell_quote "$SERVICE_NAME")"); then
+  if ! out=$(ssh_run "$SYSTEMCTL_REMOTE is-active $(shell_quote "$SERVICE_NAME")"); then
     record_nogo "V2.4a" "SSH/systemctl failed: $(printf '%s' "$out" | head -n 1)"
     return
   fi
@@ -256,15 +257,16 @@ check_restart() {
   read -r -d '' remote <<'REMOTE' || true
 set -u
 service="$1"
-pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null)"
+scope="$2"; systemctl_args=(); [[ "$scope" == "user" ]] && systemctl_args=(--user)
+pid="$(systemctl "${systemctl_args[@]}" show "$service" --property=MainPID --value 2>/dev/null)"
 case "$pid" in ''|0) echo "missing MainPID"; exit 1;; esac
 kill "$pid" || exit 1
 sleep 5
-systemctl is-active "$service"
+systemctl "${systemctl_args[@]}" is-active "$service"
 REMOTE
 
   local out
-  if ! out=$(ssh_run "bash -s -- $(shell_quote "$SERVICE_NAME")" <<<"$remote"); then
+  if ! out=$(ssh_run "bash -s -- $(shell_quote "$SERVICE_NAME") $SERVICE_SCOPE" <<<"$remote"); then
     record_nogo "V2.4b" "restart probe failed: $(printf '%s' "$out" | head -n 1)"
     return
   fi
@@ -360,11 +362,11 @@ macbook_claim_identity_visible() {
   local show_out status
   show_out="$(mktemp)"
 
-  if ! kno -C "$MACBOOK_REPO" sync >/dev/null 2>&1; then
+  if ! "$LOCAL_KNO" -C "$MACBOOK_REPO" sync >/dev/null 2>&1; then
     rm -f "$show_out" "$show_out.stderr"
     return 1
   fi
-  if ! kno -C "$MACBOOK_REPO" show "$knot_id" -j \
+  if ! "$LOCAL_KNO" -C "$MACBOOK_REPO" show "$knot_id" -j \
     >"$show_out" 2>"$show_out.stderr"; then
     rm -f "$show_out" "$show_out.stderr"
     return 1
@@ -404,7 +406,7 @@ check_sandbox_claim_and_next() {
     record_nogo "V2.6b" "missing KNO_MCP_TOKEN or KNO_MCP_TOKEN_FILE"
     return
   fi
-  if ! need_cmd kno; then
+  if ! need_cmd "$LOCAL_KNO"; then
     record_nogo "V2.6a" "missing local kno for MacBook convergence check"
     record_nogo "V2.6b" "missing local kno for MacBook convergence check"
     return
@@ -471,8 +473,8 @@ check_sandbox_claim_and_next() {
     rm -f "$next_out" "$next_out.stderr"
     return
   fi
-  if kno -C "$MACBOOK_REPO" sync >/dev/null 2>&1 &&
-    kno -C "$MACBOOK_REPO" show "$knot_id" -j |
+  if "$LOCAL_KNO" -C "$MACBOOK_REPO" sync >/dev/null 2>&1 &&
+    "$LOCAL_KNO" -C "$MACBOOK_REPO" show "$knot_id" -j |
       jq -e --arg state "$next_state" '.state == $state' >/dev/null; then
     record_go "V2.6b" "MacBook sees advanced state $next_state"
   else

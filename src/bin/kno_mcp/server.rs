@@ -68,9 +68,26 @@ impl KnoMcp {
 
     fn run_mutating_tool(&self, subcommand: &str, args: Vec<String>) -> CallToolResult {
         let result = self.runner.run_tool(subcommand, &args);
-        let _ = self.runner.run("sync", &[]);
+        match self.runner.run_allowing_active_leases("push", &[]) {
+            Ok(value) => eprintln!(
+                "kno-mcp post-mutation push after {subcommand}: {}",
+                push_detail(&value)
+            ),
+            Err(err) => eprintln!(
+                "kno-mcp post-mutation push failed after {subcommand}: {}",
+                err.stderr
+            ),
+        }
         result
     }
+}
+
+fn push_detail(value: &serde_json::Value) -> String {
+    let copied = value
+        .get("copied_files")
+        .and_then(serde_json::Value::as_u64);
+    let pushed = value.get("pushed").and_then(serde_json::Value::as_bool);
+    format!("copied_files={copied:?} pushed={pushed:?}")
 }
 
 #[tool_router(router = tool_router)]

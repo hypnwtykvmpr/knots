@@ -1,5 +1,7 @@
 use serde_json::Value;
 
+use crate::app::helpers::apply_step_transition;
+use crate::app::types::StateActorMetadata;
 use crate::domain::knot_type::parse_knot_type;
 use crate::events::FullEvent;
 use crate::workflow::normalize_profile_id;
@@ -132,6 +134,15 @@ fn apply_state_set(
     event: &FullEvent,
 ) {
     if let Some(value) = data.get("to").and_then(Value::as_str) {
+        let actor = state_actor_from_event(data);
+        p.step_history = apply_step_transition(
+            &p.step_history,
+            data.get("from").and_then(Value::as_str).unwrap_or(&p.state),
+            value,
+            &event.occurred_at,
+            &actor,
+            p.lease_id.as_deref(),
+        );
         p.state = value.to_string();
         p.updated_at = event.occurred_at.clone();
     }
@@ -143,6 +154,27 @@ fn apply_state_set(
         .get("blocked_from_state")
         .and_then(Value::as_str)
         .map(ToString::to_string);
+}
+
+fn state_actor_from_event(data: &serde_json::Map<String, Value>) -> StateActorMetadata {
+    StateActorMetadata {
+        actor_kind: data
+            .get("actor_kind")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        agent_name: data
+            .get("agent_name")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        agent_model: data
+            .get("agent_model")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        agent_version: data
+            .get("agent_version")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+    }
 }
 
 fn apply_profile_set(
