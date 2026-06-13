@@ -1,0 +1,20 @@
+{
+  "event_id": "019ec215-f277-7923-be31-547cc298c449",
+  "occurred_at": "2026-06-13T17:44:38.775416858Z",
+  "knot_id": "knots-c781",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "service-host-probe",
+    "agent_name": "service-host-probe",
+    "agent_version": "1.0.0",
+    "force": false,
+    "from": "ready_for_planning",
+    "profile_id": "autopilot",
+    "to": "planning",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019ec215-f200-7dd2-a177-cd6bd6a35fdf"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "event_id": "019ec217-120e-7221-a296-a5dc1f570f0f",
+  "occurred_at": "2026-06-13T17:45:52.398322534Z",
+  "knot_id": "knots-df6f",
+  "type": "knot.state_set",
+  "data": {
+    "agent_model": "service-host-probe",
+    "agent_name": "service-host-probe",
+    "agent_version": "1.0.0",
+    "force": false,
+    "from": "planning",
+    "profile_id": "autopilot",
+    "to": "ready_for_plan_review",
+    "workflow_id": "work_sdlc"
+  }
+}

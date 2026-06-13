@@ -1,0 +1,20 @@
+{
+  "event_id": "019ec21b-a098-72b2-bde8-d63d42b98649",
+  "occurred_at": "2026-06-13T17:50:51.032205178Z",
+  "knot_id": "knots-a080",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "service-host-probe",
+        "agent_type": "api",
+        "model": "service-host-probe",
+        "model_version": "1.0.0",
+        "provider": ""
+      },
+      "lease_type": "agent",
+      "nickname": "mcp-session",
+      "timeout_seconds": 600
+    }
+  }
+}

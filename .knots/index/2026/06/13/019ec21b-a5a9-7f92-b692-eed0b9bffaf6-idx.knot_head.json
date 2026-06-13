@@ -1,0 +1,34 @@
+{
+  "event_id": "019ec21b-a5a9-7f92-b692-eed0b9bffaf6",
+  "occurred_at": "2026-06-13T17:50:52.329250879Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-4035",
+    "profile_id": "lease",
+    "state": "lease_active",
+    "step_metadata": {
+      "action_kind": "produce",
+      "action_state": "lease_active",
+      "output": {
+        "artifact_type": ""
+      },
+      "owner": {
+        "agent_model": null,
+        "agent_name": null,
+        "agent_version": null,
+        "kind": "agent"
+      }
+    },
+    "terminal": false,
+    "title": "mcp-session",
+    "type": "lease",
+    "updated_at": "2026-06-13T17:50:52.329250879Z",
+    "workflow_id": "lease_sdlc"
+  }
+}
