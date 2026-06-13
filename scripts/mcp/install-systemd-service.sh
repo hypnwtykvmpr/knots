@@ -13,6 +13,8 @@ LEASE_TIMEOUT_SECONDS="${KNO_MCP_LEASE_TIMEOUT_SECONDS:-600}"
 SERVICE_FILE="${KNO_MCP_SERVICE_FILE:-/etc/systemd/system/${SERVICE_NAME}.service}"
 TAILSCALE_SERVE="${KNO_MCP_TAILSCALE_SERVE:-0}"
 TAILSCALE_BIN="${KNO_MCP_TAILSCALE_BIN:-tailscale}"
+GIT_URL="${KNO_MCP_GIT_URL:-}"
+GIT_REF="${KNO_MCP_GIT_REF:-main}"
 DRY_RUN=0
 
 usage() {
@@ -36,9 +38,13 @@ Environment:
   KNO_MCP_SERVICE_FILE             unit path, default: /etc/systemd/system/kno-mcp.service
   KNO_MCP_TAILSCALE_SERVE          set to 1 to expose the service with Tailscale Serve
   KNO_MCP_TAILSCALE_BIN            tailscale binary path, default: tailscale
+  KNO_MCP_GIT_URL                  optional git remote URL used to provision the repo
+  KNO_MCP_GIT_REF                  branch/tag to clone or fetch, default: main
 
 Set KNO_MCP_BIND to the Manhattan tailnet IP/port, or keep the localhost
 default and set KNO_MCP_TAILSCALE_SERVE=1 for the HTTPS MagicDNS endpoint.
+Set KNO_MCP_GIT_URL to clone/fetch the dedicated service checkout required by
+the Phase 2 Manhattan deployment gate.
 USAGE
 }
 
@@ -76,6 +82,10 @@ reject_whitespace() {
   fi
 }
 
+shell_quote() {
+  printf '%q' "$1"
+}
+
 validate_config() {
   reject_whitespace KNO_MCP_SERVICE_NAME "$SERVICE_NAME"
   reject_whitespace KNO_MCP_USER "$SERVICE_USER"
@@ -87,6 +97,8 @@ validate_config() {
   reject_whitespace KNO_MCP_SERVICE_FILE "$SERVICE_FILE"
   reject_whitespace KNO_MCP_TAILSCALE_SERVE "$TAILSCALE_SERVE"
   reject_whitespace KNO_MCP_TAILSCALE_BIN "$TAILSCALE_BIN"
+  reject_whitespace KNO_MCP_GIT_URL "$GIT_URL"
+  reject_whitespace KNO_MCP_GIT_REF "$GIT_REF"
   case "$TAILSCALE_SERVE" in
     0|1) ;;
     *)
@@ -153,6 +165,55 @@ ensure_token() {
   chmod 0640 "$TOKEN_FILE"
 }
 
+run_as_service_user() {
+  if command -v runuser >/dev/null 2>&1; then
+    runuser -u "$SERVICE_USER" -- "$@"
+    return
+  fi
+  if command -v sudo >/dev/null 2>&1; then
+    sudo -u "$SERVICE_USER" "$@"
+    return
+  fi
+  printf 'neither runuser nor sudo is available to run commands as %s\n' "$SERVICE_USER" >&2
+  exit 1
+}
+
+repo_is_empty() {
+  local entry
+  shopt -s nullglob dotglob
+  for entry in "$REPO"/*; do
+    shopt -u nullglob dotglob
+    return 1
+  done
+  shopt -u nullglob dotglob
+  return 0
+}
+
+ensure_repo_checkout() {
+  if [[ -z "$GIT_URL" ]]; then
+    return
+  fi
+  if ! command -v git >/dev/null 2>&1; then
+    printf 'KNO_MCP_GIT_URL is set but git was not found\n' >&2
+    exit 1
+  fi
+  if [[ -d "$REPO/.git" ]]; then
+    local origin
+    origin="$(git -C "$REPO" remote get-url origin 2>/dev/null || true)"
+    if [[ "$origin" != "$GIT_URL" ]]; then
+      printf 'existing repo origin mismatch: expected %s, got %s\n' "$GIT_URL" "$origin" >&2
+      exit 1
+    fi
+    run_as_service_user git -C "$REPO" fetch --prune origin "$GIT_REF"
+    return
+  fi
+  if ! repo_is_empty; then
+    printf '%s is not a git checkout and is not empty\n' "$REPO" >&2
+    exit 1
+  fi
+  run_as_service_user git clone --branch "$GIT_REF" "$GIT_URL" "$REPO"
+}
+
 install_unit() {
   unit_text > "$SERVICE_FILE"
   chmod 0644 "$SERVICE_FILE"
@@ -163,6 +224,16 @@ install_unit() {
 
 tailscale_serve_command() {
   printf '%s serve --bg --yes http://%s\n' "$TAILSCALE_BIN" "$BIND"
+}
+
+repo_provision_commands() {
+  if [[ -z "$GIT_URL" ]]; then
+    return
+  fi
+  printf 'git clone --branch %s %s %s\n' \
+    "$(shell_quote "$GIT_REF")" "$(shell_quote "$GIT_URL")" "$(shell_quote "$REPO")"
+  printf 'git -C %s fetch --prune origin %s\n' \
+    "$(shell_quote "$REPO")" "$(shell_quote "$GIT_REF")"
 }
 
 install_tailscale_serve() {
@@ -183,6 +254,10 @@ validate_config
 
 if [[ "$DRY_RUN" == "1" ]]; then
   unit_text
+  if [[ -n "$GIT_URL" ]]; then
+    printf '\n# Repository provisioning commands\n'
+    repo_provision_commands
+  fi
   if [[ "$TAILSCALE_SERVE" == "1" ]]; then
     printf '\n# Tailscale Serve command\n'
     tailscale_serve_command
@@ -192,6 +267,7 @@ fi
 
 ensure_user
 ensure_paths
+ensure_repo_checkout
 ensure_token
 install_unit
 install_tailscale_serve
