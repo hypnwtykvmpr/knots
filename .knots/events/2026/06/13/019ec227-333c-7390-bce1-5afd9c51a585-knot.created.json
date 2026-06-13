@@ -1,0 +1,17 @@
+{
+  "event_id": "019ec227-333c-7390-bce1-5afd9c51a585",
+  "occurred_at": "2026-06-13T18:03:29.468439007Z",
+  "knot_id": "knots-7a3f",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "lease",
+    "state": "lease_ready",
+    "title": "mcp-session",
+    "type": "lease",
+    "workflow_id": "lease_sdlc"
+  }
+}

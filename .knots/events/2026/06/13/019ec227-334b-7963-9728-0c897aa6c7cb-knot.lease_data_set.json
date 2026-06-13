@@ -1,0 +1,20 @@
+{
+  "event_id": "019ec227-334b-7963-9728-0c897aa6c7cb",
+  "occurred_at": "2026-06-13T18:03:29.483291453Z",
+  "knot_id": "knots-7a3f",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "sandbox-probe",
+        "agent_type": "api",
+        "model": "sandbox-probe",
+        "model_version": "1.0.0",
+        "provider": "sandbox-probe-provider"
+      },
+      "lease_type": "agent",
+      "nickname": "mcp-session",
+      "timeout_seconds": 600
+    }
+  }
+}
