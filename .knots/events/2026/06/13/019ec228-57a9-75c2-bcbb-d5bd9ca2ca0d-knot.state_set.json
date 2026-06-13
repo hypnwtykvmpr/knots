@@ -1,0 +1,20 @@
+{
+  "event_id": "019ec228-57a9-75c2-bcbb-d5bd9ca2ca0d",
+  "occurred_at": "2026-06-13T18:04:44.329021195Z",
+  "knot_id": "knots-f5a4",
+  "type": "knot.state_set",
+  "data": {
+    "actor_kind": "agent",
+    "agent_model": "sandbox-probe",
+    "agent_name": "sandbox-probe",
+    "agent_version": "1.0.0",
+    "force": false,
+    "from": "ready_for_planning",
+    "profile_id": "autopilot",
+    "to": "planning",
+    "workflow_id": "work_sdlc"
+  },
+  "precondition": {
+    "profile_etag": "019ec228-4912-7a51-95d6-f079a5039050"
+  }
+}
