@@ -12,6 +12,9 @@ LOCAL_SERVICE_URL="${KNO_MCP_SERVICE_LOCAL_URL:-http://127.0.0.1:7777/mcp}"
 REMOTE_TOKEN_FILE="${KNO_MCP_REMOTE_TOKEN_FILE:-/etc/kno-mcp/token}"
 ALLOW_RESTART_CHECK="${KNO_MCP_ALLOW_RESTART_CHECK:-0}"
 SSH_TIMEOUT_SECONDS="${KNO_MCP_SSH_TIMEOUT_SECONDS:-8}"
+PROBE_CLIENT_NAME="${KNO_MCP_PROBE_CLIENT_NAME:-sandbox-probe}"
+PROBE_CLIENT_VERSION="${KNO_MCP_PROBE_CLIENT_VERSION:-1.0.0}"
+PROBE_CLIENT_PROVIDER="${KNO_MCP_PROBE_CLIENT_PROVIDER:-sandbox-probe-provider}"
 
 TOTAL=0
 FAILED=0
@@ -30,6 +33,9 @@ Environment:
   KNO_MCP_SERVICE_LOCAL_URL    Service-host URL for V2.4c.
   KNO_MCP_REMOTE_TOKEN_FILE    Token file on the service host for V2.4c.
   KNO_MCP_SSH_TIMEOUT_SECONDS  Seconds before an SSH probe is failed.
+  KNO_MCP_PROBE_CLIENT_NAME     Sandbox client name for V2.6 identity proof.
+  KNO_MCP_PROBE_CLIENT_VERSION  Sandbox client version for V2.6 identity proof.
+  KNO_MCP_PROBE_CLIENT_PROVIDER Sandbox provider title for V2.6 identity proof.
   KNO_MCP_PUBLIC_PROBE_CMD     Non-tailnet curl command; must fail for V2.5b.
   KNO_MCP_MACBOOK_REPO         MacBook repo used after remote MCP mutation.
   KNO_MCP_ALLOW_RESTART_CHECK  Set to 1 to run V2.4b's kill/restart check.
@@ -146,7 +152,11 @@ http_post() {
 }
 
 initialize_body() {
-  jq -nc '{
+  jq -nc \
+    --arg name "$PROBE_CLIENT_NAME" \
+    --arg version "$PROBE_CLIENT_VERSION" \
+    --arg title "$PROBE_CLIENT_PROVIDER" \
+    '{
     jsonrpc: "2.0",
     id: 1,
     method: "initialize",
@@ -154,9 +164,9 @@ initialize_body() {
       protocolVersion: "2025-06-18",
       capabilities: {},
       clientInfo: {
-        name: "sandbox-probe",
-        version: "1.0.0",
-        title: "sandbox-probe-provider"
+        name: $name,
+        version: $version,
+        title: $title
       }
     }
   }'
@@ -314,6 +324,49 @@ check_non_tailnet_probe() {
   fi
 }
 
+macbook_claim_identity_visible() {
+  local knot_id="$1"
+  local show_out status
+  show_out="$(mktemp)"
+
+  if ! kno -C "$MACBOOK_REPO" sync >/dev/null 2>&1; then
+    rm -f "$show_out" "$show_out.stderr"
+    return 1
+  fi
+  if ! kno -C "$MACBOOK_REPO" show "$knot_id" -j \
+    >"$show_out" 2>"$show_out.stderr"; then
+    rm -f "$show_out" "$show_out.stderr"
+    return 1
+  fi
+
+  jq -e \
+    --arg name "$PROBE_CLIENT_NAME" \
+    --arg version "$PROBE_CLIENT_VERSION" \
+    --arg provider "$PROBE_CLIENT_PROVIDER" \
+    '
+      .lease_agent.agent_type == "api"
+      and .lease_agent.provider == $provider
+      and .lease_agent.agent_name == $name
+      and .lease_agent.model == $name
+      and .lease_agent.model_version == $version
+      and (
+        [
+          .step_history[]?
+          | select(
+              .status == "started"
+              and .agent_name == $name
+              and .agent_model == $name
+              and .agent_version == $version
+            )
+        ]
+        | length >= 1
+      )
+    ' "$show_out" >/dev/null
+  status=$?
+  rm -f "$show_out" "$show_out.stderr"
+  return "$status"
+}
+
 check_sandbox_claim_and_next() {
   if [[ -z "$TOKEN" ]]; then
     record_nogo "V2.6a" "missing KNO_MCP_TOKEN or KNO_MCP_TOKEN_FILE"
@@ -365,13 +418,10 @@ check_sandbox_claim_and_next() {
   fi
   if jq -e '.result.structuredContent.workflow_boundary_kind == "single_action"' \
     "$claim_out" >/dev/null; then
-    if kno -C "$MACBOOK_REPO" sync >/dev/null 2>&1 &&
-      kno -C "$MACBOOK_REPO" ls --type lease -j |
-        jq -e '[.data[] | select(.title | startswith("mcp-"))] | length >= 1' \
-          >/dev/null; then
-      record_go "V2.6a" "claim returned single_action and MacBook sees MCP lease"
+    if macbook_claim_identity_visible "$knot_id"; then
+      record_go "V2.6a" "claim returned single_action and MacBook sees MCP identity"
     else
-      record_nogo "V2.6a" "claim worked, but MacBook lease evidence is missing"
+      record_nogo "V2.6a" "claim worked, but MacBook lease identity evidence is missing"
     fi
   else
     record_nogo "V2.6a" "claim did not return single_action boundary"
