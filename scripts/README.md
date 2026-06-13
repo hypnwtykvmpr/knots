@@ -11,6 +11,12 @@ Build automation, release tooling, and git hooks.
 - **`require-changeset.sh`** — ensures changesets are present for releases
 - **`publish-public.sh`** — publish release artifacts to the public channel
 
+## scripts/mcp/
+
+- **`verify-phase2-external.sh`** — verifies the external MCP Phase 2 gates
+  from `docs/mcp-server-design.html` (Manhattan service, tailnet reachability,
+  and sandbox-style claim/next convergence)
+
 ## scripts/release/
 
 - **`check-changesets.mjs`** — validates changeset package keys before release
