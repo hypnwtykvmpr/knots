@@ -1,0 +1,17 @@
+{
+  "event_id": "019ec228-4912-7a51-95d6-f069179d39cb",
+  "occurred_at": "2026-06-13T18:04:40.59482801Z",
+  "knot_id": "knots-f5a4",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "mcp-external-probe-20260613180440-99138",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
