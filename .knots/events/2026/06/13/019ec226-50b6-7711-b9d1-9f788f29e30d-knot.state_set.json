@@ -1,0 +1,16 @@
+{
+  "event_id": "019ec226-50b6-7711-b9d1-9f788f29e30d",
+  "occurred_at": "2026-06-13T18:02:31.478246933Z",
+  "knot_id": "knots-582d",
+  "type": "knot.state_set",
+  "data": {
+    "agent_model": "sandbox-probe",
+    "agent_name": "sandbox-probe",
+    "agent_version": "1.0.0",
+    "force": false,
+    "from": "planning",
+    "profile_id": "autopilot",
+    "to": "ready_for_plan_review",
+    "workflow_id": "work_sdlc"
+  }
+}
