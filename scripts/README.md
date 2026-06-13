@@ -14,7 +14,9 @@ Build automation, release tooling, and git hooks.
 ## scripts/mcp/
 
 - **`install-systemd-service.sh`** — installs or dry-runs the Linux
-  `kno-mcp` systemd service used by the Phase 2 Manhattan deployment
+  `kno-mcp` systemd service used by the Phase 2 Manhattan deployment.
+  Set `KNO_MCP_TAILSCALE_SERVE=1` to expose the localhost service through the
+  HTTPS MagicDNS endpoint used by the external verifier.
 - **`verify-phase2-external.sh`** — verifies the external MCP Phase 2 gates
   from `docs/mcp-server-design.html` (Manhattan service, tailnet reachability,
   and sandbox-style claim/next convergence)

@@ -11,6 +11,8 @@ TOKEN_FILE="${KNO_MCP_TOKEN_FILE:-/etc/kno-mcp/token}"
 SYNC_INTERVAL_SECONDS="${KNO_MCP_SYNC_INTERVAL_SECONDS:-15}"
 LEASE_TIMEOUT_SECONDS="${KNO_MCP_LEASE_TIMEOUT_SECONDS:-600}"
 SERVICE_FILE="${KNO_MCP_SERVICE_FILE:-/etc/systemd/system/${SERVICE_NAME}.service}"
+TAILSCALE_SERVE="${KNO_MCP_TAILSCALE_SERVE:-0}"
+TAILSCALE_BIN="${KNO_MCP_TAILSCALE_BIN:-tailscale}"
 DRY_RUN=0
 
 usage() {
@@ -32,8 +34,11 @@ Environment:
   KNO_MCP_SYNC_INTERVAL_SECONDS    background sync interval, default: 15
   KNO_MCP_LEASE_TIMEOUT_SECONDS    MCP lease timeout, default: 600
   KNO_MCP_SERVICE_FILE             unit path, default: /etc/systemd/system/kno-mcp.service
+  KNO_MCP_TAILSCALE_SERVE          set to 1 to expose the service with Tailscale Serve
+  KNO_MCP_TAILSCALE_BIN            tailscale binary path, default: tailscale
 
-Set KNO_MCP_BIND to the Manhattan tailnet IP/port for the Phase 2 deployment.
+Set KNO_MCP_BIND to the Manhattan tailnet IP/port, or keep the localhost
+default and set KNO_MCP_TAILSCALE_SERVE=1 for the HTTPS MagicDNS endpoint.
 USAGE
 }
 
@@ -80,6 +85,15 @@ validate_config() {
   reject_whitespace KNO_MCP_BIND "$BIND"
   reject_whitespace KNO_MCP_TOKEN_FILE "$TOKEN_FILE"
   reject_whitespace KNO_MCP_SERVICE_FILE "$SERVICE_FILE"
+  reject_whitespace KNO_MCP_TAILSCALE_SERVE "$TAILSCALE_SERVE"
+  reject_whitespace KNO_MCP_TAILSCALE_BIN "$TAILSCALE_BIN"
+  case "$TAILSCALE_SERVE" in
+    0|1) ;;
+    *)
+      printf 'KNO_MCP_TAILSCALE_SERVE must be 0 or 1\n' >&2
+      exit 1
+      ;;
+  esac
 }
 
 unit_text() {
@@ -147,11 +161,32 @@ install_unit() {
   systemctl --no-pager --full status "$SERVICE_NAME"
 }
 
+tailscale_serve_command() {
+  printf '%s serve --bg --yes http://%s\n' "$TAILSCALE_BIN" "$BIND"
+}
+
+install_tailscale_serve() {
+  if [[ "$TAILSCALE_SERVE" != "1" ]]; then
+    return
+  fi
+  if ! command -v "$TAILSCALE_BIN" >/dev/null 2>&1; then
+    printf 'KNO_MCP_TAILSCALE_SERVE=1 but %s was not found\n' "$TAILSCALE_BIN" >&2
+    exit 1
+  fi
+  # Tailscale Serve gives the localhost service an HTTPS MagicDNS endpoint.
+  "$TAILSCALE_BIN" serve --bg --yes "http://${BIND}"
+  "$TAILSCALE_BIN" serve status
+}
+
 require_root
 validate_config
 
 if [[ "$DRY_RUN" == "1" ]]; then
   unit_text
+  if [[ "$TAILSCALE_SERVE" == "1" ]]; then
+    printf '\n# Tailscale Serve command\n'
+    tailscale_serve_command
+  fi
   exit 0
 fi
 
@@ -159,3 +194,4 @@ ensure_user
 ensure_paths
 ensure_token
 install_unit
+install_tailscale_serve
