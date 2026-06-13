@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knots MCP Server — Execution Specification</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a21; --panel2:#1c222b; --ink:#e7ecf3; --muted:#9aa6b6;
+    --line:#2a323d; --accent:#5aa6ff; --accent2:#7ee0b8; --warn:#ffcf6b; --danger:#ff8a8a;
+    --code:#0b0d11; --chip:#222a35;
+    --git:#f06a4a; --mac:#5aa6ff; --man:#7ee0b8; --box:#a98bff;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f7f8fa; --panel:#ffffff; --panel2:#f0f3f7; --ink:#1a1f27; --muted:#5a6675;
+      --line:#dce2ea; --accent:#1f6feb; --accent2:#179f72; --warn:#9a6b00; --danger:#c23b3b;
+      --code:#0b0d11; --chip:#eef2f7;
+      --git:#d6502f; --mac:#1f6feb; --man:#179f72; --box:#7b5cff;
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:48px 24px 140px}
+  header.hero{margin-bottom:36px}
+  .kicker{color:var(--accent); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:12px}
+  h1{font-size:36px; line-height:1.15; margin:.2em 0 .3em; letter-spacing:-.02em}
+  h2{font-size:25px; margin:60px 0 8px; letter-spacing:-.01em; scroll-margin-top:20px; padding-top:8px; border-top:1px solid var(--line)}
+  h3{font-size:18.5px; margin:30px 0 6px}
+  h4{font-size:15px; margin:18px 0 4px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em}
+  .lede{font-size:19px; color:var(--muted); max-width:66ch}
+  p{margin:12px 0}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.88em;
+    background:var(--chip); padding:.12em .4em; border-radius:5px}
+  pre{background:var(--code); color:#d7e2f0; padding:15px 17px; border-radius:12px; overflow:auto;
+    border:1px solid var(--line); font-size:13px; line-height:1.5}
+  pre code{background:none; padding:0}
+  .muted{color:var(--muted)}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px 22px; margin:18px 0}
+  .grid{display:grid; gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media (max-width:780px){.g2,.g3{grid-template-columns:1fr}}
+  .chip{display:inline-block; font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:999px;
+    background:var(--chip); color:var(--muted); border:1px solid var(--line)}
+  .tag-rec{background:rgba(126,224,184,.14); color:var(--accent2); border-color:rgba(126,224,184,.3)}
+  .tag-mvp{background:rgba(90,166,255,.14); color:var(--accent); border-color:rgba(90,166,255,.3)}
+  .tag-later{background:rgba(169,139,255,.14); color:var(--box); border-color:rgba(169,139,255,.3)}
+  .tag-risk{background:rgba(255,138,138,.14); color:var(--danger); border-color:rgba(255,138,138,.3)}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px}
+  th,td{text-align:left; padding:9px 11px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em}
+  .callout{border-left:3px solid var(--accent); background:var(--panel2); padding:13px 17px; border-radius:0 12px 12px 0; margin:16px 0}
+  .callout.key{border-color:var(--accent2)}
+  .callout.warn{border-color:var(--warn)}
+  .callout.risk{border-color:var(--danger)}
+  figure{margin:22px 0; text-align:center}
+  figure svg{max-width:100%; height:auto}
+  figcaption{color:var(--muted); font-size:13px; margin-top:10px}
+  .toc{font-size:14px; columns:2; gap:30px}
+  .toc a{display:block; padding:3px 0; color:var(--ink)}
+  @media (max-width:600px){.toc{columns:1}}
+  ul,ol{margin:10px 0; padding-left:22px}
+  li{margin:5px 0}
+  hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+  .small{font-size:13.5px}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; justify-content:center; font-size:12.5px; color:var(--muted); margin-top:6px}
+  .dot{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:middle}
+  /* unit-of-work card */
+  .unit{border:1px solid var(--line); border-radius:14px; margin:20px 0; overflow:hidden}
+  .unit > .uhead{background:var(--panel2); padding:12px 18px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .uid{font-family:ui-monospace,monospace; font-weight:700; color:var(--accent); font-size:14px}
+  .utitle{font-weight:700; font-size:15.5px}
+  .ubody{padding:6px 18px 18px}
+  .ac{border-left:3px solid var(--accent2); background:rgba(126,224,184,.06); padding:8px 14px; border-radius:0 10px 10px 0; margin:10px 0}
+  .go{border-left:3px solid var(--warn); background:rgba(255,207,107,.06); padding:8px 14px; border-radius:0 10px 10px 0; margin:10px 0}
+  .verify-cmd{font-size:12.5px}
+  .pill{font-family:ui-monospace,monospace; font-size:11px; padding:2px 7px; border-radius:6px; background:var(--chip); border:1px solid var(--line)}
+  .gate{background:linear-gradient(0deg,var(--panel),var(--panel)); border:2px solid var(--accent2); border-radius:16px; padding:18px 22px; margin:22px 0}
+  .gate h3{margin-top:0; color:var(--accent2)}
+  details{margin:10px 0; border:1px solid var(--line); border-radius:10px; padding:6px 14px; background:var(--panel)}
+  summary{cursor:pointer; font-weight:600; font-size:14px}
+  .check{color:var(--accent2); font-weight:700}
+  .nogo{color:var(--danger); font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">Execution Specification · Knots</div>
+  <h1>Knots MCP Server (<code>kno-mcp</code>)</h1>
+  <p class="lede">A buildable spec: implementation steps, design decisions, and — for every unit of work and every phase — acceptance criteria paired with reproducible, binary-outcome (go/no-go) verification commands. The verification steps <i>are</i> the rubric.</p>
+  <p class="small muted">Grounded in the live codebase (file:line cited inline) and the official Rust MCP SDK (<code>rmcp</code>).</p>
+</header>
+
+<div class="panel">
+  <strong>How to read this document</strong>
+  <ul class="small">
+    <li><b>Architecture (§1–§3)</b> — the decisions and the "why," condensed. Read once.</li>
+    <li><b>Global design decisions (§4)</b> — cross-cutting choices (D1–D12) every unit assumes.</li>
+    <li><b>Verification harness (§5)</b> — the reusable fixtures the go/no-go checks call.</li>
+    <li><b>Work breakdown (§6–§9)</b> — units of work. Each has <b>Goal · Steps · Decisions · Acceptance criteria · Verification (go/no-go)</b>. A unit is "done" only when its verification command exits with the stated outcome.</li>
+    <li><b>Gates (§10)</b> — phase-exit and product-acceptance rubrics. A phase ships only when every unit gate <i>and</i> the phase gate are green.</li>
+  </ul>
+  <p class="small muted" style="margin-bottom:0">Convention: <span class="check">GO</span> = the verification command produced the stated observable outcome; <span class="nogo">NO-GO</span> = anything else. No subjective judgement is permitted in a verification step.</p>
+</div>
+
+<nav class="panel">
+  <strong>Contents</strong>
+  <div class="toc" style="margin-top:10px">
+    <a href="#arch">1 · Architecture in one screen</a>
+    <a href="#topology">2 · Topology &amp; data flow</a>
+    <a href="#facts">3 · Grounding facts (codebase)</a>
+    <a href="#decisions">4 · Global design decisions D1–D12</a>
+    <a href="#harness">5 · Verification harness</a>
+    <a href="#p0">6 · Phase 0 — Scaffolding</a>
+    <a href="#p1">7 · Phase 1 — Core (stdio)</a>
+    <a href="#p2">8 · Phase 2 — Remote &amp; always-on</a>
+    <a href="#p3">9 · Phase 3 — Polish</a>
+    <a href="#gates">10 · Phase &amp; product gates</a>
+    <a href="#appendix">Appendix · Configs &amp; risks</a>
+  </div>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="arch"><b>1 · Architecture in one screen</b></h2>
+<p>The premise that reframes everything: <b>Knots has no authoritative host.</b> State is event-sourced JSON synced through a <i>git branch</i> (<code>refs/work/knots</code>); every machine with the remote holds a full replica (<span class="muted">src/sync, src/replication.rs, src/sync_ref.rs</span>). There is no server, daemon, or socket anywhere in the tree. Therefore an MCP server is not a gateway to an authority — it is <b>just another replica with a network door</b>, and the git remote is the only rendezvous.</p>
+
+<div class="grid g3">
+  <div class="panel"><h4>What we build</h4><p class="small">A second binary <code>kno-mcp</code> in this crate. <code>rmcp</code> handles the MCP protocol + transport; our code maps tools → <code>kno … --json</code> invocations against a local replica, and runs a background git-sync loop.</p></div>
+  <div class="panel"><h4>Where it runs</h4><p class="small">On Manhattan (always-on), against a dedicated git checkout it owns. It holds the sync credential; sandboxes never do. A stdio variant also runs locally on the MacBook for on-box agents.</p></div>
+  <div class="panel"><h4>How sandboxes reach it</h4><p class="small">Streamable HTTP over a Tailscale tailnet + bearer token. The "which host?" question is one line of client config (a URL), never an architectural choice.</p></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="topology"><b>2 · Topology &amp; data flow</b></h2>
+<figure>
+<svg viewBox="0 0 860 430" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa6b6"/></marker>
+    <marker id="ag" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#f06a4a"/></marker>
+  </defs>
+  <ellipse cx="430" cy="60" rx="150" ry="28" fill="none" stroke="#f06a4a" stroke-width="2"/>
+  <rect x="280" y="60" width="300" height="56" fill="none" stroke="#f06a4a" stroke-width="2"/>
+  <line x1="280" y1="60" x2="280" y2="116" stroke="#f06a4a" stroke-width="2"/>
+  <line x1="580" y1="60" x2="580" y2="116" stroke="#f06a4a" stroke-width="2"/>
+  <ellipse cx="430" cy="116" rx="150" ry="28" fill="none" stroke="#f06a4a" stroke-width="2"/>
+  <text x="430" y="88" text-anchor="middle" fill="#f06a4a" font-weight="700" font-size="15">Git remote</text>
+  <text x="430" y="107" text-anchor="middle" fill="#f06a4a" font-size="11.5">refs/work/knots — only source of truth</text>
+
+  <rect x="40" y="270" width="220" height="120" rx="14" fill="none" stroke="#5aa6ff" stroke-width="2"/>
+  <text x="150" y="298" text-anchor="middle" fill="#5aa6ff" font-weight="700" font-size="14">MacBook</text>
+  <text x="150" y="320" text-anchor="middle" fill="#9aa6b6" font-size="12">Knots replica · kno CLI</text>
+  <text x="150" y="340" text-anchor="middle" fill="#9aa6b6" font-size="12">interactive use</text>
+  <text x="150" y="368" text-anchor="middle" fill="#9aa6b6" font-size="11" font-style="italic">+ optional local stdio kno-mcp</text>
+
+  <rect x="600" y="258" width="230" height="148" rx="14" fill="none" stroke="#7ee0b8" stroke-width="2"/>
+  <text x="715" y="284" text-anchor="middle" fill="#7ee0b8" font-weight="700" font-size="14">Manhattan (always-on)</text>
+  <text x="715" y="305" text-anchor="middle" fill="#9aa6b6" font-size="12">dedicated git checkout</text>
+  <text x="715" y="323" text-anchor="middle" fill="#9aa6b6" font-size="12">background sync loop</text>
+  <rect x="628" y="338" width="174" height="50" rx="10" fill="#7ee0b8" opacity=".12" stroke="#7ee0b8" stroke-width="1.5"/>
+  <text x="715" y="358" text-anchor="middle" fill="#7ee0b8" font-weight="700" font-size="12.5">kno-mcp 🚪 :7777</text>
+  <text x="715" y="376" text-anchor="middle" fill="#9aa6b6" font-size="11">Streamable HTTP + token</text>
+
+  <rect x="330" y="290" width="200" height="100" rx="14" fill="none" stroke="#a98bff" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="430" y="318" text-anchor="middle" fill="#a98bff" font-weight="700" font-size="14">Sandbox agents</text>
+  <text x="430" y="340" text-anchor="middle" fill="#9aa6b6" font-size="12">no Knots, no git creds</text>
+  <text x="430" y="360" text-anchor="middle" fill="#9aa6b6" font-size="12">MCP client + token</text>
+
+  <line x1="150" y1="270" x2="330" y2="135" stroke="#f06a4a" stroke-width="2" marker-end="url(#ag)" opacity=".85"/>
+  <line x1="330" y1="135" x2="150" y2="270" stroke="#f06a4a" stroke-width="2" marker-end="url(#ag)" opacity=".85"/>
+  <line x1="715" y1="258" x2="540" y2="135" stroke="#f06a4a" stroke-width="2" marker-end="url(#ag)" opacity=".85"/>
+  <line x1="540" y1="135" x2="715" y2="258" stroke="#f06a4a" stroke-width="2" marker-end="url(#ag)" opacity=".85"/>
+  <text x="218" y="205" fill="#f06a4a" font-size="11" transform="rotate(-37 218 205)">git push/pull</text>
+  <text x="612" y="205" fill="#f06a4a" font-size="11" transform="rotate(35 612 205)">git push/pull</text>
+  <line x1="530" y1="348" x2="626" y2="360" stroke="#9aa6b6" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="556" y="333" fill="#9aa6b6" font-size="11">MCP tool calls</text>
+</svg>
+<figcaption>
+  <span class="legend">
+    <span><span class="dot" style="background:#f06a4a"></span>git sync (event replication)</span>
+    <span><span class="dot" style="background:#9aa6b6"></span>MCP tool calls</span>
+    <span><span class="dot" style="background:#a98bff"></span>ephemeral sandbox</span>
+  </span>
+  Sandboxes knock on Manhattan's door; Manhattan does the syncing. Replicas converge through git.
+</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="facts"><b>3 · Grounding facts (from the codebase)</b></h2>
+<p>Every later assertion and verification depends on these. All cited to source.</p>
+<table>
+  <tr><th>Fact</th><th>Detail</th><th>Source</th></tr>
+  <tr><td>No server code</td><td>Zero axum/hyper/tonic/tokio listeners; all ops are CLI → local store.</td><td class="muted">grep, whole tree</td></tr>
+  <tr><td>Store discovery</td><td><b>No <code>KNOTS_HOME</code> env.</b> Resolution order: <code>--project &lt;id&gt;</code> → <code>-C/--repo-root &lt;path&gt;</code> → active project in config → git-root discovery from cwd → error.</td><td class="muted">src/project.rs:257-276</td></tr>
+  <tr><td>JSON everywhere</td><td><code>-j/--json</code> on ls, show, poll, claim, next, sync, lease create…; serialized via <code>print_json(&amp;impl Serialize)</code> as pretty JSON to stdout.</td><td class="muted">src/main.rs (print_json), src/run_commands.rs</td></tr>
+  <tr><td>List schema</td><td><code>PaginatedList{ data:Vec&lt;KnotView&gt;, total, offset, limit, has_more }</code>; <code>KnotView</code> has <code>id,title,state,updated_at,type(renamed),tags,…</code>.</td><td class="muted">src/app/types.rs:16-63, 237-256</td></tr>
+  <tr><td>Poll/claim envelope</td><td>JSON object with <code>id,title,state,prompt,e2e</code> and <code>workflow_boundary_kind ∈ {"single_action","e2e_continuation"}</code>, plus <code>lease_id, gate, step_metadata</code>.</td><td class="muted">src/prompt.rs:151-188</td></tr>
+  <tr><td>Sync schema</td><td><code>SyncOutcome</code> tagged enum: <code>{"status":"completed", push:{…}, pull:{…}}</code> or <code>{"status":"deferred","active_leases":N}</code>.</td><td class="muted">src/replication.rs:26-33</td></tr>
+  <tr><td>Lease creation</td><td><code>kno lease create --nickname &lt;s&gt; [--type agent] [--agent-name] [--provider] [--model] [--model-version] [--timeout-seconds] -j</code>. Returns the lease as a <code>KnotView</code>; the lease id is its <code>id</code>.</td><td class="muted">src/cli_agent.rs:401-426</td></tr>
+  <tr><td>Claim binding</td><td><code>kno claim &lt;id&gt; [--lease &lt;id&gt;] [--e2e] [--peek] [-j]</code>. <code>--agent-*</code> flags are deprecated/ignored; identity comes from the bound lease.</td><td class="muted">src/cli_agent.rs:132-171</td></tr>
+  <tr><td>Errors</td><td>No JSON error envelope. On failure: <code>error: &lt;msg&gt;\n</code> to <b>stderr</b>, process <b>exit code 1</b>.</td><td class="muted">src/main.rs:114-117, src/app/error.rs</td></tr>
+  <tr><td>Build/test</td><td><code>make sanity</code> = fmt + clippy <code>-D warnings</code> + <code>check-file-sizes.sh</code> (&lt;500 lines) + <code>cargo test --all-targets --all-features</code> + <code>cargo tarpaulin --engine llvm --fail-under $(cat .ci/coverage-threshold.txt)</code>.</td><td class="muted">Makefile, .ci/coverage-threshold.txt=95</td></tr>
+  <tr><td>Coverage exclusion</td><td>Crate already whitelists <code>cfg(tarpaulin_include)</code> — established pattern for excluding glue from coverage.</td><td class="muted">Cargo.toml [lints.rust]</td></tr>
+  <tr><td>Single crate</td><td>One binary (<code>src/main.rs</code>), no <code>[[bin]]</code> section, no <code>src/lib.rs</code> yet. Deps: clap, rusqlite, serde, serde_json, toml, sha2, time, uuid.</td><td class="muted">Cargo.toml</td></tr>
+</table>
+<div class="callout risk"><b>Two facts to confirm in Phase 0, before building on them</b> (turned into verification steps V0.4/V0.5): (a) <code>kno new --json</code> may not emit a structured object with the new id (creation output is built from text in <span class="muted">write_dispatch/execute/mod.rs</span>); (b) there is no confirmed <code>lease release</code> command — session cleanup may rely solely on <code>timeout_seconds</code>. Both are gated below; if a fact is false, its unit absorbs the small CLI fix.</div>
+
+<!-- ============================================================ -->
+<h2 id="decisions"><b>4 · Global design decisions</b></h2>
+<p>These are settled choices; units below assume them. Each states the decision, the rationale, and the rejected alternative.</p>
+<table>
+  <tr><th>#</th><th>Decision</th><th>Rationale / rejected alternative</th></tr>
+  <tr><td><b>D1</b></td><td><b>Execute Knots by shelling out to the <code>kno</code> binary</b> with <code>--json</code> (Option A), not by linking the crate in-process.</td><td>Reuses the file-locked write queue, sync, and lease logic verbatim — cannot drift from CLI truth. <i>Rejected:</i> in-process <code>KnotsApi</code> (needs lib.rs carve-out + dispatch reuse) — deferred to Phase 3 only if latency is measured to matter.</td></tr>
+  <tr><td><b>D2</b></td><td><b>Single language, single crate.</b> <code>kno-mcp</code> is a second binary target in this repo using <code>rmcp</code>.</td><td>One <code>cargo build</code>, one version, no skew. <i>Rejected:</i> TypeScript sidecar (second runtime + release cadence).</td></tr>
+  <tr><td><b>D3</b></td><td><b>MCP deps are feature-gated.</b> <code>rmcp/tokio/axum</code> are <code>optional=true</code> behind feature <code>mcp</code>; the bin declares <code>required-features=["mcp"]</code>.</td><td>Keeps the default <code>knots</code> binary lean; default builds don't pull async stack. <i>Rejected:</i> unconditional deps (bloats the shipped CLI).</td></tr>
+  <tr><td><b>D4</b></td><td><b>Resolve the sibling <code>kno</code> by default</b> (<code>current_exe().parent()/"kno"</code>); override with <code>--kno-bin &lt;path&gt;</code>.</td><td>Guarantees the MCP server and CLI are the same release; makes tests hermetic (point at a stub). <i>Rejected:</i> bare <code>kno</code> on PATH (version ambiguity).</td></tr>
+  <tr><td><b>D5</b></td><td><b>Store is selected by <code>-C &lt;repo&gt;</code></b> against a dedicated git checkout the service owns; every <code>kno</code> invocation passes it.</td><td>Matches real store discovery (§3); the checkout has the sync remote. <i>Rejected:</i> a fictional <code>KNOTS_HOME</code> env (does not exist).</td></tr>
+  <tr><td><b>D6</b></td><td><b>One lease per MCP session.</b> On <code>initialize</code>, create a lease tagged with the client's <code>AgentInfo</code>; cache <code>session→lease_id</code>; <code>knots_claim</code> passes <code>--lease</code>.</td><td>Gives attribution and honours claim semantics. Cleanup via <code>timeout_seconds</code> (+ explicit release if V0.5 confirms one exists).</td></tr>
+  <tr><td><b>D7</b></td><td><b>Pass the boundary contract through untouched.</b> <code>knots_claim</code> surfaces <code>workflow_boundary_kind</code> and <code>e2e</code> exactly as <code>kno</code> emits them; <code>--e2e</code> only when the caller sets it.</td><td>Honours CLAUDE.md Claim-Boundary Precedence; never infers intent from prose.</td></tr>
+  <tr><td><b>D8</b></td><td><b>Tool results carry both forms:</b> the parsed JSON as <code>structuredContent</code> and pretty JSON as a text block.</td><td>Structured for programmatic clients, text for models that read content. Cheap.</td></tr>
+  <tr><td><b>D9</b></td><td><b>A failed <code>kno</code> call → a tool result with <code>isError=true</code></b> carrying the stderr text + exit code, not a transport-level JSON-RPC error.</td><td>The agent sees and can react to domain errors; protocol stays healthy. (Knots has no JSON error envelope, §3.)</td></tr>
+  <tr><td><b>D10</b></td><td><b>Thin I/O shell, pure testable core.</b> argv-construction, JSON mapping, session/lease state, and auth checks are pure functions with unit tests; network bind, process spawn, stdio loop are glue marked <code>#[cfg(not(tarpaulin_include))]</code>.</td><td>Lets us hit the 95% gate (§3) without unit-testing real sockets. Uses the crate's existing tarpaulin-exclusion pattern.</td></tr>
+  <tr><td><b>D11</b></td><td><b>Transport is staged:</b> stdio in Phase 1 (locally testable, no network), Streamable HTTP in Phase 2.</td><td>De-risks the protocol/tool layer before adding network + auth + deployment.</td></tr>
+  <tr><td><b>D12</b></td><td><b>Auth = static bearer token</b> (from a file/env), checked by axum middleware; Tailscale ACL is the second gate. OAuth 2.1 is a Phase 3 option.</td><td>Adequate for a personal homelab; simplest correct thing. <i>Rejected for now:</i> full OAuth (overkill, more moving parts).</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="harness"><b>5 · Verification harness (reusable fixtures)</b></h2>
+<p>Verification steps below call these. They are hermetic and reproducible — no dependence on your real tracker.</p>
+
+<h4>Fixture A — a throwaway Knots store (real <code>kno</code>)</h4>
+<pre><code>knots_fixture() {            # prints the repo path; caller captures it
+  R=$(mktemp -d)
+  git -C "$R" init -q
+  git -C "$R" commit -q --allow-empty -m init
+  kno -C "$R" init >/dev/null        # materialize .knots/ in $R
+  echo "$R"
+}
+# usage: REPO=$(knots_fixture); kno -C "$REPO" q "demo knot" -j</code></pre>
+
+<h4>Fixture B — a stub <code>kno</code> (hermetic, no store; for unit/integration of the MCP layer)</h4>
+<pre><code># tests/fixtures/kno-stub.sh — emits canned JSON per subcommand, exit 0;
+# exits 1 with "error: not found\n" on the sentinel id "MISSING".
+case "$KNO_SUBCMD" in
+  ls)    echo '{"data":[{"id":"k1","title":"demo","state":"ready","updated_at":"t","type":"task","tags":[]}],"total":1,"offset":0,"limit":50,"has_more":false}' ;;
+  claim) echo '{"id":"k1","title":"demo","state":"planning","prompt":"do x","e2e":false,"workflow_boundary_kind":"single_action","lease_id":"L1"}' ;;
+  *)     [ "$2" = "MISSING" ] &amp;&amp; { echo "error: knot 'MISSING' not found" >&amp;2; exit 1; } ; echo '{}' ;;
+esac</code></pre>
+<p class="small muted">The stub lets <code>--kno-bin</code> (D4) point the server at deterministic output so tool-layer tests don't need a git remote. Fixture A exercises the real binary end-to-end.</p>
+
+<h4>Global precondition checks (run once)</h4>
+<div class="go verify-cmd">
+<b>V-pre.1</b> <span class="pill">cargo --version &amp;&amp; rustc --version</span> → <span class="check">GO</span> if both print. <br>
+<b>V-pre.2</b> <span class="pill">cargo tarpaulin --version</span> → <span class="check">GO</span> if it prints a version (else <code>cargo install cargo-tarpaulin --locked</code>). <br>
+<b>V-pre.3</b> <span class="pill">command -v kno</span> → <span class="check">GO</span> if a path prints.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="p0"><b>6 · Phase 0 — Scaffolding &amp; harness</b></h2>
+<p>Goal: a buildable, sanity-green skeleton that compiles a no-op <code>kno-mcp</code> behind the <code>mcp</code> feature, plus the two fact-confirmations the design leans on.</p>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U0.1</span><span class="utitle">Feature-gated <code>kno-mcp</code> binary target</span><span class="chip tag-mvp">Phase 0</span></div>
+  <div class="ubody">
+    <h4>Steps</h4>
+    <ol class="small">
+      <li>Add to <code>Cargo.toml</code>: <code>[features] mcp = ["dep:rmcp","dep:tokio","dep:axum","dep:schemars"]</code>; mark those deps <code>optional = true</code>.</li>
+      <li>Add <code>[[bin]] name="kno-mcp" path="src/bin/kno_mcp.rs" required-features=["mcp"]</code>.</li>
+      <li>Create <code>src/bin/kno_mcp.rs</code> with a <code>main</code> that prints version and exits 0 (placeholder).</li>
+    </ol>
+    <h4>Decisions</h4><p class="small">D2, D3. The default <code>knots</code> binary must not gain the async dep tree.</p>
+    <div class="ac"><b>Acceptance:</b> The MCP binary builds only with <code>--features mcp</code>; the default build is unchanged and pulls no MCP deps.</div>
+    <div class="go verify-cmd">
+      <b>V0.1a</b> <span class="pill">cargo build --features mcp --bin kno-mcp</span> → <span class="check">GO</span> exit 0.<br>
+      <b>V0.1b</b> <span class="pill">cargo build</span> (default) → <span class="check">GO</span> exit 0.<br>
+      <b>V0.1c</b> <span class="pill">cargo tree -e normal | grep -c '^.*rmcp'</span> → <span class="check">GO</span> prints <code>0</code> (no rmcp in default deps).
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U0.2</span><span class="utitle">Sanity gate stays green with the new feature</span><span class="chip tag-mvp">Phase 0</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Add a changeset (repo runs <code>npm run check-changesets</code> in <code>make lint</code>).</li><li>Ensure new files are &lt;500 lines and pass <code>cargo fmt</code> + <code>clippy -D warnings</code>.</li><li>Add at least one trivial unit test so the new module isn't 0% covered.</li></ol>
+    <div class="ac"><b>Acceptance:</b> <code>make sanity</code> passes with the feature compiled in (tests run with <code>--all-features</code>).</div>
+    <div class="go verify-cmd">
+      <b>V0.2a</b> <span class="pill">make lint</span> → <span class="check">GO</span> exit 0 (clippy clean, file sizes ok, changeset present).<br>
+      <b>V0.2b</b> <span class="pill">cargo test --all-targets --all-features</span> → <span class="check">GO</span> exit 0.<br>
+      <b>V0.2c</b> <span class="pill">make coverage</span> → <span class="check">GO</span> exit 0 (≥95%, since <code>--fail-under 95</code>).
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U0.3</span><span class="utitle">Pin <code>rmcp</code> &amp; confirm the server skeleton compiles</span><span class="chip tag-mvp">Phase 0</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Add <code>rmcp = { version="0.x", features=["server","macros","schemars"] }</code> (latest), <code>tokio</code> (rt-multi-thread, macros), <code>schemars</code>.</li><li>Define an empty <code>struct KnoMcp</code> with <code>#[tool_router]</code> and a <code>#[tool_handler] impl ServerHandler</code> returning <code>get_info()</code> with tools enabled.</li></ol>
+    <h4>Decisions</h4><p class="small">D2. Match the <code>rmcp</code> macro pattern: <code>#[tool_router]</code>, <code>#[tool(description=…)]</code>, <code>Parameters&lt;T: JsonSchema&gt;</code>, <code>#[tool_handler] impl ServerHandler</code>.</p>
+    <div class="ac"><b>Acceptance:</b> the typed server skeleton compiles against the real SDK.</div>
+    <div class="go verify-cmd"><b>V0.3</b> <span class="pill">cargo build --features mcp --bin kno-mcp</span> → <span class="check">GO</span> exit 0 with the <code>ServerHandler</code> impl present.</div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U0.4</span><span class="utitle">Confirm <code>kno new --json</code> emits a parseable object with the new id</span><span class="chip tag-risk">fact-gate</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Run create against Fixture A; assert JSON parses and contains an id.</li><li><b>If it does not</b> (currently built from text — §3 risk): add structured JSON output to the create path in <code>write_dispatch/execute/mod.rs</code> (small, isolated; ships with this unit).</li></ol>
+    <div class="ac"><b>Acceptance:</b> creating a knot via the CLI returns JSON from which the new id is programmatically extractable.</div>
+    <div class="go verify-cmd"><b>V0.4</b> <span class="pill">REPO=$(knots_fixture); kno -C "$REPO" q "demo" -j | jq -e '.id // .data[0].id' </span> → <span class="check">GO</span> exit 0 and a non-empty id; <span class="nogo">NO-GO</span> → triggers the CLI fix in this unit.</div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U0.5</span><span class="utitle">Determine lease-release mechanism</span><span class="chip tag-risk">fact-gate</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Enumerate <code>kno lease</code> subcommands.</li><li>Record whether an explicit release exists; if not, D6 cleanup relies on <code>timeout_seconds</code> and U1.9 sets a sane default.</li></ol>
+    <div class="ac"><b>Acceptance:</b> the session-cleanup strategy is decided by observed CLI capability, not assumption.</div>
+    <div class="go verify-cmd"><b>V0.5</b> <span class="pill">kno lease --help | grep -Eiq 'release|end|close|expire'</span> → <span class="check">GO</span>=explicit release exists (use it in U1.9); <span class="nogo">NO-GO</span>=rely on timeout (documented in U1.9). <i>Either outcome is acceptable; the step records which.</i></div>
+  </div>
+</div>
+
+<div class="gate"><h3>Phase 0 exit gate — all must be <span class="check">GO</span></h3><p class="small" style="margin:0">V-pre.1–3, V0.1a–c, V0.2a–c, V0.3, V0.4, V0.5. Result recorded: the create-JSON shape (U0.4) and the lease-cleanup strategy (U0.5) are now known facts the rest of the spec consumes.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="p1"><b>7 · Phase 1 — Core server over stdio</b></h2>
+<p>Goal: a fully functional Knots MCP server reachable over stdio, with the core tool set, per-session leasing, and the boundary contract — all unit-tested to the coverage gate. No network yet (D11).</p>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.1</span><span class="utitle"><code>KnoRunner</code> — argv construction &amp; invocation</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small">
+      <li>Pure fn <code>build_argv(repo, subcommand, args) -&gt; Vec&lt;String&gt;</code> that always prefixes <code>-C &lt;repo&gt;</code> and appends <code>--json</code> (D5).</li>
+      <li>Runner that spawns <code>--kno-bin</code> (D4) with that argv, captures stdout/stderr/exit.</li>
+      <li>Map: exit 0 → <code>Ok(serde_json::Value)</code> (parse stdout); exit≠0 → <code>Err{stderr, code}</code> (D9).</li>
+    </ol>
+    <div class="ac"><b>Acceptance:</b> argv is constructed deterministically; success parses JSON; failure surfaces stderr + code. <code>build_argv</code> and the mapping are pure and unit-tested.</div>
+    <div class="go verify-cmd">
+      <b>V1.1a</b> unit test: <span class="pill">build_argv("/r","ls",["--state","ready"]) == ["-C","/r","ls","--state","ready","--json"]</span> → <span class="check">GO</span> test passes.<br>
+      <b>V1.1b</b> integration with Fixture B: a list call returns <code>data[0].id=="k1"</code> → <span class="check">GO</span>.<br>
+      <b>V1.1c</b> integration with sentinel <code>MISSING</code>: returns <code>isError</code> with stderr containing <code>not found</code>, exit code 1 captured → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.2</span><span class="utitle">Read tools: <code>knots_list</code>, <code>knots_show</code>, <code>knots_poll</code></span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small">
+      <li><code>knots_list(state?,tag?,type?,limit?)</code> → <code>ls</code> with mapped flags.</li>
+      <li><code>knots_show(id)</code> → <code>show &lt;id&gt;</code>. <code>knots_poll()</code> → <code>poll</code>.</li>
+      <li>Each returns structuredContent + text (D8).</li>
+    </ol>
+    <div class="ac"><b>Acceptance:</b> each tool maps params → correct argv and returns the command's JSON unaltered; <code>knots_show</code> on a bad id is a non-fatal tool error (D9).</div>
+    <div class="go verify-cmd">
+      <b>V1.2a</b> Fixture A: seed 2 knots, call <code>knots_list</code> → structuredContent <code>.total==2</code> and <code>.data|length==2</code> → <span class="check">GO</span>.<br>
+      <b>V1.2b</b> <code>knots_show</code> on a seeded id → <code>.id</code> equals it and <code>.state</code> present → <span class="check">GO</span>.<br>
+      <b>V1.2c</b> <code>knots_show("MISSING")</code> → result has <code>isError==true</code>, text contains <code>not found</code> → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.3</span><span class="utitle">Write tools: <code>knots_create</code>, <code>knots_update</code></span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li><code>knots_create(title, description?, acceptance?, type?, priority?)</code> → <code>new</code>/<code>q</code> (uses U0.4's confirmed JSON).</li><li><code>knots_update(id, fields…)</code> → <code>update</code>.</li></ol>
+    <div class="ac"><b>Acceptance:</b> creating returns the new id; updating mutates the named fields and the change is observable on re-read.</div>
+    <div class="go verify-cmd">
+      <b>V1.3a</b> Fixture A: <code>knots_create("spec demo")</code> → returns id <code>$K</code>; then <code>kno -C $REPO show $K -j | jq -e '.title=="spec demo"'</code> → <span class="check">GO</span>.<br>
+      <b>V1.3b</b> <code>knots_update($K, priority=1)</code> then show → <code>.priority==1</code> → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.4</span><span class="utitle">Workflow tools: <code>knots_claim</code>, <code>knots_next</code>, <code>knots_rollback</code></span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small">
+      <li><code>knots_claim(id, e2e?:bool)</code> → <code>claim &lt;id&gt; --lease &lt;session_lease&gt; [--e2e]</code> (D6, D7). Pass <code>workflow_boundary_kind</code> and <code>e2e</code> straight through (D7).</li>
+      <li><code>knots_next(id)</code> → <code>next &lt;id&gt;</code>. <code>knots_rollback(id)</code> → <code>rollback &lt;id&gt;</code>.</li>
+    </ol>
+    <div class="ac"><b>Acceptance:</b> a default claim yields <code>workflow_boundary_kind=="single_action"</code> and <code>e2e==false</code>; an <code>e2e:true</code> claim yields <code>"e2e_continuation"</code> and <code>e2e==true</code>; the values are byte-identical to what <code>kno</code> emits.</div>
+    <div class="go verify-cmd">
+      <b>V1.4a</b> Fixture A: claim a ready knot (no e2e) → structuredContent <code>.workflow_boundary_kind=="single_action" and .e2e==false</code> → <span class="check">GO</span>.<br>
+      <b>V1.4b</b> claim with <code>e2e:true</code> → <code>.workflow_boundary_kind=="e2e_continuation" and .e2e==true</code> → <span class="check">GO</span>.<br>
+      <b>V1.4c</b> diff: tool's structuredContent equals <code>kno -C $REPO claim &lt;id&gt; --lease L --json</code> output (passthrough fidelity) → <span class="check">GO</span> if <code>jq -S</code> equal.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.5</span><span class="utitle"><code>knots_sync</code> + <code>SyncOutcome</code> handling</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li><code>knots_sync()</code> → <code>sync</code>; surface the tagged enum.</li><li>Recognize <code>{"status":"deferred","active_leases":N}</code> and report it as a distinct, non-error outcome.</li></ol>
+    <div class="ac"><b>Acceptance:</b> a completed sync returns <code>status=="completed"</code> with <code>push/pull</code> summaries; a deferred sync returns <code>status=="deferred"</code> and is not surfaced as <code>isError</code>.</div>
+    <div class="go verify-cmd">
+      <b>V1.5a</b> Fixture A with a configured remote: <code>knots_sync</code> → <code>.status=="completed"</code> → <span class="check">GO</span>.<br>
+      <b>V1.5b</b> stub returns deferred → tool result <code>isError==false</code> and structuredContent <code>.status=="deferred"</code> → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.6</span><span class="utitle">Per-session lease lifecycle</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small">
+      <li>On MCP <code>initialize</code>, read client info; run <code>lease create --nickname mcp-&lt;sid&gt; --type agent --agent-name &lt;n&gt; --provider &lt;p&gt; --model &lt;m&gt; --model-version &lt;v&gt; --timeout-seconds &lt;T&gt; -j</code>; store <code>sid→lease_id</code> (the returned <code>.id</code>).</li>
+      <li><code>knots_claim</code> binds that lease (U1.4).</li>
+      <li>On session close: explicit release if U0.5 found one, else rely on timeout.</li>
+    </ol>
+    <h4>Decisions</h4><p class="small">D6. The session→lease map is a pure state machine, fully unit-tested (D10).</p>
+    <div class="ac"><b>Acceptance:</b> exactly one lease is created per session; claims within the session reuse it; the lease carries the caller's <code>AgentInfo</code>.</div>
+    <div class="go verify-cmd">
+      <b>V1.6a</b> Fixture A: open session, issue 2 claims, then <code>kno -C $REPO ls --type lease -j | jq -e '[.data[]|select(.title|startswith("mcp-"))]|length==1'</code> → <span class="check">GO</span> (one lease, not two).<br>
+      <b>V1.6b</b> created lease's <code>agent_info.model</code> equals the value passed at initialize → <span class="check">GO</span>.<br>
+      <b>V1.6c</b> unit test of the session map: second claim in a session does not call <code>lease create</code> → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U1.7</span><span class="utitle">stdio transport &amp; MCP handshake</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Wire <code>KnoMcp</code> to the stdio transport; <code>main</code> reads <code>--kno-bin</code>, <code>-C/--repo</code>. Mark the run loop <code>#[cfg(not(tarpaulin_include))]</code> (D10).</li></ol>
+    <div class="ac"><b>Acceptance:</b> a real MCP client completes <code>initialize</code> and lists the tools from U1.2–U1.5.</div>
+    <div class="go verify-cmd">
+      <b>V1.7a</b> <span class="pill">claude mcp add kno-stdio -- kno-mcp --repo $REPO</span> then <span class="pill">claude mcp list</span> shows it <i>connected</i> → <span class="check">GO</span>.<br>
+      <b>V1.7b</b> a <code>tools/list</code> call returns ≥7 tools including <code>knots_list, knots_claim, knots_next, knots_sync</code> → <span class="check">GO</span>.<br>
+      <b>V1.7c</b> (CI-friendly) pipe a JSON-RPC <code>initialize</code> then <code>tools/list</code> to <code>kno-mcp</code> stdin; assert the responses contain <code>serverInfo</code> and the tool names → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="gate"><h3>Phase 1 exit gate</h3>
+<ul class="small" style="margin:0">
+  <li><b>Functional:</b> V1.1–V1.7 all <span class="check">GO</span>.</li>
+  <li><b>End-to-end claim loop (real binary):</b> against Fixture A, a script drives <code>initialize → knots_list → knots_claim → knots_next</code> and the knot's <code>state</code> changes between claim and next. <span class="pill">GO if the post-next state ≠ the pre-claim state</span>.</li>
+  <li><b>Quality:</b> <code>make sanity</code> <span class="check">GO</span> (coverage ≥95% with the pure core fully tested; glue excluded per D10).</li>
+</ul></div>
+
+<!-- ============================================================ -->
+<h2 id="p2"><b>8 · Phase 2 — Remote &amp; always-on</b></h2>
+<p>Goal: the same server, reachable by a sandbox agent over the network, running unattended on Manhattan, kept fresh by a background sync loop. This is the actual product.</p>
+
+<figure>
+<svg viewBox="0 0 860 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+  <defs><marker id="b1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#9aa6b6"/></marker></defs>
+  <rect x="30" y="30" width="800" height="150" rx="16" fill="none" stroke="#7ee0b8" stroke-width="1.4" stroke-dasharray="3 6"/>
+  <text x="48" y="52" fill="#7ee0b8" font-size="12" font-weight="700">Tailscale tailnet (WireGuard, ACL-gated)</text>
+  <rect x="60" y="80" width="200" height="80" rx="12" fill="none" stroke="#a98bff" stroke-width="2"/>
+  <text x="160" y="108" text-anchor="middle" fill="#a98bff" font-weight="700" font-size="13">Sandbox</text>
+  <text x="160" y="130" text-anchor="middle" fill="#9aa6b6" font-size="11.5">MCP client + token</text>
+  <rect x="580" y="70" width="220" height="100" rx="12" fill="none" stroke="#7ee0b8" stroke-width="2"/>
+  <text x="690" y="96" text-anchor="middle" fill="#7ee0b8" font-weight="700" font-size="13">Manhattan</text>
+  <rect x="602" y="108" width="176" height="40" rx="9" fill="#7ee0b8" opacity=".12" stroke="#7ee0b8"/>
+  <text x="690" y="125" text-anchor="middle" fill="#7ee0b8" font-size="11.5" font-weight="700">kno-mcp (axum)</text>
+  <text x="690" y="140" text-anchor="middle" fill="#9aa6b6" font-size="10">auth → kno -C repo → sync loop</text>
+  <line x1="262" y1="118" x2="578" y2="120" stroke="#9aa6b6" stroke-width="2.4" marker-end="url(#b1)"/>
+  <text x="420" y="104" text-anchor="middle" fill="#e7ecf3" font-size="12" font-weight="700">HTTPS POST /mcp</text>
+  <text x="420" y="140" text-anchor="middle" fill="#9aa6b6" font-size="10.5">Streamable HTTP · Authorization: Bearer …</text>
+  <rect x="350" y="200" width="160" height="38" rx="9" fill="none" stroke="#f06a4a" stroke-width="2"/>
+  <text x="430" y="224" text-anchor="middle" fill="#f06a4a" font-size="11.5" font-weight="700">Git remote (sync)</text>
+  <line x1="660" y1="170" x2="510" y2="205" stroke="#f06a4a" stroke-width="1.8" marker-end="url(#b1)" opacity=".8"/>
+</svg>
+</figure>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U2.1</span><span class="utitle">Streamable HTTP transport</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Enable <code>rmcp</code> feature <code>transport-streamable-http-server</code>; mount the service on an axum router at <code>/mcp</code>; bind <code>--bind &lt;addr:port&gt;</code> (default <code>127.0.0.1:7777</code>). Glue is <code>#[cfg(not(tarpaulin_include))]</code> (D10).</li></ol>
+    <div class="ac"><b>Acceptance:</b> an MCP <code>initialize</code> over HTTP returns <code>serverInfo</code>; tools are listable over HTTP exactly as over stdio.</div>
+    <div class="go verify-cmd">
+      <b>V2.1a</b> start bound to localhost; <span class="pill">curl -s -XPOST localhost:7777/mcp -d '{...initialize...}'</span> → response JSON contains <code>"serverInfo"</code> → <span class="check">GO</span>.<br>
+      <b>V2.1b</b> <span class="pill">claude mcp add --transport http knots http://localhost:7777/mcp</span> + <code>tools/list</code> shows the same ≥7 tools as V1.7b → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U2.2</span><span class="utitle">Bearer-token auth middleware</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Load token from <code>--token-file</code>/env (D12).</li><li>axum middleware: reject requests whose <code>Authorization: Bearer</code> ≠ token with <code>401</code>; the token-compare fn is pure + unit-tested (constant-time compare).</li></ol>
+    <div class="ac"><b>Acceptance:</b> no/incorrect token → 401 and the tool does not execute; correct token → 200 and normal operation.</div>
+    <div class="go verify-cmd">
+      <b>V2.2a</b> <span class="pill">curl -s -o /dev/null -w '%{http_code}' -XPOST localhost:7777/mcp -d '{...}'</span> (no header) → prints <code>401</code> → <span class="check">GO</span>.<br>
+      <b>V2.2b</b> wrong token → <code>401</code> → <span class="check">GO</span>.<br>
+      <b>V2.2c</b> correct token → <code>200</code> and an <code>initialize</code> result → <span class="check">GO</span>.<br>
+      <b>V2.2d</b> unit test: compare fn rejects empty/short/mismatched tokens → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U2.3</span><span class="utitle">Background sync loop + freshness</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small">
+      <li>Spawn a tokio task running <code>kno -C repo sync</code> every <code>--sync-interval</code> (default 15s); also sync immediately after any mutating tool (claim/next/create/update).</li>
+      <li>On <code>SyncOutcome::Deferred</code>, log and retry with backoff (CLI already retries internally — U1.5 surfaces it).</li>
+    </ol>
+    <div class="ac"><b>Acceptance:</b> a change written via the MCP server appears on a second replica within one sync interval; a deferred sync is retried rather than crashing the loop.</div>
+    <div class="go verify-cmd">
+      <b>V2.3a</b> two checkouts of the same remote (R1 served by kno-mcp, R2 plain). Create a knot via the MCP tool; wait one interval; <code>kno -C R2 sync &amp;&amp; kno -C R2 ls -j | jq -e '[.data[]|select(.title=="…")]|length==1'</code> → <span class="check">GO</span>.<br>
+      <b>V2.3b</b> inject a deferred outcome (stub) → the loop logs a retry and keeps running (process still alive after 2 intervals) → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U2.4</span><span class="utitle">Manhattan deployment (service + dedicated checkout)</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small">
+      <li>Provision a git checkout at <code>/var/lib/knots/repo</code> with <code>origin</code> = the Knots remote and the sync credential available to the service user only.</li>
+      <li>Install a systemd unit (Linux) / launchd plist (macOS) running <code>kno-mcp serve --repo /var/lib/knots/repo --bind &lt;tailnet-ip&gt;:7777 --token-file … --sync-interval 15s</code>, <code>Restart=always</code>.</li>
+    </ol>
+    <div class="ac"><b>Acceptance:</b> the service starts on boot, restarts on crash, and answers MCP requests; the git credential is not present in any sandbox.</div>
+    <div class="go verify-cmd">
+      <b>V2.4a</b> <span class="pill">systemctl is-active kno-mcp</span> (or <code>launchctl print</code>) → <code>active/running</code> → <span class="check">GO</span>.<br>
+      <b>V2.4b</b> kill the process; within 5s <code>is-active</code> is again <code>active</code> → <span class="check">GO</span>.<br>
+      <b>V2.4c</b> from the service host, an authenticated <code>initialize</code> returns <code>serverInfo</code> → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U2.5</span><span class="utitle">Tailscale exposure &amp; isolation</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Bind to the tailnet interface (or front with Tailscale Serve for TLS).</li><li>Set a tailnet ACL allowing only sandbox nodes to reach :7777.</li></ol>
+    <div class="ac"><b>Acceptance:</b> a node on the tailnet (with token) can reach the endpoint; a host off the tailnet cannot.</div>
+    <div class="go verify-cmd">
+      <b>V2.5a</b> from a second tailnet node: authenticated <code>initialize</code> to <code>https://manhattan.&lt;tailnet&gt;.ts.net/mcp</code> → <code>serverInfo</code> → <span class="check">GO</span>.<br>
+      <b>V2.5b</b> from a non-tailnet host: <span class="pill">curl --max-time 5</span> to the same name/IP → connection refused/timeout (non-zero curl exit) → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="unit">
+  <div class="uhead"><span class="uid">U2.6</span><span class="utitle">End-to-end: sandbox agent claims through MCP</span></div>
+  <div class="ubody">
+    <h4>Steps</h4><ol class="small"><li>Configure a sandboxed Claude Code with the remote MCP server (URL + token).</li><li>Have it claim a knot and advance it; observe the change land on the MacBook after sync.</li></ol>
+    <div class="ac"><b>Acceptance:</b> a sandbox with <i>only</i> a URL+token (no git, no kno) can list, claim (under an attributed lease), and advance a knot, and the result is visible on the MacBook replica.</div>
+    <div class="go verify-cmd">
+      <b>V2.6a</b> sandbox runs <code>knots_claim</code> on a ready knot → returns a <code>single_action</code> boundary; the knot's lease on the shared store carries the sandbox's agent identity → <span class="check">GO</span>.<br>
+      <b>V2.6b</b> sandbox runs <code>knots_next</code>; after a sync, <code>kno ls</code> on the MacBook shows the advanced state → <span class="check">GO</span>.
+    </div>
+  </div>
+</div>
+
+<div class="gate"><h3>Phase 2 exit gate</h3><p class="small" style="margin:0">V2.1–V2.6 all <span class="check">GO</span>, plus <code>make sanity</code> <span class="check">GO</span>. At this point the product's core promise is demonstrably met: <b>a sandbox co-worker drives Knots with no local state and no credentials, attributed and boundary-respecting, converging through git.</b></p></div>
+
+<!-- ============================================================ -->
+<h2 id="p3"><b>9 · Phase 3 — Polish (optional, prioritized)</b></h2>
+<table>
+  <tr><th>Unit</th><th>Adds</th><th>Acceptance / go-no-go</th></tr>
+  <tr><td><b>U3.1</b> Power tools</td><td><code>gate, plan, edge, step</code> tools behind a <code>--power</code> flag.</td><td>With flag on, <code>tools/list</code> includes them; off, it doesn't. <span class="pill">GO if count differs by exactly the power set</span>.</td></tr>
+  <tr><td><b>U3.2</b> MCP resources</td><td><code>knot://&lt;id&gt;</code> readable resource.</td><td><code>resources/read</code> of a seeded id returns its <code>KnotView</code> JSON → GO.</td></tr>
+  <tr><td><b>U3.3</b> Read-only mode</td><td><code>--read-only</code> exposes only list/show/poll.</td><td>A write tool call in read-only mode → <code>isError</code> "read-only"; no state change on store → GO.</td></tr>
+  <tr><td><b>U3.4</b> In-process <code>KnotsApi</code> (D1 alt)</td><td><code>src/lib.rs</code> carve-out; tools call it directly.</td><td><b>Only if measured:</b> median tool latency drops vs shell-out by a stated %; all Phase-1/2 verifications still GO unchanged.</td></tr>
+  <tr><td><b>U3.5</b> OAuth 2.1</td><td>Replace/augment bearer with OAuth per MCP spec.</td><td>Unauthorized → 401; authorized flow → 200; V2.2 suite still GO.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="gates"><b>10 · Product acceptance rubric</b></h2>
+<p>The product is "done" (Phase 2 shipped) when <b>every</b> row below is <span class="check">GO</span>. This is the single source of truth for completion.</p>
+<table>
+  <tr><th>#</th><th>Product acceptance criterion</th><th>Binary verification</th></tr>
+  <tr><td>P1</td><td>Builds as a feature-gated second binary; default CLI unaffected.</td><td>V0.1a–c</td></tr>
+  <tr><td>P2</td><td>Quality bar held throughout.</td><td><code>make sanity</code> GO at each phase exit (incl. ≥95% coverage).</td></tr>
+  <tr><td>P3</td><td>Core tool set works against a real store.</td><td>V1.2–V1.5 + Phase 1 e2e claim loop.</td></tr>
+  <tr><td>P4</td><td>Claim boundary contract preserved verbatim.</td><td>V1.4a–c (single_action / e2e_continuation; byte-identical passthrough).</td></tr>
+  <tr><td>P5</td><td>One attributed lease per session.</td><td>V1.6a–c.</td></tr>
+  <tr><td>P6</td><td>Reachable over authenticated network transport.</td><td>V2.1, V2.2a–d.</td></tr>
+  <tr><td>P7</td><td>Stays fresh; survives deferred syncs.</td><td>V2.3a–b.</td></tr>
+  <tr><td>P8</td><td>Runs unattended on Manhattan; credentials contained.</td><td>V2.4a–c.</td></tr>
+  <tr><td>P9</td><td>Reachable only from the tailnet.</td><td>V2.5a–b.</td></tr>
+  <tr><td>P10</td><td><b>The headline:</b> a credential-less, Knots-less sandbox agent claims & advances a knot, visible on the MacBook.</td><td>V2.6a–b.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="appendix"><b>Appendix · Configs &amp; risks</b></h2>
+
+<h4>Cargo.toml additions (D2, D3)</h4>
+<pre><code>[features]
+mcp = ["dep:rmcp", "dep:tokio", "dep:axum", "dep:schemars"]
+
+[dependencies]
+rmcp    = { version = "0.x", features = ["server","macros","schemars",
+            "transport-streamable-http-server"], optional = true }
+tokio   = { version = "1",   features = ["rt-multi-thread","macros"], optional = true }
+axum    = { version = "0.7", optional = true }
+schemars= { version = "0.8", optional = true }
+
+[[bin]]
+name = "kno-mcp"
+path = "src/bin/kno_mcp.rs"
+required-features = ["mcp"]</code></pre>
+
+<h4>rmcp tool shape (per the SDK macros)</h4>
+<pre><code>use rmcp::{ServerHandler, handler::server::wrapper::Parameters,
+           model::*, tool, tool_handler, tool_router, ErrorData as McpError};
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct ListArgs { state: Option&lt;String&gt;, tag: Option&lt;String&gt;, limit: Option&lt;u32&gt; }
+
+#[tool_router]
+impl KnoMcp {
+  #[tool(description = "List knots, optionally filtered by state/tag.")]
+  async fn knots_list(&amp;self, Parameters(a): Parameters&lt;ListArgs&gt;)
+      -&gt; Result&lt;CallToolResult, McpError&gt; { /* build_argv + run + D8 */ }
+}
+#[tool_handler] impl ServerHandler for KnoMcp { /* get_info: tools enabled */ }</code></pre>
+
+<h4>Manhattan service (systemd sketch — note <code>-C</code>, not an env)</h4>
+<pre><code>[Service]
+User=knots
+ExecStart=/usr/local/bin/kno-mcp serve \
+  --repo /var/lib/knots/repo \      # dedicated git checkout w/ sync remote
+  --bind 100.x.y.z:7777 \           # tailnet interface only
+  --token-file /etc/kno-mcp/token \
+  --sync-interval 15s
+Restart=always</code></pre>
+
+<h4>Sandbox client config</h4>
+<pre><code>claude mcp add --transport http knots \
+  https://manhattan.&lt;tailnet&gt;.ts.net/mcp \
+  --header "Authorization: Bearer $KNOTS_MCP_TOKEN"</code></pre>
+
+<h4>Open risks (each owned by a unit)</h4>
+<table>
+  <tr><th>Risk</th><th>Owner unit</th><th>Resolution</th></tr>
+  <tr><td><code>kno new --json</code> not structured</td><td>U0.4</td><td>Add structured create output if V0.4 is NO-GO.</td></tr>
+  <tr><td>No explicit lease release</td><td>U0.5/U1.6</td><td>Fall back to <code>timeout_seconds</code>; pick a sane default.</td></tr>
+  <tr><td>Coverage of async/network glue</td><td>D10 / U1.7, U2.1</td><td>Pure core tested; glue excluded via <code>cfg(tarpaulin_include)</code>.</td></tr>
+  <tr><td>Sandbox lacks tailnet access</td><td>U2.5</td><td>Fallback: Tailscale Funnel / Cloudflare Tunnel with mandatory auth (never unauthenticated).</td></tr>
+  <tr><td>rmcp API churn (0.x)</td><td>U0.3</td><td>Pin a version; the skeleton compile (V0.3) is the canary.</td></tr>
+</table>
+
+<hr>
+<p class="small muted">
+  External sources: <a href="https://github.com/modelcontextprotocol/rust-sdk">modelcontextprotocol/rust-sdk (rmcp)</a> ·
+  <a href="https://docs.rs/rmcp">docs.rs/rmcp</a>.
+  Codebase facts cited inline (src/project.rs, src/app/types.rs, src/prompt.rs, src/replication.rs, src/sync/mod.rs, src/cli_agent.rs, src/main.rs, Makefile, Cargo.toml, .ci/coverage-threshold.txt).
+</p>
+
+</div>
+</body>
+</html>
