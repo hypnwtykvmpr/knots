@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 URL="${KNO_MCP_URL:-https://manhattan.tailfd2e8e.ts.net/mcp}"
 TAILNET_URL="${KNO_MCP_TAILNET_URL:-$URL}"
 SSH_HOST="${KNO_MCP_SSH_HOST:-manhattan}"
+SSH_TRANSPORT="${KNO_MCP_SSH_TRANSPORT:-ssh}"
 SERVICE_NAME="${KNO_MCP_SERVICE_NAME:-kno-mcp}"
 MACBOOK_REPO="${KNO_MCP_MACBOOK_REPO:-$ROOT_DIR}"
 LOCAL_SERVICE_URL="${KNO_MCP_SERVICE_LOCAL_URL:-http://127.0.0.1:7777/mcp}"
@@ -29,6 +30,7 @@ Environment:
   KNO_MCP_TOKEN                Bearer token for local HTTP probes.
   KNO_MCP_TOKEN_FILE           File containing the bearer token.
   KNO_MCP_SSH_HOST             SSH host for Manhattan; default: manhattan.
+  KNO_MCP_SSH_TRANSPORT        Remote shell transport: ssh or tailscale.
   KNO_MCP_SERVICE_NAME         systemd service name; default: kno-mcp.
   KNO_MCP_SERVICE_LOCAL_URL    Service-host URL for V2.4c.
   KNO_MCP_REMOTE_TOKEN_FILE    Token file on the service host for V2.4c.
@@ -93,7 +95,7 @@ ssh_run() {
   local stdout stderr pid waited status
   stdout="$(mktemp)"
   stderr="$(mktemp)"
-  ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_HOST" "$@" \
+  remote_shell "$@" \
     >"$stdout" 2>"$stderr" &
   pid=$!
   waited=0
@@ -114,6 +116,17 @@ ssh_run() {
   cat "$stdout" "$stderr"
   rm -f "$stdout" "$stderr"
   return "$status"
+}
+
+remote_shell() {
+  case "$SSH_TRANSPORT" in
+    ssh) ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_HOST" "$@" ;;
+    tailscale) tailscale ssh "$SSH_HOST" "$@" ;;
+    *)
+      printf 'unsupported KNO_MCP_SSH_TRANSPORT: %s\n' "$SSH_TRANSPORT" >&2
+      return 2
+      ;;
+  esac
 }
 
 json_request() {
@@ -190,12 +203,30 @@ tool_call() {
 
 check_requirements() {
   local missing=0
-  for cmd in curl jq ssh; do
+  for cmd in curl jq; do
     if ! need_cmd "$cmd"; then
       record_nogo "pre.${cmd}" "missing required command"
       missing=1
     fi
   done
+  case "$SSH_TRANSPORT" in
+    ssh)
+      if ! need_cmd ssh; then
+        record_nogo "pre.ssh" "missing required command"
+        missing=1
+      fi
+      ;;
+    tailscale)
+      if ! need_cmd tailscale; then
+        record_nogo "pre.tailscale" "missing required command"
+        missing=1
+      fi
+      ;;
+    *)
+      record_nogo "pre.ssh" "unsupported KNO_MCP_SSH_TRANSPORT: $SSH_TRANSPORT"
+      missing=1
+      ;;
+  esac
   if ! TOKEN="$(load_token)"; then
     TOKEN=""
   fi

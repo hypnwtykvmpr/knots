@@ -22,7 +22,9 @@ Build automation, release tooling, and git hooks.
   from `docs/mcp-server-design.html` (Manhattan service, tailnet reachability,
   and sandbox-style claim/next convergence). The V2.6 probe defaults to
   `sandbox-probe` identity and can be named with `KNO_MCP_PROBE_CLIENT_NAME`,
-  `KNO_MCP_PROBE_CLIENT_VERSION`, and `KNO_MCP_PROBE_CLIENT_PROVIDER`.
+  `KNO_MCP_PROBE_CLIENT_VERSION`, and `KNO_MCP_PROBE_CLIENT_PROVIDER`. Set
+  `KNO_MCP_SSH_TRANSPORT=tailscale` when Manhattan requires Tailscale SSH
+  host-key handling instead of plain OpenSSH.
 
 ## scripts/release/
 
