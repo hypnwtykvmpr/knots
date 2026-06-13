@@ -50,9 +50,13 @@ pub struct KnoMcp {
 
 impl KnoMcp {
     pub fn new(config: ServerConfig) -> Self {
+        Self::with_lease_registry(config, LeaseRegistry::default())
+    }
+
+    fn with_lease_registry(config: ServerConfig, lease_registry: LeaseRegistry) -> Self {
         Self {
             runner: KnoRunner::new(config.kno_bin, config.repo),
-            lease_registry: LeaseRegistry::default(),
+            lease_registry,
             lease_timeout_seconds: config.lease_timeout_seconds,
             tool_router: Self::tool_router(),
         }
@@ -166,8 +170,14 @@ pub async fn serve_http(
     let runner = KnoRunner::new(server_config.kno_bin.clone(), server_config.repo.clone());
     spawn_background_sync(runner, http.sync_interval);
     let token = http.token.clone();
+    let lease_registry = LeaseRegistry::default();
     let service: StreamableHttpService<KnoMcp, LocalSessionManager> = StreamableHttpService::new(
-        move || Ok(KnoMcp::new(server_config.clone())),
+        move || {
+            Ok(KnoMcp::with_lease_registry(
+                server_config.clone(),
+                lease_registry.clone(),
+            ))
+        },
         Default::default(),
         StreamableHttpServerConfig::default()
             .with_stateful_mode(false)
@@ -437,11 +447,35 @@ mod tests {
         assert!(info.capabilities.tools.is_some());
     }
 
+    #[test]
+    fn shared_registry_carries_lease_between_http_instances() {
+        let registry = LeaseRegistry::default();
+        let first = server_with_registry(registry.clone());
+        let second = server_with_registry(registry);
+        let mut client = Implementation::new("client", "1.0");
+        client.title = Some("provider".to_string());
+
+        first
+            .lease_registry
+            .get_or_create(&first.runner, &client, 60)
+            .expect("lease");
+
+        assert_eq!(second.lease_registry.current(), Some("L1".to_string()));
+    }
+
     fn server_with_fixture() -> KnoMcp {
-        KnoMcp::new(ServerConfig {
-            repo: PathBuf::from("/tmp/repo"),
-            kno_bin: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/kno-stub.sh"),
-            lease_timeout_seconds: 600,
-        })
+        server_with_registry(LeaseRegistry::default())
+    }
+
+    fn server_with_registry(lease_registry: LeaseRegistry) -> KnoMcp {
+        KnoMcp::with_lease_registry(
+            ServerConfig {
+                repo: PathBuf::from("/tmp/repo"),
+                kno_bin: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("tests/fixtures/kno-stub.sh"),
+                lease_timeout_seconds: 600,
+            },
+            lease_registry,
+        )
     }
 }

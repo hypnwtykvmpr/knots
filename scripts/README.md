@@ -13,6 +13,8 @@ Build automation, release tooling, and git hooks.
 
 ## scripts/mcp/
 
+- **`install-systemd-service.sh`** — installs or dry-runs the Linux
+  `kno-mcp` systemd service used by the Phase 2 Manhattan deployment
 - **`verify-phase2-external.sh`** — verifies the external MCP Phase 2 gates
   from `docs/mcp-server-design.html` (Manhattan service, tailnet reachability,
   and sandbox-style claim/next convergence)

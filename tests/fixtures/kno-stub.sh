@@ -24,36 +24,143 @@ fi
 
 case "$subcmd" in
   ls)
-    echo '{"data":[{"id":"k1","title":"demo","state":"ready","updated_at":"t","type":"work","tags":[]}],"total":1,"offset":0,"limit":50,"has_more":false}'
+    cat <<'JSON'
+{
+  "data": [
+    {
+      "id": "k1",
+      "title": "demo",
+      "state": "ready",
+      "updated_at": "t",
+      "type": "work",
+      "tags": []
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "limit": 50,
+  "has_more": false
+}
+JSON
     ;;
   show)
-    echo '{"id":"k1","title":"demo","state":"ready","updated_at":"t","type":"work","tags":[]}'
+    cat <<'JSON'
+{
+  "id": "k1",
+  "title": "demo",
+  "state": "ready",
+  "updated_at": "t",
+  "type": "work",
+  "tags": []
+}
+JSON
     ;;
   poll)
-    echo '{"id":"k1","title":"demo","state":"ready_for_implementation","updated_at":"t","type":"work","tags":[]}'
+    cat <<'JSON'
+{
+  "id": "k1",
+  "title": "demo",
+  "state": "ready_for_implementation",
+  "updated_at": "t",
+  "type": "work",
+  "tags": []
+}
+JSON
     ;;
   new)
-    echo '{"id":"k-new","title":"New","state":"ready_for_implementation","updated_at":"t","type":"work","tags":[]}'
+    cat <<'JSON'
+{
+  "id": "k-new",
+  "title": "New",
+  "state": "ready_for_implementation",
+  "updated_at": "t",
+  "type": "work",
+  "tags": []
+}
+JSON
     ;;
   update)
     if [[ " ${args[*]} " == *" k-new "* ]]; then
-      echo '{"id":"k-new","title":"New","state":"ready_for_implementation","updated_at":"t","type":"work","priority":3,"tags":[]}'
+      cat <<'JSON'
+{
+  "id": "k-new",
+  "title": "New",
+  "state": "ready_for_implementation",
+  "updated_at": "t",
+  "type": "work",
+  "priority": 3,
+  "tags": []
+}
+JSON
     else
-      echo '{"id":"k1","title":"updated","state":"ready_for_implementation","updated_at":"t","type":"work","tags":[]}'
+      cat <<'JSON'
+{
+  "id": "k1",
+  "title": "updated",
+  "state": "ready_for_implementation",
+  "updated_at": "t",
+  "type": "work",
+  "tags": []
+}
+JSON
     fi
     ;;
   claim)
+    lease_present=false
+    if [[ " ${args[*]} " == *" --lease L1 "* ]]; then
+      lease_present=true
+    fi
     if [[ " ${args[*]} " == *" --e2e "* ]]; then
-      echo '{"id":"k1","title":"demo","state":"planning","prompt":"do x","e2e":true,"workflow_boundary_kind":"e2e_continuation","lease_id":"L1"}'
+      cat <<JSON
+{
+  "id": "k1",
+  "title": "demo",
+  "state": "planning",
+  "prompt": "do x",
+  "e2e": true,
+  "workflow_boundary_kind": "e2e_continuation",
+  "lease_id": "L1",
+  "lease_present": $lease_present
+}
+JSON
     else
-      echo '{"id":"k1","title":"demo","state":"planning","prompt":"do x","e2e":false,"workflow_boundary_kind":"single_action","lease_id":"L1"}'
+      cat <<JSON
+{
+  "id": "k1",
+  "title": "demo",
+  "state": "planning",
+  "prompt": "do x",
+  "e2e": false,
+  "workflow_boundary_kind": "single_action",
+  "lease_id": "L1",
+  "lease_present": $lease_present
+}
+JSON
     fi
     ;;
   next)
-    echo '{"id":"k1","title":"demo","state":"ready_for_review","updated_at":"t","type":"work","tags":[]}'
+    cat <<'JSON'
+{
+  "id": "k1",
+  "title": "demo",
+  "state": "ready_for_review",
+  "updated_at": "t",
+  "type": "work",
+  "tags": []
+}
+JSON
     ;;
   rollback)
-    echo '{"id":"k1","state":"implementation","target_state":"ready_for_implementation","owner_kind":"agent","reason":"rolled back","dry_run":false}'
+    cat <<'JSON'
+{
+  "id": "k1",
+  "state": "implementation",
+  "target_state": "ready_for_implementation",
+  "owner_kind": "agent",
+  "reason": "rolled back",
+  "dry_run": false
+}
+JSON
     ;;
   sync)
     echo '{"status":"deferred","active_leases":1}'
