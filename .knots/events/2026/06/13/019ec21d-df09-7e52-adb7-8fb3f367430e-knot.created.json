@@ -1,0 +1,17 @@
+{
+  "event_id": "019ec21d-df09-7e52-adb7-8fb3f367430e",
+  "occurred_at": "2026-06-13T17:53:18.089451533Z",
+  "knot_id": "knots-4f5b",
+  "type": "knot.created",
+  "data": {
+    "body": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "profile_id": "autopilot",
+    "state": "ready_for_planning",
+    "title": "mcp-debug-push-probe",
+    "type": "work",
+    "workflow_id": "work_sdlc"
+  }
+}
