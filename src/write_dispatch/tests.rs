@@ -68,6 +68,7 @@ fn execute_queued_request_returns_failure_when_app_open_fails() {
             tags: vec![],
             scope: crate::cli_scope::ScopeArgs::default(),
             lease_id: None,
+            json: false,
         }),
     };
     let response = execute_queued_request(&request);
@@ -356,7 +357,26 @@ fn exploration_op() -> NewOperation {
         tags: vec![],
         scope: crate::cli_scope::ScopeArgs::default(),
         lease_id: None,
+        json: false,
     }
+}
+
+#[test]
+fn execute_new_json_returns_created_knot_view() {
+    let root = unique_workspace("knots-wd-new-json");
+    setup_repo(&root);
+    let db = root.join(".knots/cache/state.sqlite");
+    let app = App::open(db.to_str().unwrap(), root).unwrap();
+    let mut op = exploration_op();
+    op.exploration = false;
+    op.title = "JSON create".to_string();
+    op.json = true;
+
+    let output = execute_operation(&app, &WriteOperation::New(op)).expect("new should succeed");
+    let parsed: serde_json::Value = serde_json::from_str(&output).expect("valid JSON");
+
+    assert_eq!(parsed["title"], "JSON create");
+    assert!(parsed["id"].as_str().is_some_and(|id| !id.is_empty()));
 }
 
 #[test]

@@ -63,6 +63,7 @@ fn explicit_note_agent_flags_are_ignored_lease_wins() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     });
     execute_operation(&app, &op).expect("update should succeed");
 
@@ -130,6 +131,7 @@ fn note_defaults_preserved_without_lease() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     });
     execute_operation(&app, &op).expect("update should succeed");
 
@@ -194,6 +196,7 @@ fn handoff_capsule_auto_fills_from_lease_agent_info() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     });
     execute_operation(&app, &op).expect("update with handoff should succeed");
 
@@ -268,6 +271,7 @@ fn explicit_handoff_agent_flags_are_ignored_lease_wins() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     });
     execute_operation(&app, &op).expect("update should succeed");
 

@@ -66,6 +66,12 @@ fn push_pull_and_sync_emit_progress_and_json() {
     assert!(!String::from_utf8_lossy(&pull_json.stdout).contains("importing knots updates"));
     let _: Value = serde_json::from_slice(&pull_json.stdout).expect("pull --json should parse");
 
+    let sync_json = run_knots(&root, &db, &["sync", "--json"]);
+    assert_success(&sync_json);
+    let sync_payload: Value =
+        serde_json::from_slice(&sync_json.stdout).expect("sync --json should parse");
+    assert_eq!(sync_payload["status"], "completed");
+
     let _ = std::fs::remove_dir_all(root);
 }
 

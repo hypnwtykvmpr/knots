@@ -147,6 +147,7 @@ fn execute_operation_update_loads_execution_plan_file() {
             force: false,
             approve_terminal_cascade: false,
             lease_id: None,
+            json: false,
         }),
     )
     .expect("update should succeed");
@@ -238,6 +239,7 @@ fn execute_operation_update_objective_preserves_existing_waves() {
             force: false,
             approve_terminal_cascade: false,
             lease_id: None,
+            json: false,
         }),
     )
     .expect("update should succeed");

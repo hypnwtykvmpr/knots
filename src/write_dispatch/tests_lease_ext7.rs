@@ -20,6 +20,7 @@ fn new_with_lease(title: &str, lease_id: &str) -> WriteOperation {
         tags: vec![],
         scope: crate::cli_scope::ScopeArgs::default(),
         lease_id: Some(lease_id.to_string()),
+        json: false,
     })
 }
 
@@ -85,6 +86,7 @@ fn new_with_lease_flag_binds_lease_for_handoff_authorship() {
             force: false,
             approve_terminal_cascade: false,
             lease_id: Some(lease_id),
+            json: false,
         }),
     )
     .expect("handoff should use bound lease");

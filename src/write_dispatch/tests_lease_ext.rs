@@ -337,6 +337,7 @@ fn update_with_lease_flag_rejects_unbound() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: Some(lease_id.clone()),
+        json: false,
     });
     let err = execute_operation(&app, &op).expect_err("update should reject lease binding");
     let err_msg = err.to_string();
@@ -406,6 +407,7 @@ fn note_auto_fills_from_lease_agent_info() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     });
     execute_operation(&app, &op).expect("update with note should succeed");
 

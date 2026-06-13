@@ -116,6 +116,11 @@ fn execute_new(app: &App, args: &crate::write_queue::NewOperation) -> Result<Str
             ..CreateKnotOptions::default()
         },
     )?;
+    if args.json {
+        return Ok(format_json(
+            &serde_json::to_value(&knot).expect("created knot should serialize"),
+        ));
+    }
     let palette = ui::Palette::auto();
     Ok(format!(
         "created {} {} {}\n",
@@ -136,6 +141,11 @@ fn execute_quick_new(
         args.state.as_deref(),
         Some(&quick_profile),
     )?;
+    if args.json {
+        return Ok(format_json(
+            &serde_json::to_value(&knot).expect("created knot should serialize"),
+        ));
+    }
     let palette = ui::Palette::auto();
     Ok(format!(
         "created {} {} {}\n",

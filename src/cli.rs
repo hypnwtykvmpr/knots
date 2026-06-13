@@ -170,6 +170,9 @@ pub struct QuickNewArgs {
         help = "Initial knot state (defaults to profile initial_state)."
     )]
     pub state: Option<String>,
+
+    #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]
@@ -277,6 +280,9 @@ pub struct NewArgs {
 
     #[arg(long, help = "Bind a lease to this knot.")]
     pub lease: Option<String>,
+
+    #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]
