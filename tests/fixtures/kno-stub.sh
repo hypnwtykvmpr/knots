@@ -59,7 +59,7 @@ case "$subcmd" in
     echo '{"status":"deferred","active_leases":1}'
     ;;
   lease)
-    echo '{"id":"L1","title":"Lease: mcp-session","state":"active","agent_info":{"model":"test-model"}}'
+    echo '{"id":"L1","title":"mcp-session","state":"active","agent_info":{"model":"test-model"}}'
     ;;
   *)
     echo '{}'

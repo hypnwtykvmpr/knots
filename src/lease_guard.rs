@@ -154,13 +154,34 @@ pub(crate) fn release_bound_lease(app: &App, knot_id: &str) -> Result<(), AppErr
 
     let lease_knot = load_bound_lease(app, &knot)?;
 
-    // If the lease is still active (or raw-active but expired),
-    // terminate it. If already terminated in DB, skip termination.
+    // MCP owns a session-scoped lease. Release it back to ready so the next
+    // action in the same MCP session can carry the same attributed identity.
     if lease_knot.state != workflow_runtime::LEASE_TERMINATED {
-        crate::lease::terminate_lease(app, lease_id)?;
+        if crate::lease::is_mcp_session_lease(&lease_knot) {
+            ready_mcp_session_lease(app, &lease_knot)?;
+        } else {
+            crate::lease::terminate_lease(app, lease_id)?;
+        }
     }
 
     app.set_lease_id(knot_id, None)?;
+    Ok(())
+}
+
+fn ready_mcp_session_lease(app: &App, lease: &KnotView) -> Result<(), AppError> {
+    app.set_state_with_actor(
+        &lease.id,
+        workflow_runtime::LEASE_READY,
+        true,
+        None,
+        StateActorMetadata::default(),
+    )?;
+    let timeout = lease
+        .lease
+        .as_ref()
+        .and_then(|data| data.timeout_seconds)
+        .unwrap_or(crate::lease_expiry::DEFAULT_LEASE_TIMEOUT_SECONDS);
+    app.set_lease_expiry(&lease.id, crate::lease_expiry::compute_expiry_ts(timeout))?;
     Ok(())
 }
 
