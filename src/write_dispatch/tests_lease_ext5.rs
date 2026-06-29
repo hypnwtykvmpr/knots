@@ -52,6 +52,7 @@ fn update_op_with_lease(id: &str, lease_id: &str) -> WriteOperation {
         force: false,
         approve_terminal_cascade: false,
         lease_id: Some(lease_id.to_string()),
+        json: false,
     })
 }
 

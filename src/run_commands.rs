@@ -190,39 +190,35 @@ pub fn run_sync(app: &app::App, args: crate::cli::SyncArgs) -> Result<(), app::A
             .as_mut()
             .map(|r| r as &mut dyn progress::ProgressReporter),
     )?;
+    if args.json {
+        print_json(&outcome);
+        return Ok(());
+    }
     match outcome {
         SyncOutcome::Completed(summary) => {
-            if args.json {
-                print_json(&summary);
-            } else {
-                println!(
-                    "sync push(local_event_files={} copied_files={} \
+            println!(
+                "sync push(local_event_files={} copied_files={} \
                      committed={} pushed={}) \
                      pull(head={} index_files={} full_files={} \
                      knot_updates={} edge_adds={} edge_removes={})",
-                    summary.push.local_event_files,
-                    summary.push.copied_files,
-                    summary.push.committed,
-                    summary.push.pushed,
-                    summary.pull.target_head,
-                    summary.pull.index_files,
-                    summary.pull.full_files,
-                    summary.pull.knot_updates,
-                    summary.pull.edge_adds,
-                    summary.pull.edge_removes
-                );
-            }
+                summary.push.local_event_files,
+                summary.push.copied_files,
+                summary.push.committed,
+                summary.push.pushed,
+                summary.pull.target_head,
+                summary.pull.index_files,
+                summary.pull.full_files,
+                summary.pull.knot_updates,
+                summary.pull.edge_adds,
+                summary.pull.edge_removes
+            );
         }
         SyncOutcome::Deferred { active_leases } => {
-            if args.json {
-                print_json(&outcome);
-            } else {
-                println!(
-                    "sync deferred: {} active lease(s); \
+            println!(
+                "sync deferred: {} active lease(s); \
                      sync will run when leases are terminated",
-                    active_leases
-                );
-            }
+                active_leases
+            );
         }
     }
     Ok(())

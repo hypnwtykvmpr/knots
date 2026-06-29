@@ -2,6 +2,8 @@ use crate::app::{App, AppError, CreateKnotOptions, KnotView, StateActorMetadata}
 use crate::domain::knot_type::KnotType;
 use crate::domain::lease::{AgentInfo, LeaseData, LeaseType};
 
+const MCP_SESSION_LEASE_PREFIX: &str = "mcp-";
+
 /// Create a lease knot in lease_ready state.
 pub fn create_lease(
     app: &App,
@@ -16,7 +18,7 @@ pub fn create_lease(
         agent_info,
         timeout_seconds: Some(timeout_seconds),
     };
-    let title = format!("Lease: {}", nickname);
+    let title = lease_title(nickname);
     let lease = app.create_knot_with_options(
         &title,
         None,
@@ -34,6 +36,20 @@ pub fn create_lease(
         crate::lease_expiry::compute_expiry_ts(timeout_seconds),
     )?;
     Ok(lease)
+}
+
+pub(crate) fn is_mcp_session_lease(knot: &KnotView) -> bool {
+    knot.lease
+        .as_ref()
+        .is_some_and(|data| data.nickname.starts_with(MCP_SESSION_LEASE_PREFIX))
+}
+
+fn lease_title(nickname: &str) -> String {
+    if nickname.starts_with(MCP_SESSION_LEASE_PREFIX) {
+        nickname.to_string()
+    } else {
+        format!("Lease: {}", nickname)
+    }
 }
 
 /// Transition a lease from lease_ready to lease_active.

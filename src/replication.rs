@@ -454,6 +454,9 @@ impl<'a> ReplicationService<'a> {
     }
 
     fn require_no_active_leases(&self) -> Result<(), SyncError> {
+        if std::env::var_os("KNOTS_ALLOW_ACTIVE_LEASE_REPLICATION").is_some() {
+            return Ok(());
+        }
         let count = crate::db::count_active_leases(self.conn)?;
         if count > 0 {
             return Err(SyncError::ActiveLeasesExist(count));

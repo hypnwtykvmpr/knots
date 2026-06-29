@@ -75,6 +75,7 @@ fn base_update_op(id: &str) -> UpdateOperation {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     }
 }
 
@@ -300,6 +301,7 @@ fn rollback_ignores_bogus_agent_flags_and_uses_lease() {
             agent_name: Some("bogus".to_string()),
             agent_model: Some("bogus".to_string()),
             agent_version: Some("bogus".to_string()),
+            json: false,
         }),
     )
     .expect("rollback should succeed");

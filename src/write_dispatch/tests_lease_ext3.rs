@@ -47,6 +47,7 @@ fn update_operation(id: &str, title: &str, lease_id: Option<String>) -> WriteOpe
         force: false,
         approve_terminal_cascade: false,
         lease_id,
+        json: false,
     })
 }
 

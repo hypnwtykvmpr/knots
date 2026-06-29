@@ -71,6 +71,7 @@ fn new_and_update_scope_round_trip() {
                 ..ScopeArgs::default()
             },
             lease_id: None,
+            json: false,
         }),
     )
     .expect("new should succeed");
@@ -206,5 +207,6 @@ fn empty_update() -> UpdateOperation {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     }
 }

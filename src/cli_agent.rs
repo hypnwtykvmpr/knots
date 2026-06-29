@@ -57,6 +57,8 @@ pub struct RollbackArgs {
         help = "Preview the rollback target without mutating state."
     )]
     pub dry_run: bool,
+    #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
+    pub json: bool,
     #[arg(long = "actor-kind", help = "Actor kind for the step: human or agent.")]
     pub actor_kind: Option<String>,
     #[arg(
@@ -337,6 +339,8 @@ pub struct UpdateArgs {
     pub cascade_terminal_descendants: bool,
     #[arg(long, help = "Bind a lease to this knot.")]
     pub lease: Option<String>,
+    #[arg(short = 'j', long, help = "Render machine-readable JSON.")]
+    pub json: bool,
 }
 
 #[derive(Debug, Args)]

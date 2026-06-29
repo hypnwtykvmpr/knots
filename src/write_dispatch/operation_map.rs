@@ -51,6 +51,7 @@ fn map_new(args: &crate::cli::NewArgs) -> WriteOperation {
         tags: args.tags.clone(),
         scope: args.scope.clone(),
         lease_id: args.lease.clone(),
+        json: args.json,
     })
 }
 
@@ -59,6 +60,7 @@ fn map_quick_new(args: &crate::cli::QuickNewArgs) -> WriteOperation {
         title: args.title.clone(),
         description: args.desc.clone(),
         state: args.state.clone(),
+        json: args.json,
     })
 }
 
@@ -122,6 +124,7 @@ fn map_update(args: &crate::cli::UpdateArgs) -> WriteOperation {
         force: args.force,
         approve_terminal_cascade: args.cascade_terminal_descendants,
         lease_id: args.lease.clone(),
+        json: args.json,
     })
 }
 
@@ -160,6 +163,7 @@ fn map_rollback(args: &crate::cli::RollbackArgs) -> WriteOperation {
         agent_name: args.agent_name.clone(),
         agent_model: args.agent_model.clone(),
         agent_version: args.agent_version.clone(),
+        json: args.json,
     })
 }
 

@@ -15,6 +15,8 @@ use super::{GitAdapter, SyncError, SyncSummary};
 mod apply_helpers;
 #[path = "apply_state.rs"]
 mod apply_state;
+#[path = "apply_step_history.rs"]
+mod apply_step_history;
 use apply_helpers::{
     build_index_upsert, current_unix_ms_string, invalid_event, is_stale_full_precondition,
     is_stale_precondition, optional_i64, optional_string, parse_execution_plan_data,
@@ -24,6 +26,7 @@ use apply_helpers::{
 };
 use apply_state::resolve_tier;
 use apply_state::FullApplyOutcome;
+use apply_step_history::apply_state_set_step_history;
 
 pub struct IncrementalApplier<'a> {
     conn: &'a Connection,
@@ -307,7 +310,13 @@ impl<'a> IncrementalApplier<'a> {
                 Ok(FullApplyOutcome::EdgeRemoved)
             }
             t => {
-                self.apply_metadata_event(t, data, &event.knot_id, &absolute_path)?;
+                self.apply_metadata_event(
+                    t,
+                    data,
+                    &event.knot_id,
+                    &event.occurred_at,
+                    &absolute_path,
+                )?;
                 Ok(FullApplyOutcome::Ignored)
             }
         }
@@ -318,6 +327,7 @@ impl<'a> IncrementalApplier<'a> {
         event_type: &str,
         data: &serde_json::Map<String, Value>,
         knot_id: &str,
+        occurred_at: &str,
         path: &Path,
     ) -> Result<(), SyncError> {
         match event_type {
@@ -398,6 +408,9 @@ impl<'a> IncrementalApplier<'a> {
                 let lid = optional_string(data.get("lease_id"));
                 self.apply_metadata_update(knot_id, |r| r.lease_id = lid)
             }
+            "knot.state_set" => self.apply_metadata_update(knot_id, |r| {
+                apply_state_set_step_history(r, data, occurred_at);
+            }),
             _ => Ok(()),
         }
     }
@@ -475,6 +488,9 @@ mod tests_invariant;
 #[cfg(test)]
 #[path = "apply_tests_legacy_defaults.rs"]
 mod tests_legacy_defaults;
+#[cfg(test)]
+#[path = "apply_tests_step_history.rs"]
+mod tests_step_history;
 #[cfg(test)]
 #[path = "apply_tests_unknown_workflow.rs"]
 mod tests_unknown_workflow;

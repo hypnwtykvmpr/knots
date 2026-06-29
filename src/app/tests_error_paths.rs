@@ -11,6 +11,7 @@ use crate::db::{EdgeDirection, KnotCacheRecord};
 use crate::doctor::DoctorError;
 use crate::domain::knot_type::KnotType;
 use crate::domain::metadata::MetadataEntryInput;
+use crate::domain::step_history::StepStatus;
 use crate::events::{EventWriteError, FullEvent, FullEventKind, IndexEvent, IndexEventKind};
 use crate::fsck::FsckError;
 use crate::locks::LockError;
@@ -291,6 +292,41 @@ fn apply_rehydrate_event_covers_known_event_types() {
     assert_eq!(projection.notes.len(), 1);
     assert_eq!(projection.handoff_capsules.len(), 1);
     assert!(projection.tags.is_empty());
+}
+
+#[test]
+fn apply_rehydrate_event_replays_state_set_step_history() {
+    let mut projection = seed_projection();
+    projection.state = "ready_for_planning".to_string();
+    let event = FullEvent::with_identity(
+        "step-1",
+        "2026-02-25T10:03:00Z",
+        "K-1",
+        FullEventKind::KnotStateSet.as_str(),
+        json!({
+            "from": "ready_for_planning",
+            "to": "planning",
+            "actor_kind": "agent",
+            "agent_name": "sandbox-probe",
+            "agent_model": "sandbox-probe",
+            "agent_version": "1.0.0"
+        }),
+    );
+
+    apply_rehydrate_event(&mut projection, &event);
+
+    assert_eq!(projection.state, "planning");
+    let [record] = projection.step_history.as_slice() else {
+        panic!("expected one replayed step record");
+    };
+    assert_eq!(record.step, "planning");
+    assert_eq!(record.from_state, "ready_for_planning");
+    assert_eq!(record.status, StepStatus::Started);
+    assert_eq!(record.started_at, "2026-02-25T10:03:00Z");
+    assert_eq!(record.actor_kind.as_deref(), Some("agent"));
+    assert_eq!(record.agent_name.as_deref(), Some("sandbox-probe"));
+    assert_eq!(record.agent_model.as_deref(), Some("sandbox-probe"));
+    assert_eq!(record.agent_version.as_deref(), Some("1.0.0"));
 }
 
 #[test]

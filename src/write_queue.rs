@@ -38,12 +38,16 @@ pub struct NewOperation {
     pub tags: Vec<String>,
     pub scope: crate::cli_scope::ScopeArgs,
     pub lease_id: Option<String>,
+    #[serde(default)]
+    pub json: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct QuickNewOperation {
     pub title: String,
     pub description: Option<String>,
     pub state: Option<String>,
+    #[serde(default)]
+    pub json: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateOperation {
@@ -103,6 +107,8 @@ pub struct UpdateOperation {
     pub force: bool,
     pub approve_terminal_cascade: bool,
     pub lease_id: Option<String>,
+    #[serde(default)]
+    pub json: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct NextOperation {
@@ -124,6 +130,8 @@ pub struct RollbackOperation {
     pub agent_name: Option<String>,
     pub agent_model: Option<String>,
     pub agent_version: Option<String>,
+    #[serde(default)]
+    pub json: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ClaimOperation {

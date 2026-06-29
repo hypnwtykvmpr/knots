@@ -58,6 +58,11 @@ pub(super) fn execute_update(
         knot
     };
     refresh_lease_heartbeat(app, &knot);
+    if args.json {
+        return Ok(super::format_json(
+            &serde_json::to_value(&knot).expect("updated knot should serialize"),
+        ));
+    }
     let palette = ui::Palette::auto();
     Ok(format!(
         "updated {} {} {}\n",
@@ -316,6 +321,16 @@ pub(super) fn execute_rollback(
         lease_bound,
     );
     if args.dry_run {
+        if args.json {
+            return Ok(super::format_json(&serde_json::json!({
+                "id": resolution.knot.id,
+                "state": resolution.knot.state,
+                "target_state": resolution.target_state,
+                "owner_kind": resolution.owner_kind,
+                "reason": resolution.reason,
+                "dry_run": true,
+            })));
+        }
         return Ok(format_rollback_output(
             &resolution.knot,
             &resolution.target_state,
@@ -336,6 +351,16 @@ pub(super) fn execute_rollback(
     )?;
     if updated.lease_id.is_some() {
         release_bound_lease(app, &updated.id)?;
+    }
+    if args.json {
+        return Ok(super::format_json(&serde_json::json!({
+            "id": updated.id,
+            "state": updated.state,
+            "target_state": resolution.target_state,
+            "owner_kind": resolution.owner_kind,
+            "reason": resolution.reason,
+            "dry_run": false,
+        })));
     }
     Ok(format_rollback_output(
         &updated,

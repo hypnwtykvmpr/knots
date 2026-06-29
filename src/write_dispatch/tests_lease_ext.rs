@@ -113,6 +113,69 @@ fn next_terminates_lease() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn next_releases_mcp_session_lease_to_ready() {
+    let root = unique_workspace();
+    setup_repo(&root);
+    let app = open_app(&root);
+
+    let work = app
+        .create_knot(
+            "MCP lease next test",
+            None,
+            Some("work_item"),
+            Some("default"),
+        )
+        .expect("work knot should be created");
+    let lease = crate::lease::create_lease(
+        &app,
+        "mcp-session",
+        crate::domain::lease::LeaseType::Agent,
+        Some(crate::domain::lease::AgentInfo {
+            agent_type: "api".to_string(),
+            provider: "probe-provider".to_string(),
+            agent_name: "probe-agent".to_string(),
+            model: "probe-model".to_string(),
+            model_version: "1.0".to_string(),
+        }),
+        600,
+    )
+    .expect("lease should be created");
+    assert_eq!(lease.title, "mcp-session");
+
+    let claimed = poll_claim::claim_knot(
+        &app,
+        &work.id,
+        Some("agent".to_string()),
+        Some(&lease.id),
+        600,
+        false,
+    )
+    .expect("claim should succeed");
+    let next_op = WriteOperation::Next(NextOperation {
+        id: work.id.clone(),
+        expected_state: Some(claimed.knot.state.clone()),
+        json: false,
+        approve_terminal_cascade: false,
+        actor_kind: Some("agent".to_string()),
+        agent_name: None,
+        agent_model: None,
+        agent_version: None,
+        lease_id: Some(lease.id.clone()),
+    });
+    execute_operation(&app, &next_op).expect("next should succeed");
+
+    let work_after = app.show_knot(&work.id).expect("show").expect("work exists");
+    assert!(work_after.lease_id.is_none(), "lease should be unbound");
+    let lease_after = app
+        .show_knot(&lease.id)
+        .expect("show")
+        .expect("lease exists");
+    assert_eq!(lease_after.state, "lease_ready");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
 pub(super) fn parse(args: &[&str]) -> Cli {
     Cli::parse_from(args)
 }
@@ -337,6 +400,7 @@ fn update_with_lease_flag_rejects_unbound() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: Some(lease_id.clone()),
+        json: false,
     });
     let err = execute_operation(&app, &op).expect_err("update should reject lease binding");
     let err_msg = err.to_string();
@@ -406,6 +470,7 @@ fn note_auto_fills_from_lease_agent_info() {
         force: false,
         approve_terminal_cascade: false,
         lease_id: None,
+        json: false,
     });
     execute_operation(&app, &op).expect("update with note should succeed");
 

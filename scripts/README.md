@@ -11,6 +11,22 @@ Build automation, release tooling, and git hooks.
 - **`require-changeset.sh`** — ensures changesets are present for releases
 - **`publish-public.sh`** — publish release artifacts to the public channel
 
+## scripts/mcp/
+
+- **`install-systemd-service.sh`** — installs or dry-runs the Linux
+  `kno-mcp` systemd service used by the Phase 2 Manhattan deployment.
+  Set `KNO_MCP_GIT_URL` to clone or fetch the dedicated service checkout.
+  Set `KNO_MCP_TAILSCALE_SERVE=1` to expose the localhost service through the
+  HTTPS MagicDNS endpoint used by the external verifier.
+- **`verify-phase2-external.sh`** — verifies the external MCP Phase 2 gates
+  from `docs/mcp-server-design.html` (Manhattan service, tailnet reachability,
+  and sandbox-style claim/next convergence). The V2.6 probe defaults to
+  `sandbox-probe` identity and can be named with `KNO_MCP_PROBE_CLIENT_NAME`,
+  `KNO_MCP_PROBE_CLIENT_VERSION`, and `KNO_MCP_PROBE_CLIENT_PROVIDER`. Set
+  `KNO_MCP_SSH_TRANSPORT=tailscale` when Manhattan requires Tailscale SSH
+  host-key handling instead of plain OpenSSH. Set `KNO_MCP_SERVICE_SCOPE=user`
+  for a lingering user-systemd `kno-mcp` service.
+
 ## scripts/release/
 
 - **`check-changesets.mjs`** — validates changeset package keys before release

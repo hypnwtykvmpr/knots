@@ -57,6 +57,7 @@ fn execute_operation_rollback_covers_rejection_path() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            json: false,
         }),
     )
     .expect_err("queue-state rollback should fail");
@@ -105,6 +106,7 @@ fn execute_operation_rollback_covers_dry_run_and_real_paths() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            json: false,
         }),
     )
     .expect("dry-run rollback should succeed");
@@ -163,6 +165,7 @@ fn rollback_releases_bound_lease() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            json: false,
         }),
     )
     .expect("rollback should succeed");
@@ -221,6 +224,7 @@ fn advance_and_rollback(app: &App, implementation: &crate::app::KnotView) {
             agent_name: Some("rollbacker".to_string()),
             agent_model: Some("model".to_string()),
             agent_version: Some("3.0".to_string()),
+            json: false,
         }),
     )
     .expect("rollback should succeed");
