@@ -1,0 +1,15 @@
+{
+  "event_id": "019f17d1-3193-7573-815d-24457bba4f9e",
+  "occurred_at": "2026-06-30T09:16:53.523194Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Context: follow-up to commit d296525e, which clarified managed skill lease lifecycle but simplified the wording too far. Correct the agent-facing guidance so normal CLI claim leases are still treated as action-scoped and spent by `kno next`/rollback, while MCP session leases are documented as a distinct path that may return to `lease_ready` for session reuse. Do not change runtime lease semantics unless the audit finds a real mismatch; update managed skill templates and regression tests.",
+    "datetime": "2026-06-30T09:16:53.523194Z",
+    "entry_id": "019f17d1-3193-7573-815d-243a2c64f33a",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}

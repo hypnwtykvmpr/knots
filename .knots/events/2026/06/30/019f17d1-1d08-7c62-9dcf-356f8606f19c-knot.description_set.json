@@ -1,0 +1,9 @@
+{
+  "event_id": "019f17d1-1d08-7c62-9dcf-356f8606f19c",
+  "occurred_at": "2026-06-30T09:16:48.258647Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nCorrect the managed skill guidance so it accurately distinguishes normal agent claim leases from MCP session leases. Normal CLI claim leases are spent by `kno next` or rollback, while MCP session leases may be returned to `lease_ready` for reuse by that session. Agents should still be told to acquire a fresh normal claim lease after advancing a knot, but the docs must not imply that every lease is destroyed in every path.\n\nVerification:\n1. Run `cargo test managed_skills`; expect all managed skill tests to pass, including a regression for the corrected lease lifecycle wording.\n2. Run `make sanity`; expect formatting, lint, tests, and coverage to pass.\n3. Inspect the updated managed skills and confirm the wording names both normal claim leases and MCP session leases without changing runtime behavior.\n\nConstraints:\nKeep the scope to managed skill templates and tests unless the audit reveals a concrete code/doc mismatch. Do not lower `.ci/coverage-threshold.txt`. Do not use the forbidden yeet/GitHub PR flow."
+  }
+}

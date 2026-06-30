@@ -1,0 +1,9 @@
+{
+  "event_id": "019f17d1-1d0d-71e1-90f6-eecc8d4b76a7",
+  "occurred_at": "2026-06-30T09:16:48.258647Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. Managed skill text distinguishes normal agent claim leases from MCP session leases using the exact states `lease_active`, `lease_ready`, and `lease_terminated` where relevant.\n2. `knots`, `knots-e2e`, `knots-create`, and `knots-plan-orchestrator` guidance tells CLI agents to use a fresh normal claim lease after `kno next` or rollback without falsely saying MCP session leases are destroyed.\n3. A regression test fails if the managed skills collapse the lifecycle into an unconditional “leases are destroyed” rule or reintroduce reuse of a normal claim lease across e2e claims.\n4. Verification commands `cargo test managed_skills` and `make sanity` pass."
+  }
+}

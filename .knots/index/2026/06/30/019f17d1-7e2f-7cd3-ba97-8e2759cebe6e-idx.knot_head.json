@@ -1,0 +1,21 @@
+{
+  "event_id": "019f17d1-7e2f-7cd3-ba97-8e2759cebe6e",
+  "occurred_at": "2026-06-30T09:17:13.135561Z",
+  "type": "idx.knot_head",
+  "data": {
+    "blocked_from_state": null,
+    "deferred_from_state": null,
+    "gate": {
+      "owner_kind": "agent"
+    },
+    "invariants": [],
+    "knot_id": "knots-7218",
+    "profile_id": "lease",
+    "state": "lease_terminated",
+    "terminal": true,
+    "title": "Lease: codex-open-lease-lifecycle-correction",
+    "type": "lease",
+    "updated_at": "2026-06-30T09:17:13.135561Z",
+    "workflow_id": "lease_sdlc"
+  }
+}
