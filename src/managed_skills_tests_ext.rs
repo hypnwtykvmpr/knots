@@ -153,6 +153,44 @@ fn managed_skills_document_lease_identity_and_handoff_capsules() {
 }
 
 #[test]
+fn managed_skills_document_claim_lease_lifecycle() {
+    let by_name = |name: &str| {
+        let skill = managed_skills()
+            .iter()
+            .copied()
+            .find(|skill| skill.deploy_name == name)
+            .expect("managed skill should exist");
+        render_skill(skill)
+    };
+
+    let knots = by_name("knots");
+    assert!(knots.contains("a lease is a claim-scoped token"));
+    assert!(knots.contains("release the claim"));
+    assert!(knots.contains("lease `lease_terminated`"));
+    assert!(knots.contains("Ordinary agents"));
+    assert!(knots.contains("must not reuse or extend it"));
+    assert!(knots.contains("Create or receive a fresh lease before claiming any later action"));
+
+    let e2e = by_name("knots-e2e");
+    assert!(e2e.contains("After every successful `kno next`, treat the lease id"));
+    assert!(e2e.contains("kno claim --e2e <id> --lease <new-lease-id>"));
+    assert!(e2e.contains("Do not try to reuse or extend the old lease"));
+    assert!(
+        !e2e.contains("Bind the same lease"),
+        "e2e skill must not tell agents to reuse claim leases"
+    );
+
+    let create = by_name("knots-create");
+    assert!(create.contains("not give future workers a reusable claim lease"));
+    assert!(create.contains("marks it `lease_terminated`"));
+
+    let orchestrator = by_name("knots-plan-orchestrator");
+    assert!(orchestrator.contains("Worker leases follow the same claim-scoped lifecycle"));
+    assert!(orchestrator.contains("fresh lease id for that claim"));
+    assert!(orchestrator.contains("Do not reuse or extend a lease after it has been"));
+}
+
+#[test]
 fn knots_plan_orchestrator_skill_describes_plan_execution_protocol() {
     let skill = managed_skills()
         .iter()

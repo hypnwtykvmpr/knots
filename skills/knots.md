@@ -16,13 +16,30 @@ Create or receive a lease before writing workflow metadata:
 kno lease create --nickname "<session-name>"
 ```
 
-Bind that lease to every claim, creation, advance, note, and handoff-capsule
-command you run for the session. Agent identity for notes, handoff capsules,
-state transitions, and gate decisions comes from the bound lease.
+Bind the active lease to the claim, creation, advance, note, and
+handoff-capsule commands that belong to that lease.
+Agent identity for notes, handoff capsules, state transitions, and gate
+decisions comes from the bound lease.
 
 Do not copy legacy `--*-agentname/model/version` identity flags from telemetry
 or command history. They are deprecated, ignored by current `kno`, and can
 leave metadata attributed as `[unknown <date>]` when no lease is bound.
+
+## Lease lifecycle
+
+For ordinary CLI work, a lease is a claim-scoped token. `kno lease create`
+puts it in `lease_ready`; `kno claim ... --lease <lease-id>` activates it and
+binds it to the knot.
+
+When you finish or abandon that action, `kno next ... --lease <lease-id>` and
+`kno rollback ...` release the claim. Knots unbinds the lease and marks that
+lease `lease_terminated`. The lease record remains for audit. Ordinary agents
+must not reuse or extend it after that point.
+
+After `kno next`, the knot is in the next queue or terminal state with no
+bound lease. Create or receive a fresh lease before claiming any later action
+state, then use that fresh lease id for notes, handoff capsules, and the next
+`kno next`.
 
 ## Create a knot
 
