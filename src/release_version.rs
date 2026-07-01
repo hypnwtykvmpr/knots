@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::process::Command;
 
 pub(crate) const RELEASES_LATEST_URL: &str = "https://github.com/acartine/knots/releases/latest";
@@ -14,7 +15,7 @@ fn api_url_for_latest_redirect(url: &str) -> Option<&'static str> {
 }
 
 fn fetch_latest_tag_from_api(url: &str, timeout_secs: u32) -> Option<String> {
-    let output = Command::new("curl")
+    let output = curl_command()
         .args(["--max-time", &timeout_secs.to_string(), "-fsS", url])
         .output()
         .ok()?;
@@ -26,7 +27,7 @@ fn fetch_latest_tag_from_api(url: &str, timeout_secs: u32) -> Option<String> {
 }
 
 fn fetch_latest_tag_from_redirect(url: &str, timeout_secs: u32) -> Option<String> {
-    let output = Command::new("curl")
+    let output = curl_command()
         .args(["--max-time", &timeout_secs.to_string(), "-fsS", "-I", url])
         .output()
         .ok()?;
@@ -35,6 +36,11 @@ fn fetch_latest_tag_from_redirect(url: &str, timeout_secs: u32) -> Option<String
     }
     let headers = String::from_utf8_lossy(&output.stdout);
     parse_location_tag(&headers)
+}
+
+fn curl_command() -> Command {
+    let program = std::env::var_os("KNOTS_CURL_BIN").unwrap_or_else(|| OsString::from("curl"));
+    crate::native_command::command_for_program(program)
 }
 
 pub(crate) fn latest_available_version(current: &str, tag: Option<String>) -> Option<String> {

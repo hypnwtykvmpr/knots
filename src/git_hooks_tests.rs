@@ -4,9 +4,11 @@ use std::process::Command;
 use uuid::Uuid;
 
 use crate::doctor::DoctorStatus;
+#[cfg(unix)]
+use crate::git_hooks::hook_template_with_command;
 use crate::git_hooks::{
-    check_hooks, cleanup_legacy_hooks, hook_template, hook_template_with_command, hooks_status,
-    install_hooks, resolve_hooks_dir, uninstall_hooks, HookInstallOutcome, KNOTS_HOOK_MARKER,
+    check_hooks, cleanup_legacy_hooks, hook_template, hooks_status, install_hooks,
+    resolve_hooks_dir, uninstall_hooks, HookInstallOutcome, KNOTS_HOOK_MARKER,
 };
 
 fn unique_workspace() -> PathBuf {

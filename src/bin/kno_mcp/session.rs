@@ -143,6 +143,11 @@ mod tests {
     }
 
     fn fixture_kno() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/kno-stub.sh")
+        let fixture = if cfg!(windows) {
+            "tests/fixtures/kno-stub.ps1"
+        } else {
+            "tests/fixtures/kno-stub.sh"
+        };
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(fixture)
     }
 }

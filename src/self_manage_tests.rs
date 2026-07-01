@@ -1,7 +1,9 @@
+#[cfg(unix)]
+use super::canonical_binary_path;
 use super::{
-    canonical_binary_path, format_titled_fields, format_upgrade_summary, paint, parent_dir,
-    remove_file_if_present, resolve_binary_path, run_uninstall, run_update, update_install_dir,
-    upgrade_hint_needed, SelfUninstallOptions, SelfUpdateOptions,
+    format_titled_fields, format_upgrade_summary, paint, parent_dir, remove_file_if_present,
+    resolve_binary_path, run_uninstall, run_update, update_install_dir, upgrade_hint_needed,
+    SelfUninstallOptions, SelfUpdateOptions,
 };
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,7 +15,7 @@ fn symlink_file(src: &Path, dst: &Path) {
 
 #[cfg(windows)]
 fn symlink_file(src: &Path, dst: &Path) {
-    std::os::windows::fs::symlink_file(src, dst).expect("symlink should be created");
+    std::fs::hard_link(src, dst).expect("hard link should be created");
 }
 
 fn unique_temp_dir() -> PathBuf {
@@ -97,9 +99,8 @@ fn uninstall_keeps_previous_without_flag() {
 #[test]
 fn update_and_path_helpers_cover_error_paths() {
     let dir = unique_temp_dir();
-    let installer = dir.join("installer.sh");
-    std::fs::write(&installer, "#!/bin/sh\nexit 1\n")
-        .expect("installer script fixture should be written");
+    let installer = dir.join(installer_script_name("installer"));
+    std::fs::write(&installer, "exit 1\n").expect("installer script fixture should be written");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -119,7 +120,7 @@ fn update_and_path_helpers_cover_error_paths() {
     });
     assert!(result.is_err());
 
-    let missing_installer = dir.join("missing-installer.sh");
+    let missing_installer = dir.join(installer_script_name("missing-installer"));
     let missing_result = run_update(&SelfUpdateOptions {
         version: None,
         repo: None,
@@ -260,4 +261,12 @@ fn paint_respects_no_color() {
     let rendered = paint("1;36", "Upgrade");
     std::env::remove_var("NO_COLOR");
     assert_eq!(rendered, "Upgrade");
+}
+
+fn installer_script_name(stem: &str) -> String {
+    if cfg!(target_os = "windows") {
+        format!("{stem}.ps1")
+    } else {
+        format!("{stem}.sh")
+    }
 }

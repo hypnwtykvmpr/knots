@@ -18,13 +18,28 @@ pub fn generate_completions(shell: Shell, buf: &mut dyn Write) {
 }
 
 pub fn detect_current_shell() -> Option<Shell> {
-    let shell_var = std::env::var("SHELL").ok()?;
-    shell_from_path(&shell_var)
+    if let Ok(shell_var) = std::env::var("SHELL") {
+        if let Some(shell) = shell_from_path(&shell_var) {
+            return Some(shell);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Some(Shell::PowerShell)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    None
 }
 
 fn shell_from_path(path: &str) -> Option<Shell> {
-    let basename = path.rsplit('/').next()?;
-    match basename {
+    let basename = path.rsplit(['/', '\\']).next()?;
+    let basename = basename
+        .strip_suffix(".exe")
+        .unwrap_or(basename)
+        .to_ascii_lowercase();
+    match basename.as_str() {
         "bash" => Some(Shell::Bash),
         "zsh" => Some(Shell::Zsh),
         "fish" => Some(Shell::Fish),
@@ -48,13 +63,17 @@ fn completions_install_path_for_home(shell: Shell, home: &std::path::Path) -> Op
             let dir = home.join(".config/fish/completions");
             Some(dir.join("kno.fish"))
         }
+        Shell::PowerShell => {
+            let dir = powershell_dir(home).join("Completions");
+            Some(dir.join("kno.ps1"))
+        }
         _ => None,
     }
 }
 
 pub fn install_completions(shell: Shell) -> io::Result<PathBuf> {
-    let home = std::env::var("HOME").map_err(|e| io::Error::new(io::ErrorKind::NotFound, e))?;
-    install_completions_to(shell, &PathBuf::from(home))
+    let home = crate::project::home_dir(None).map_err(io::Error::other)?;
+    install_completions_to(shell, &home)
 }
 
 fn install_completions_to(shell: Shell, home: &std::path::Path) -> io::Result<PathBuf> {
@@ -73,6 +92,9 @@ fn install_completions_to(shell: Shell, home: &std::path::Path) -> io::Result<Pa
 
     if shell == Shell::Zsh {
         patch_zshrc(home, &path)?;
+    }
+    if shell == Shell::PowerShell {
+        patch_powershell_profile(home, &path)?;
     }
 
     Ok(path)
@@ -97,6 +119,41 @@ fn patch_zshrc(home: &std::path::Path, completions_path: &std::path::Path) -> io
     writeln!(file, "# kno shell completions")?;
     writeln!(file, "{source_line}")?;
     Ok(())
+}
+
+fn patch_powershell_profile(
+    home: &std::path::Path,
+    completions_path: &std::path::Path,
+) -> io::Result<()> {
+    let profile = powershell_dir(home).join("Microsoft.PowerShell_profile.ps1");
+    let source_line = format!(". '{}'", escape_powershell_single_quoted(completions_path));
+
+    if profile.exists() {
+        let content = std::fs::read_to_string(&profile)?;
+        if content.contains(&source_line) {
+            return Ok(());
+        }
+    }
+
+    if let Some(parent) = profile.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&profile)?;
+    writeln!(file)?;
+    writeln!(file, "# kno shell completions")?;
+    writeln!(file, "{source_line}")?;
+    Ok(())
+}
+
+fn powershell_dir(home: &std::path::Path) -> PathBuf {
+    home.join("Documents").join("PowerShell")
+}
+
+fn escape_powershell_single_quoted(path: &std::path::Path) -> String {
+    path.display().to_string().replace('\'', "''")
 }
 
 fn group_zsh_toplevel_commands(script: &str) -> String {
@@ -218,6 +275,10 @@ mod tests {
         assert_eq!(shell_from_path("/usr/bin/fish"), Some(Shell::Fish));
         assert_eq!(shell_from_path("/usr/bin/elvish"), Some(Shell::Elvish));
         assert_eq!(shell_from_path("/usr/bin/pwsh"), Some(Shell::PowerShell));
+        assert_eq!(
+            shell_from_path("C:\\Program Files\\PowerShell\\7\\pwsh.exe"),
+            Some(Shell::PowerShell)
+        );
         assert_eq!(shell_from_path("/usr/bin/csh"), None);
     }
 
@@ -230,6 +291,8 @@ mod tests {
         assert!(zsh.unwrap().to_str().unwrap().contains("kno.zsh"));
         let fish = completions_install_path_for_home(Shell::Fish, &home);
         assert!(fish.unwrap().to_str().unwrap().contains("kno.fish"));
+        let powershell = completions_install_path_for_home(Shell::PowerShell, &home);
+        assert!(powershell.unwrap().to_str().unwrap().contains("PowerShell"));
     }
 
     #[test]
@@ -296,6 +359,19 @@ mod tests {
             install_completions_to(Shell::Fish, &dir).expect("fish install should succeed");
         assert!(fish_path.exists());
 
+        // PowerShell install writes completions file and patches profile.
+        let ps_path = install_completions_to(Shell::PowerShell, &dir)
+            .expect("PowerShell install should succeed");
+        assert!(ps_path.exists());
+        let profile = dir
+            .join("Documents")
+            .join("PowerShell")
+            .join("Microsoft.PowerShell_profile.ps1");
+        assert!(profile.exists(), "PowerShell profile should be created");
+        let profile_content =
+            std::fs::read_to_string(&profile).expect("should read PowerShell profile");
+        assert!(profile_content.contains("kno.ps1"));
+
         // Unsupported shell returns error
         assert!(install_completions_to(Shell::Elvish, &dir).is_err());
 
@@ -303,6 +379,7 @@ mod tests {
         assert!(run_completions_command_with_home(Some("bash"), true, Some(&dir)).is_ok());
         assert!(run_completions_command_with_home(Some("zsh"), true, Some(&dir)).is_ok());
         assert!(run_completions_command_with_home(Some("fish"), true, Some(&dir)).is_ok());
+        assert!(run_completions_command_with_home(Some("powershell"), true, Some(&dir)).is_ok());
 
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -325,7 +402,6 @@ mod tests {
     fn completions_install_path_returns_none_for_unsupported_shell() {
         let home = PathBuf::from("/tmp/test-home");
         assert!(completions_install_path_for_home(Shell::Elvish, &home).is_none());
-        assert!(completions_install_path_for_home(Shell::PowerShell, &home).is_none());
     }
 
     #[test]

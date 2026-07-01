@@ -26,10 +26,16 @@ make demo-gif   # converts the cast to assets/demo.gif (requires agg)
 
 ## Install
 
-The installer pulls from GitHub Releases and installs to `${HOME}/.local/bin` by default.
+The installers pull from GitHub Releases. On Unix-like systems the default
+install location is `${HOME}/.local/bin`; on Windows it is
+`$env:LOCALAPPDATA\Programs\knots`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/acartine/knots/main/install.sh | sh
+```
+
+```powershell
+iwr https://raw.githubusercontent.com/acartine/knots/main/install.ps1 -UseBasicParsing | iex
 ```
 
 ## Why Knots

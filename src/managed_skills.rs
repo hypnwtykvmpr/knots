@@ -26,7 +26,7 @@ use ops::{
 use ops::{installed_locations, preferred_location, prompt_install_missing, remove_dir_if_empty};
 #[path = "managed_skills_output.rs"]
 mod output;
-use output::format_skill_detail;
+use output::{display_path, format_skill_detail};
 #[path = "managed_skills_state.rs"]
 mod state;
 use state::{inspect_location, reconcile_skills};
@@ -165,13 +165,13 @@ impl fmt::Display for SkillTool {
 }
 
 pub fn run_command(repo_root: &Path, command: SkillsCommand) -> Result<String, AppError> {
-    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let home = crate::project::home_dir(None).ok();
     let interactive = io::stdin().is_terminal();
     run_command_with_io(repo_root, home.as_deref(), interactive, command)
 }
 
 pub fn doctor_checks(repo_root: &Path) -> Vec<DoctorCheck> {
-    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let home = crate::project::home_dir(None).ok();
     doctor_checks_with_home(repo_root, home.as_deref())
 }
 
@@ -184,7 +184,7 @@ pub(crate) fn try_fix_doctor_check(repo_root: &Path, check_name: &str) -> Result
     let Some(tool) = tool_for_check_name(check_name) else {
         return Ok(false);
     };
-    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let home = crate::project::home_dir(None).ok();
     cleanup_legacy_locations(repo_root, home.as_deref(), tool)?;
     if tool.uses_agents_root() && !repo_root.join(".agents").exists() {
         return Ok(false);
@@ -234,7 +234,7 @@ fn doctor_check(repo_root: &Path, home: Option<&Path>, tool: SkillTool) -> Docto
                         format!(
                             "{} managed skills installed at {}",
                             tool.display_name(),
-                            location.skills_root.display()
+                            display_path(&location.skills_root)
                         ),
                     )
                 } else {
@@ -244,7 +244,7 @@ fn doctor_check(repo_root: &Path, home: Option<&Path>, tool: SkillTool) -> Docto
                             "{} managed skills installed at {}, but .gitignore does not blocklist \
                              {} except skills; run `kno doctor --fix`",
                             tool.display_name(),
-                            location.skills_root.display(),
+                            display_path(&location.skills_root),
                             managed_root_hint(tool)
                         ),
                     )

@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use super::*;
@@ -13,6 +13,10 @@ fn unique_root(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("{label}-{}", uuid::Uuid::now_v7()));
     fs::create_dir_all(&root).expect("temp root should be creatable");
     root
+}
+
+fn display_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 #[test]
@@ -106,7 +110,7 @@ fn doctor_warns_for_drifted_mixed_and_unreadable_skills() {
     let check = doctor_check(&repo, Some(&home), SkillTool::Codex);
     assert_eq!(check.status, DoctorStatus::Warn);
     assert!(check.detail.contains("drift detected"));
-    assert!(check.detail.contains(knots.to_string_lossy().as_ref()));
+    assert!(check.detail.contains(&display_path(&knots)));
     assert!(check.detail.contains("run `kno skills update codex`"));
 
     // Missing + drifted
@@ -123,8 +127,8 @@ fn doctor_warns_for_drifted_mixed_and_unreadable_skills() {
     assert_eq!(check.status, DoctorStatus::Warn);
     assert!(check.detail.contains("missing"));
     assert!(check.detail.contains("drifted"));
-    assert!(check.detail.contains(knots.to_string_lossy().as_ref()));
-    assert!(check.detail.contains(knots_e2e.to_string_lossy().as_ref()));
+    assert!(check.detail.contains(&display_path(&knots)));
+    assert!(check.detail.contains(&display_path(&knots_e2e)));
     assert!(check
         .detail
         .contains("run `kno skills install codex` then `kno skills update codex`"));
@@ -141,7 +145,7 @@ fn doctor_warns_for_drifted_mixed_and_unreadable_skills() {
     let check = doctor_check(&repo, Some(&home), SkillTool::Codex);
     assert_eq!(check.status, DoctorStatus::Warn);
     assert!(check.detail.contains("drift detected"));
-    assert!(check.detail.contains(knots.to_string_lossy().as_ref()));
+    assert!(check.detail.contains(&display_path(&knots)));
     assert!(check.detail.contains("run `kno skills update codex`"));
 }
 

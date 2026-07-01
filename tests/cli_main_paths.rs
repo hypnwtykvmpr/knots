@@ -114,7 +114,7 @@ fn run_knots_with_path(
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args);
     if let Some(path) = path_override {
-        command.env("KNOTS_LOOM_BIN", path.join("loom"));
+        command.env("KNOTS_LOOM_BIN", path.join(loom_file_name()));
     }
     configure_coverage_env(&mut command);
     command.output().expect("knots command should run")
@@ -147,10 +147,7 @@ fn parse_created_id(output: &Output) -> String {
         .to_string()
 }
 
-fn install_stub_loom(root: &Path) -> PathBuf {
-    let bin_dir = root.join("bin");
-    std::fs::create_dir_all(&bin_dir).expect("bin dir should exist");
-    let bundle = r#"
+const LOOM_COMPAT_BUNDLE: &str = r#"
 [workflow]
 name = "custom_flow"
 version = 1
@@ -234,21 +231,12 @@ approved = "done"
 [prompts.review.failure]
 changes = "ready_for_work"
 "#;
-    let script = format!(
-        "#!/bin/sh\n\
-         if [ \"$1\" = \"--version\" ]; then echo 'loom 0.1.0'; exit 0; fi\n\
-         if [ \"$1\" = \"init\" ]; then test -n \"$2\" || exit 1; touch loom.toml; exit 0; fi\n\
-         if [ \"$1\" = \"validate\" ]; then exit 0; fi\n\
-         if [ \"$1\" = \"build\" ]; then\n\
-           cat <<'EOF'\n\
-{bundle}\n\
-EOF\n\
-           exit 0\n\
-         fi\n\
-         echo 'unexpected args' >&2\n\
-         exit 1\n"
-    );
-    let loom = bin_dir.join("loom");
+
+fn install_stub_loom(root: &Path) -> PathBuf {
+    let bin_dir = root.join("bin");
+    std::fs::create_dir_all(&bin_dir).expect("bin dir should exist");
+    let script = stub_loom_script();
+    let loom = bin_dir.join(loom_file_name());
     std::fs::write(&loom, script).expect("loom script should write");
     #[cfg(unix)]
     {
@@ -258,6 +246,55 @@ EOF\n\
         std::fs::set_permissions(&loom, perms).expect("permissions");
     }
     bin_dir
+}
+
+fn stub_loom_script() -> String {
+    #[cfg(windows)]
+    {
+        format!(
+            "$ErrorActionPreference = 'Stop'\n\
+             if ($args[0] -eq '--version') {{ 'loom 0.1.0'; exit 0 }}\n\
+             if ($args[0] -eq 'init') {{\n\
+               if (-not $args[1]) {{ exit 1 }}\n\
+               New-Item -ItemType File -Path 'loom.toml' -Force | Out-Null\n\
+               exit 0\n\
+             }}\n\
+             if ($args[0] -eq 'validate') {{ exit 0 }}\n\
+             if ($args[0] -eq 'build') {{\n\
+             @'\n\
+{LOOM_COMPAT_BUNDLE}\n\
+'@\n\
+               exit 0\n\
+             }}\n\
+             [Console]::Error.WriteLine('unexpected args')\n\
+             exit 1\n"
+        )
+    }
+    #[cfg(not(windows))]
+    {
+        format!(
+            "#!/bin/sh\n\
+         if [ \"$1\" = \"--version\" ]; then echo 'loom 0.1.0'; exit 0; fi\n\
+         if [ \"$1\" = \"init\" ]; then test -n \"$2\" || exit 1; touch loom.toml; exit 0; fi\n\
+         if [ \"$1\" = \"validate\" ]; then exit 0; fi\n\
+         if [ \"$1\" = \"build\" ]; then\n\
+           cat <<'EOF'\n\
+{LOOM_COMPAT_BUNDLE}\n\
+EOF\n\
+           exit 0\n\
+         fi\n\
+         echo 'unexpected args' >&2\n\
+         exit 1\n"
+        )
+    }
+}
+
+fn loom_file_name() -> &'static str {
+    if cfg!(windows) {
+        "loom.ps1"
+    } else {
+        "loom"
+    }
 }
 
 #[test]

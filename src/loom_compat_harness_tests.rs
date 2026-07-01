@@ -99,6 +99,35 @@ fn unique_workspace(prefix: &str) -> PathBuf {
 fn install_stub_loom(root: &Path, bundle: &str, validate_failure: Option<&str>) -> PathBuf {
     let bin_dir = root.join("bin");
     std::fs::create_dir_all(&bin_dir).expect("bin dir should exist");
+    #[cfg(windows)]
+    let script = format!(
+        "$ErrorActionPreference = 'Stop'\n\
+         if ($args[0] -eq '--version') {{ 'loom 0.1.0'; exit 0 }}\n\
+         if ($args[0] -eq 'init') {{\n\
+           if (-not $args[1]) {{ exit 1 }}\n\
+           New-Item -ItemType File -Path 'loom.toml' -Force | Out-Null\n\
+           exit 0\n\
+         }}\n\
+         if ($args[0] -eq 'validate') {{\n\
+         {validate}\n\
+           exit 0\n\
+         }}\n\
+         if ($args[0] -eq 'build') {{\n\
+         @'\n\
+{bundle}\n\
+'@\n\
+           exit 0\n\
+         }}\n\
+         [Console]::Error.WriteLine('unexpected args')\n\
+         exit 1\n",
+        validate = validate_failure.map_or(String::new(), |message| {
+            format!(
+                "[Console]::Error.WriteLine('{}')\nexit 1",
+                message.replace('\'', "''")
+            )
+        }),
+    );
+    #[cfg(not(windows))]
     let script = format!(
         "#!/bin/sh\n\
          if [ \"$1\" = \"--version\" ]; then\n\
@@ -130,7 +159,7 @@ EOF\n\
 }
 
 fn install_script(bin_dir: &Path, script: &str) -> PathBuf {
-    let loom = bin_dir.join("loom");
+    let loom = bin_dir.join(loom_file_name());
     std::fs::write(&loom, script).expect("loom script should write");
     #[cfg(unix)]
     {
@@ -143,7 +172,15 @@ fn install_script(bin_dir: &Path, script: &str) -> PathBuf {
 }
 
 fn loom_bin(bin_dir: &Path) -> PathBuf {
-    bin_dir.join("loom")
+    bin_dir.join(loom_file_name())
+}
+
+fn loom_file_name() -> &'static str {
+    if cfg!(windows) {
+        "loom.ps1"
+    } else {
+        "loom"
+    }
 }
 
 fn invalid_argument(err: AppError) -> String {
@@ -295,7 +332,7 @@ fn compat_harness_reports_validate_command_failures() {
     let message = invalid_argument(err);
     assert!(message.contains("loom validate failed in"));
     assert!(message.contains("validate exploded"));
-    assert!(message.contains("/package"));
+    assert!(message.replace('\\', "/").contains("/package"));
 
     let _ = std::fs::remove_dir_all(root);
 }
@@ -306,15 +343,7 @@ fn compat_harness_reports_validate_failures_without_stderr() {
     let root = unique_workspace("knots-loom-validate-empty");
     let bin_dir = root.join("bin");
     std::fs::create_dir_all(&bin_dir).expect("bin dir should exist");
-    install_script(
-        &bin_dir,
-        "#!/bin/sh\n\
-         if [ \"$1\" = \"--version\" ]; then echo 'loom 0.1.0'; exit 0; fi\n\
-         if [ \"$1\" = \"init\" ]; then test -n \"$2\" || exit 1; touch loom.toml; exit 0; fi\n\
-         if [ \"$1\" = \"validate\" ]; then exit 1; fi\n\
-         if [ \"$1\" = \"build\" ]; then exit 0; fi\n\
-         exit 1\n",
-    );
+    install_script(&bin_dir, validate_empty_script());
 
     let err = run_compat_test(&CompatTestConfig {
         mode: CompatTestMode::Smoke,
@@ -329,21 +358,38 @@ fn compat_harness_reports_validate_failures_without_stderr() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+fn validate_empty_script() -> &'static str {
+    #[cfg(windows)]
+    {
+        "$ErrorActionPreference = 'Stop'\n\
+         if ($args[0] -eq '--version') { 'loom 0.1.0'; exit 0 }\n\
+         if ($args[0] -eq 'init') {\n\
+           if (-not $args[1]) { exit 1 }\n\
+           New-Item -ItemType File -Path 'loom.toml' -Force | Out-Null\n\
+           exit 0\n\
+         }\n\
+         if ($args[0] -eq 'validate') { exit 1 }\n\
+         if ($args[0] -eq 'build') { exit 0 }\n\
+         exit 1\n"
+    }
+    #[cfg(not(windows))]
+    {
+        "#!/bin/sh\n\
+         if [ \"$1\" = \"--version\" ]; then echo 'loom 0.1.0'; exit 0; fi\n\
+         if [ \"$1\" = \"init\" ]; then test -n \"$2\" || exit 1; touch loom.toml; exit 0; fi\n\
+         if [ \"$1\" = \"validate\" ]; then exit 1; fi\n\
+         if [ \"$1\" = \"build\" ]; then exit 0; fi\n\
+         exit 1\n"
+    }
+}
+
 #[test]
 fn compat_harness_reports_invalid_utf8_from_build_output() {
     let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
     let root = unique_workspace("knots-loom-invalid-utf8");
     let bin_dir = root.join("bin");
     std::fs::create_dir_all(&bin_dir).expect("bin dir should exist");
-    install_script(
-        &bin_dir,
-        "#!/bin/sh\n\
-         if [ \"$1\" = \"--version\" ]; then echo 'loom 0.1.0'; exit 0; fi\n\
-         if [ \"$1\" = \"init\" ]; then test -n \"$2\" || exit 1; touch loom.toml; exit 0; fi\n\
-         if [ \"$1\" = \"validate\" ]; then exit 0; fi\n\
-         if [ \"$1\" = \"build\" ]; then printf '\\377\\376'; exit 0; fi\n\
-         exit 1\n",
-    );
+    install_script(&bin_dir, invalid_utf8_script());
 
     let err = run_compat_test(&CompatTestConfig {
         mode: CompatTestMode::Smoke,
@@ -354,6 +400,35 @@ fn compat_harness_reports_invalid_utf8_from_build_output() {
     assert!(invalid_argument(err).contains("produced invalid UTF-8"));
 
     let _ = std::fs::remove_dir_all(root);
+}
+
+fn invalid_utf8_script() -> &'static str {
+    #[cfg(windows)]
+    {
+        "$ErrorActionPreference = 'Stop'\n\
+         if ($args[0] -eq '--version') { 'loom 0.1.0'; exit 0 }\n\
+         if ($args[0] -eq 'init') {\n\
+           if (-not $args[1]) { exit 1 }\n\
+           New-Item -ItemType File -Path 'loom.toml' -Force | Out-Null\n\
+           exit 0\n\
+         }\n\
+         if ($args[0] -eq 'validate') { exit 0 }\n\
+         if ($args[0] -eq 'build') {\n\
+           $bytes = [byte[]](255, 254)\n\
+           [Console]::OpenStandardOutput().Write($bytes, 0, $bytes.Length)\n\
+           exit 0\n\
+         }\n\
+         exit 1\n"
+    }
+    #[cfg(not(windows))]
+    {
+        "#!/bin/sh\n\
+         if [ \"$1\" = \"--version\" ]; then echo 'loom 0.1.0'; exit 0; fi\n\
+         if [ \"$1\" = \"init\" ]; then test -n \"$2\" || exit 1; touch loom.toml; exit 0; fi\n\
+         if [ \"$1\" = \"validate\" ]; then exit 0; fi\n\
+         if [ \"$1\" = \"build\" ]; then printf '\\377\\376'; exit 0; fi\n\
+         exit 1\n"
+    }
 }
 
 #[test]

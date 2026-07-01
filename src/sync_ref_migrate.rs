@@ -221,7 +221,7 @@ fn add_file(
         if existing != &contents {
             return Err(AppError::InvalidArgument(format!(
                 "Knots migration conflict at {}",
-                path.display()
+                display_git_path(&path)
             )));
         }
         return Ok(());
@@ -239,6 +239,10 @@ fn ensure_git_repo(repo_root: &Path) -> Result<(), AppError> {
             repo_root.display()
         )))
     }
+}
+
+fn display_git_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn ensure_remote_exists(repo_root: &Path, remote: &str) -> Result<(), AppError> {

@@ -2,6 +2,8 @@
 mod args;
 #[path = "kno_mcp/auth.rs"]
 mod auth;
+#[path = "../native_command.rs"]
+mod native_command;
 #[path = "kno_mcp/runner.rs"]
 mod runner;
 #[path = "kno_mcp/server.rs"]

@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::process::Command;
 
 use crate::profile::ProfileError;
 
@@ -12,7 +11,7 @@ pub(crate) struct CommandLoomBundleBuilder;
 impl LoomBundleBuilder for CommandLoomBundleBuilder {
     fn build_knots_bundle(&self, source: &Path) -> Result<String, ProfileError> {
         let loom_bin = std::env::var("KNOTS_LOOM_BIN").unwrap_or_else(|_| "loom".to_string());
-        let output = Command::new(loom_bin)
+        let output = crate::native_command::command_for_program(loom_bin)
             .arg("build")
             .arg(source)
             .arg("--emit")

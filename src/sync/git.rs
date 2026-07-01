@@ -96,7 +96,7 @@ impl GitAdapter {
                 "worktree".to_string(),
                 "add".to_string(),
                 "--force".to_string(),
-                display_path(worktree),
+                git_path(worktree),
                 branch.to_string(),
             ],
         )?;
@@ -116,7 +116,7 @@ impl GitAdapter {
                 "add".to_string(),
                 "-B".to_string(),
                 branch.to_string(),
-                display_path(worktree),
+                git_path(worktree),
             ],
         )?;
         Ok(())
@@ -221,7 +221,7 @@ impl GitAdapter {
 
     fn run_allow_failure(&self, cwd: &Path, args: Vec<String>) -> Result<Output, SyncError> {
         let mut cmd = Command::new("git");
-        cmd.arg("-C").arg(cwd).args(&args);
+        cmd.arg("-C").arg(git_path(cwd)).args(&args);
         cmd.output().map_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
                 SyncError::GitUnavailable
@@ -261,10 +261,47 @@ fn parse_lines(value: &str) -> Vec<PathBuf> {
     out
 }
 
-fn display_path(path: &Path) -> String {
-    path.to_string_lossy().to_string()
+fn git_path(path: &Path) -> String {
+    strip_windows_verbatim_prefix(&path.to_string_lossy())
+}
+
+fn strip_windows_verbatim_prefix(path: &str) -> String {
+    #[cfg(windows)]
+    {
+        const VERBATIM: &str = r"\\?\";
+        const UNC: &str = r"UNC\";
+        if let Some(rest) = path.strip_prefix(VERBATIM) {
+            if let Some(unc) = rest.strip_prefix(UNC) {
+                return format!(r"\\{unc}");
+            }
+            return rest.to_string();
+        }
+    }
+    path.to_string()
 }
 
 fn display_command(cwd: &Path, args: &[String]) -> String {
-    format!("git -C {} {}", cwd.display(), args.join(" "))
+    format!("git -C {} {}", git_path(cwd), args.join(" "))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn strips_windows_verbatim_paths_for_git() {
+        if cfg!(windows) {
+            assert_eq!(
+                super::strip_windows_verbatim_prefix(r"\\?\C:\tmp\repo"),
+                r"C:\tmp\repo"
+            );
+            assert_eq!(
+                super::strip_windows_verbatim_prefix(r"\\?\UNC\server\share"),
+                r"\\server\share"
+            );
+        } else {
+            assert_eq!(
+                super::strip_windows_verbatim_prefix("/tmp/repo"),
+                "/tmp/repo"
+            );
+        }
+    }
 }

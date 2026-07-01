@@ -485,11 +485,15 @@ mod tests {
     }
 
     fn server_with_registry(lease_registry: LeaseRegistry) -> KnoMcp {
+        let fixture = if cfg!(windows) {
+            "tests/fixtures/kno-stub.ps1"
+        } else {
+            "tests/fixtures/kno-stub.sh"
+        };
         KnoMcp::with_lease_registry(
             ServerConfig {
                 repo: PathBuf::from("/tmp/repo"),
-                kno_bin: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests/fixtures/kno-stub.sh"),
+                kno_bin: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(fixture),
                 lease_timeout_seconds: 600,
             },
             lease_registry,

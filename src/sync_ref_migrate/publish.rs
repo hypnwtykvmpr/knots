@@ -147,6 +147,7 @@ fn fast_import_path(path: &Path) -> Result<String, AppError> {
     let path = path.to_str().ok_or_else(|| {
         AppError::InvalidArgument(format!("path is not UTF-8: {}", path.display()))
     })?;
+    let path = path.replace('\\', "/");
     if path
         .bytes()
         .any(|byte| matches!(byte, b'\0' | b'\n' | b'\r'))
@@ -155,7 +156,7 @@ fn fast_import_path(path: &Path) -> Result<String, AppError> {
             "path is not valid for git fast-import: {path:?}"
         )));
     }
-    Ok(quote_fast_import_path(path))
+    Ok(quote_fast_import_path(&path))
 }
 
 fn quote_fast_import_path(path: &str) -> String {
@@ -197,6 +198,10 @@ mod tests {
     fn fast_import_path_validates_unsafe_paths() {
         assert_eq!(
             fast_import_path(Path::new(".knots/index/a.json")).expect("path should quote"),
+            "\".knots/index/a.json\""
+        );
+        assert_eq!(
+            fast_import_path(Path::new(".knots\\index\\a.json")).expect("path should normalize"),
             "\".knots/index/a.json\""
         );
         assert!(fast_import_path(Path::new(".knots/index/bad\nname.json")).is_err());

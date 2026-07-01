@@ -60,6 +60,7 @@ mod loom_work_bundle;
 #[cfg(test)]
 mod main_tests;
 mod managed_skills;
+mod native_command;
 mod pagination;
 mod perf;
 mod poll_claim;

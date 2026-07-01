@@ -1,3 +1,4 @@
+#[cfg(target_os = "windows")]
 use std::fs;
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -91,7 +92,21 @@ pub fn config_path(home_override: Option<&Path>) -> Result<PathBuf, String> {
 }
 
 pub fn config_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    let home = home_dir(home_override)?;
+    if let Some(home) = explicit_home(home_override) {
+        return Ok(home.join(".config").join(CONFIG_DIR_NAME));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(appdata) = env_path("APPDATA") {
+            return Ok(appdata.join(CONFIG_DIR_NAME));
+        }
+        if let Some(xdg) = env_path("XDG_CONFIG_HOME") {
+            return Ok(xdg.join(CONFIG_DIR_NAME));
+        }
+    }
+
+    let home = home_dir(None)?;
     Ok(home.join(".config").join(CONFIG_DIR_NAME))
 }
 
@@ -107,11 +122,14 @@ pub fn data_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
 
     #[cfg(target_os = "windows")]
     {
-        if let Some(appdata) = std::env::var_os("APPDATA") {
-            return Ok(PathBuf::from(appdata).join(CONFIG_DIR_NAME));
+        if let Some(home) = explicit_home(home_override) {
+            return Ok(home.join("AppData").join("Roaming").join(CONFIG_DIR_NAME));
         }
-        if let Some(xdg) = std::env::var_os("XDG_DATA_HOME") {
-            return Ok(PathBuf::from(xdg).join(CONFIG_DIR_NAME));
+        if let Some(appdata) = env_path("APPDATA") {
+            return Ok(appdata.join(CONFIG_DIR_NAME));
+        }
+        if let Some(xdg) = env_path("XDG_DATA_HOME") {
+            return Ok(xdg.join(CONFIG_DIR_NAME));
         }
         let home = home_dir(home_override)?;
         Ok(home.join(".local").join("share").join(CONFIG_DIR_NAME))
@@ -119,8 +137,8 @@ pub fn data_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
-        if let Some(xdg) = std::env::var_os("XDG_DATA_HOME") {
-            return Ok(PathBuf::from(xdg).join(CONFIG_DIR_NAME));
+        if let Some(xdg) = env_path("XDG_DATA_HOME") {
+            return Ok(xdg.join(CONFIG_DIR_NAME));
         }
         let home = home_dir(home_override)?;
         Ok(home.join(".local").join("share").join(CONFIG_DIR_NAME))
@@ -376,6 +394,12 @@ pub fn find_git_root(start: &Path) -> Option<PathBuf> {
     }
 }
 
+fn explicit_home(home_override: Option<&Path>) -> Option<PathBuf> {
+    home_override
+        .map(Path::to_path_buf)
+        .or_else(|| env_path("HOME"))
+}
+
 fn has_git_marker(path: &Path) -> bool {
     let git = path.join(".git");
     git.is_file() || git.join("HEAD").is_file()
@@ -411,17 +435,40 @@ fn git_context(repo_root: &Path) -> ProjectContext {
     }
 }
 
-fn home_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
+pub(crate) fn home_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
     if let Some(home) = home_override {
         return Ok(home.to_path_buf());
     }
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| "unable to resolve home directory".to_string())
+    if let Some(home) = env_path("HOME") {
+        return Ok(home);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(home) = env_path("USERPROFILE") {
+            return Ok(home);
+        }
+        if let (Some(drive), Some(path)) =
+            (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH"))
+        {
+            if !drive.is_empty() && !path.is_empty() {
+                let mut combined = drive;
+                combined.push(path);
+                return Ok(PathBuf::from(combined));
+            }
+        }
+    }
+
+    Err("unable to resolve home directory".to_string())
 }
 
 fn project_file(home_override: Option<&Path>, id: &str) -> Result<PathBuf, String> {
     Ok(projects_dir(home_override)?.join(format!("{id}.toml")))
+}
+
+fn env_path(name: &str) -> Option<PathBuf> {
+    let value = std::env::var_os(name)?;
+    (!value.is_empty()).then(|| PathBuf::from(value))
 }
 
 #[cfg(test)]

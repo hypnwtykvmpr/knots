@@ -121,10 +121,29 @@ fn process_alive(pid: u32) -> bool {
         let ret = unsafe { libc_kill(pid, 0) };
         ret == 0
     }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     {
-        let _ = pid;
-        true // Assume alive on non-unix; timeout will handle it.
+        if pid == 0 {
+            return false;
+        }
+        const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
+        const SYNCHRONIZE: u32 = 0x00100000;
+        const WAIT_TIMEOUT: u32 = 0x00000102;
+
+        let handle =
+            unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, 0, pid) };
+        if handle.is_null() {
+            return false;
+        }
+        let wait_result = unsafe { WaitForSingleObject(handle, 0) };
+        unsafe {
+            let _ = CloseHandle(handle);
+        }
+        wait_result == WAIT_TIMEOUT
+    }
+    #[cfg(all(not(unix), not(windows)))]
+    {
+        pid != 0
     }
 }
 
@@ -134,6 +153,16 @@ unsafe fn libc_kill(pid: i32, sig: i32) -> i32 {
         fn kill(pid: i32, sig: i32) -> i32;
     }
     unsafe { kill(pid, sig) }
+}
+
+#[cfg(windows)]
+type WindowsHandle = *mut std::ffi::c_void;
+
+#[cfg(windows)]
+extern "system" {
+    fn OpenProcess(desired_access: u32, inherit_handle: i32, process_id: u32) -> WindowsHandle;
+    fn WaitForSingleObject(handle: WindowsHandle, milliseconds: u32) -> u32;
+    fn CloseHandle(handle: WindowsHandle) -> i32;
 }
 
 #[cfg(test)]

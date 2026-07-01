@@ -25,6 +25,11 @@ pub struct UninstallResult {
 }
 
 pub fn run_update(options: &SelfUpdateOptions) -> io::Result<()> {
+    run_update_impl(options)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
     let mut command = Command::new("sh");
     command
         .arg("-c")
@@ -34,6 +39,43 @@ pub fn run_update(options: &SelfUpdateOptions) -> io::Result<()> {
         )
         .arg("knots-self-update")
         .arg(&options.script_url);
+    apply_update_env(&mut command, options);
+
+    let status = command.status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(io::Error::other(format!(
+            "update installer failed with status {status}"
+        )))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
+    let mut command = Command::new("powershell.exe");
+    command.args(["-NoProfile", "-ExecutionPolicy", "Bypass"]);
+    if let Some(script_path) = local_file_url_path(&options.script_url) {
+        command.arg("-File").arg(script_path);
+    } else {
+        command
+            .arg("-Command")
+            .arg(
+                "$ErrorActionPreference = 'Stop'; \
+                 $script = Join-Path ([IO.Path]::GetTempPath()) \
+                   ('knots-install-' + [IO.Path]::GetRandomFileName() + '.ps1'); \
+                 try { \
+                   Invoke-WebRequest -UseBasicParsing -Uri $args[0] -OutFile $script; \
+                   & $script; \
+                   $exit = $LASTEXITCODE; \
+                   if ($null -ne $exit) { exit $exit } \
+                 } finally { \
+                   Remove-Item -LiteralPath $script -ErrorAction SilentlyContinue \
+                 }",
+            )
+            .arg(&options.script_url);
+    }
+    command.env("KNOTS_PARENT_PID", std::process::id().to_string());
     apply_update_env(&mut command, options);
 
     let status = command.status()?;
@@ -112,7 +154,7 @@ fn resolve_binary_path(explicit: Option<PathBuf>) -> io::Result<PathBuf> {
 
 fn canonical_binary_path(path: &Path) -> io::Result<PathBuf> {
     match std::fs::canonicalize(path) {
-        Ok(canonical) => Ok(canonical),
+        Ok(canonical) => Ok(preferred_binary_path(canonical)),
         Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(path.to_path_buf()),
         Err(err) => Err(err),
     }
@@ -137,12 +179,30 @@ fn remove_file_if_present(path: &Path) -> io::Result<bool> {
 
 fn alias_paths(binary_path: &Path) -> Vec<PathBuf> {
     let parent = parent_dir(binary_path);
-    vec![parent.join("kno"), parent.join("knots")]
+    let mut paths = vec![
+        parent.join(executable_file_name("kno")),
+        parent.join(executable_file_name("knots")),
+    ];
+    #[cfg(target_os = "windows")]
+    {
+        paths.push(parent.join("kno"));
+        paths.push(parent.join("knots"));
+    }
+    paths
 }
 
 fn previous_paths(binary_path: &Path) -> Vec<PathBuf> {
     let parent = parent_dir(binary_path);
-    vec![parent.join("kno.previous"), parent.join("knots.previous")]
+    let mut paths = vec![
+        parent.join(previous_file_name("kno")),
+        parent.join(previous_file_name("knots")),
+    ];
+    #[cfg(target_os = "windows")]
+    {
+        paths.push(parent.join("kno.previous"));
+        paths.push(parent.join("knots.previous"));
+    }
+    paths
 }
 
 fn parent_dir(path: &Path) -> &Path {
@@ -150,6 +210,59 @@ fn parent_dir(path: &Path) -> &Path {
         Some(parent) if !parent.as_os_str().is_empty() => parent,
         _ => Path::new("."),
     }
+}
+
+fn executable_file_name(stem: &str) -> String {
+    if cfg!(target_os = "windows") {
+        format!("{stem}.exe")
+    } else {
+        stem.to_string()
+    }
+}
+
+fn previous_file_name(stem: &str) -> String {
+    if cfg!(target_os = "windows") {
+        format!("{stem}.previous.exe")
+    } else {
+        format!("{stem}.previous")
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn preferred_binary_path(path: PathBuf) -> PathBuf {
+    let is_kno_alias = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|name| {
+            name.eq_ignore_ascii_case(&executable_file_name("kno"))
+                || name.eq_ignore_ascii_case("kno")
+        });
+    if is_kno_alias {
+        let parent = parent_dir(&path);
+        let sibling = parent.join(executable_file_name("knots"));
+        if std::fs::symlink_metadata(&sibling).is_ok() {
+            return sibling;
+        }
+        let legacy_sibling = parent.join("knots");
+        if std::fs::symlink_metadata(&legacy_sibling).is_ok() {
+            return legacy_sibling;
+        }
+    }
+    path
+}
+
+#[cfg(not(target_os = "windows"))]
+fn preferred_binary_path(path: PathBuf) -> PathBuf {
+    path
+}
+
+#[cfg(target_os = "windows")]
+fn local_file_url_path(url: &str) -> Option<PathBuf> {
+    let raw = url.strip_prefix("file://")?;
+    if raw.len() >= 3 && raw.as_bytes()[0] == b'/' && raw.as_bytes()[2] == b':' {
+        return Some(PathBuf::from(&raw[1..]));
+    }
+    Some(PathBuf::from(raw))
 }
 
 pub fn maybe_run_self_command(

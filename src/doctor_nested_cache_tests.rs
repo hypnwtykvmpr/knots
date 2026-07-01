@@ -25,6 +25,14 @@ fn store_paths_for(root: &std::path::Path) -> StorePaths {
     }
 }
 
+fn removal_hint_prefix() -> &'static str {
+    if cfg!(windows) {
+        "Remove-Item -LiteralPath "
+    } else {
+        "rm -rf "
+    }
+}
+
 #[test]
 fn nested_cache_detected_warns_and_lists_path() {
     let root = unique_workspace();
@@ -38,9 +46,9 @@ fn nested_cache_detected_warns_and_lists_path() {
     let data = check.data.as_ref().expect("data present");
     let nested = data["nested"].as_array().expect("nested array");
     assert_eq!(nested.len(), 1);
-    let nested_dir = root.join(".knots/subdir/.knots");
+    let nested_dir = root.join(".knots").join("subdir").join(".knots");
     assert_eq!(nested[0].as_str().unwrap(), nested_dir.to_string_lossy());
-    assert!(check.detail.contains("rm -rf "));
+    assert!(check.detail.contains(removal_hint_prefix()));
     assert!(check.detail.contains(&nested_dir.display().to_string()));
 
     let _ = std::fs::remove_dir_all(root);
@@ -102,8 +110,8 @@ fn missing_store_root_passes() {
 fn multiple_nested_caches_all_listed_sorted() {
     let root = unique_workspace();
     touch_file(&root.join(".knots/cache/state.sqlite"));
-    let nested_a = root.join(".knots/zzz/.knots");
-    let nested_b = root.join(".knots/a/b/.knots");
+    let nested_a = root.join(".knots").join("zzz").join(".knots");
+    let nested_b = root.join(".knots").join("a").join("b").join(".knots");
     touch_file(&nested_a.join("cache/state.sqlite"));
     // Use cache.lock to also exercise that marker.
     touch_file(&nested_b.join("cache/cache.lock"));
@@ -116,12 +124,9 @@ fn multiple_nested_caches_all_listed_sorted() {
     // Sorted: a/b comes before zzz alphabetically.
     assert_eq!(nested[0].as_str().unwrap(), nested_b.to_string_lossy());
     assert_eq!(nested[1].as_str().unwrap(), nested_a.to_string_lossy());
-    assert!(check
-        .detail
-        .contains(&format!("rm -rf {}", nested_a.display())));
-    assert!(check
-        .detail
-        .contains(&format!("rm -rf {}", nested_b.display())));
+    assert!(check.detail.contains(removal_hint_prefix()));
+    assert!(check.detail.contains(&nested_a.display().to_string()));
+    assert!(check.detail.contains(&nested_b.display().to_string()));
     assert!(check.detail.starts_with("found 2 nested .knots cache(s)"));
 
     let _ = std::fs::remove_dir_all(root);
