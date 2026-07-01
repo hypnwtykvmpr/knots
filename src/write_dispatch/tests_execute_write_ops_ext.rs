@@ -154,6 +154,7 @@ fn execute_rollback_json_paths_parse() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            lease_id: None,
             json: true,
         }),
     )
@@ -171,6 +172,7 @@ fn execute_rollback_json_paths_parse() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            lease_id: None,
             json: true,
         }),
     )

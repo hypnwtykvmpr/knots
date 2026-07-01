@@ -53,6 +53,19 @@ fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
 
 #[cfg(target_os = "windows")]
 fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
+    let mut command = windows_update_command(options);
+    let status = command.status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(io::Error::other(format!(
+            "update installer failed with status {status}"
+        )))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_update_command(options: &SelfUpdateOptions) -> Command {
     let mut command = Command::new("powershell.exe");
     command.args(["-NoProfile", "-ExecutionPolicy", "Bypass"]);
     if let Some(script_path) = local_file_url_path(&options.script_url) {
@@ -77,15 +90,7 @@ fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
     }
     command.env("KNOTS_PARENT_PID", std::process::id().to_string());
     apply_update_env(&mut command, options);
-
-    let status = command.status()?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(io::Error::other(format!(
-            "update installer failed with status {status}"
-        )))
-    }
+    command
 }
 
 pub fn run_uninstall(options: &SelfUninstallOptions) -> io::Result<UninstallResult> {
@@ -97,6 +102,17 @@ pub fn run_uninstall(options: &SelfUninstallOptions) -> io::Result<UninstallResu
         ));
     }
     let binary_path = canonical_binary_path(&launch_path)?;
+
+    #[cfg(target_os = "windows")]
+    if is_current_executable(&binary_path)? {
+        let deferred = plan_windows_deferred_uninstall(&binary_path, options.remove_previous)?;
+        schedule_windows_deferred_removal(
+            &deferred.result.binary_path,
+            &deferred.result.removed_aliases,
+            &deferred.previous_paths,
+        )?;
+        return Ok(deferred.result);
+    }
 
     remove_file_if_present(&binary_path)?;
     let mut removed_aliases = Vec::new();
@@ -177,6 +193,115 @@ fn remove_file_if_present(path: &Path) -> io::Result<bool> {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn existing_file_paths<I>(paths: I) -> io::Result<Vec<PathBuf>>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
+    let mut existing = Vec::new();
+    for path in paths {
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) => {
+                if metadata.is_dir() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        format!("expected file but found directory: {}", path.display()),
+                    ));
+                }
+                existing.push(path);
+            }
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {}
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(existing)
+}
+
+#[cfg(target_os = "windows")]
+struct WindowsDeferredUninstall {
+    result: UninstallResult,
+    previous_paths: Vec<PathBuf>,
+}
+
+#[cfg(target_os = "windows")]
+fn plan_windows_deferred_uninstall(
+    binary_path: &Path,
+    remove_previous: bool,
+) -> io::Result<WindowsDeferredUninstall> {
+    let removed_aliases = existing_file_paths(
+        alias_paths(binary_path)
+            .into_iter()
+            .filter(|path| path != binary_path),
+    )?;
+    let previous_paths = if remove_previous {
+        existing_file_paths(previous_paths(binary_path))?
+    } else {
+        Vec::new()
+    };
+    let result = UninstallResult {
+        binary_path: binary_path.to_path_buf(),
+        removed_previous: !previous_paths.is_empty(),
+        removed_aliases,
+    };
+    Ok(WindowsDeferredUninstall {
+        result,
+        previous_paths,
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn is_current_executable(path: &Path) -> io::Result<bool> {
+    let current = canonical_binary_path(&resolve_binary_path(None)?)?;
+    Ok(current == path)
+}
+
+#[cfg(target_os = "windows")]
+fn schedule_windows_deferred_removal(
+    binary_path: &Path,
+    aliases: &[PathBuf],
+    previous_paths: &[PathBuf],
+) -> io::Result<()> {
+    let mut command =
+        windows_deferred_removal_command(std::process::id(), binary_path, aliases, previous_paths);
+    command.spawn().map(|_| ())
+}
+
+#[cfg(target_os = "windows")]
+fn windows_deferred_removal_command(
+    parent_pid: u32,
+    binary_path: &Path,
+    aliases: &[PathBuf],
+    previous_paths: &[PathBuf],
+) -> Command {
+    use std::os::windows::process::CommandExt;
+
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    let script = "\
+$ErrorActionPreference = 'SilentlyContinue'; \
+$parent = [int]$args[0]; \
+Wait-Process -Id $parent -ErrorAction SilentlyContinue; \
+Start-Sleep -Milliseconds 300; \
+for ($i = 1; $i -lt $args.Count; $i++) { \
+  Remove-Item -LiteralPath $args[$i] -Force -ErrorAction SilentlyContinue \
+}";
+    let mut command = Command::new("powershell.exe");
+    command
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ])
+        .arg(parent_pid.to_string())
+        .arg(binary_path);
+    for path in aliases.iter().chain(previous_paths.iter()) {
+        command.arg(path);
+    }
+    command.creation_flags(CREATE_NO_WINDOW);
+    command
+}
+
 fn alias_paths(binary_path: &Path) -> Vec<PathBuf> {
     let parent = parent_dir(binary_path);
     let mut paths = vec![
@@ -212,20 +337,24 @@ fn parent_dir(path: &Path) -> &Path {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn executable_file_name(stem: &str) -> String {
-    if cfg!(target_os = "windows") {
-        format!("{stem}.exe")
-    } else {
-        stem.to_string()
-    }
+    format!("{stem}.exe")
 }
 
+#[cfg(not(target_os = "windows"))]
+fn executable_file_name(stem: &str) -> String {
+    stem.to_string()
+}
+
+#[cfg(target_os = "windows")]
 fn previous_file_name(stem: &str) -> String {
-    if cfg!(target_os = "windows") {
-        format!("{stem}.previous.exe")
-    } else {
-        format!("{stem}.previous")
-    }
+    format!("{stem}.previous.exe")
+}
+
+#[cfg(not(target_os = "windows"))]
+fn previous_file_name(stem: &str) -> String {
+    format!("{stem}.previous")
 }
 
 #[cfg(target_os = "windows")]

@@ -1,5 +1,6 @@
 param(
     [switch]$Sanity,
+    [switch]$SkipTests,
     [switch]$SkipCoverage
 )
 
@@ -23,8 +24,11 @@ Invoke-Step 'changesets' { npm run check-changesets }
 Invoke-Step 'check' { cargo check --all-targets --all-features }
 Invoke-Step 'clippy' { cargo clippy --all-targets --all-features -- -D warnings }
 Invoke-Step 'file sizes' { & .\scripts\repo\Check-FileSizes.ps1 }
-Invoke-Step 'tests' { cargo test --all-targets --all-features }
-Invoke-Step 'release tests' { npm run test-release }
+
+if (-not $SkipTests) {
+    Invoke-Step 'tests' { cargo test --all-targets --all-features }
+    Invoke-Step 'release tests' { npm run test-release }
+}
 
 if (-not $SkipCoverage) {
     Invoke-Step 'coverage' {

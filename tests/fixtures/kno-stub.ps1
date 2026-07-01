@@ -147,16 +147,18 @@ switch ($subcmd) {
 '@
     }
     'rollback' {
-@'
+        $leasePresent = ($joined -like '* --lease L1 *').ToString().ToLowerInvariant()
+@"
 {
   "id": "k1",
   "state": "implementation",
   "target_state": "ready_for_implementation",
   "owner_kind": "agent",
   "reason": "rolled back",
-  "dry_run": false
+  "dry_run": false,
+  "lease_present": $leasePresent
 }
-'@
+"@
     }
     'push' {
         if ($env:KNOTS_ALLOW_ACTIVE_LEASE_REPLICATION -eq '1') {

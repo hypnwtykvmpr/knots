@@ -151,14 +151,19 @@ JSON
 JSON
     ;;
   rollback)
-    cat <<'JSON'
+    lease_present=false
+    if [[ " ${args[*]} " == *" --lease L1 "* ]]; then
+      lease_present=true
+    fi
+    cat <<JSON
 {
   "id": "k1",
   "state": "implementation",
   "target_state": "ready_for_implementation",
   "owner_kind": "agent",
   "reason": "rolled back",
-  "dry_run": false
+  "dry_run": false,
+  "lease_present": $lease_present
 }
 JSON
     ;;

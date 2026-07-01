@@ -24,7 +24,8 @@ if ((Test-Path -LiteralPath $managedHook) -and
 
 if (Test-Path -LiteralPath $managedHook) {
     if (Test-Path -LiteralPath $localHook) {
-        $backup = Join-Path $hooksDir "pre-push.backup.$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+        $timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $backup = Join-Path $hooksDir "pre-push.backup.$timestamp"
         Move-Item -LiteralPath $managedHook -Destination $backup -Force
         Write-Output "Moved existing pre-push hook to $backup"
     } else {
@@ -33,24 +34,30 @@ if (Test-Path -LiteralPath $managedHook) {
     }
 }
 
-$repoForHook = $repoRoot.Replace('\', '/')
-$hooksForHook = $hooksDir.Replace('\', '/')
+function ConvertTo-ShSingleQuoted {
+    param([Parameter(Mandatory = $true)][string]$Value)
+    return "'" + ($Value.Replace("'", "'\''")) + "'"
+}
+
+$repoForHook = ConvertTo-ShSingleQuoted -Value ($repoRoot.Replace('\', '/'))
+$hooksForHook = ConvertTo-ShSingleQuoted -Value ($hooksDir.Replace('\', '/'))
 $hook = @"
 #!/usr/bin/env sh
 set -eu
 # $marker
-repo_root='$repoForHook'
-hooks_dir='$hooksForHook'
+repo_root=$repoForHook
+hooks_dir=$hooksForHook
 local_hook="`${hooks_dir}/pre-push.local"
+sanity_script="`${repo_root}/scripts/repo/Pre-Push-Sanity.ps1"
 
 if [ -x "`${local_hook}" ]; then
   "`${local_hook}" "`$@"
 fi
 
 if command -v pwsh.exe >/dev/null 2>&1; then
-  pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "`${repo_root}/scripts/repo/Pre-Push-Sanity.ps1" "`$@"
+  pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "`${sanity_script}" "`$@"
 else
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "`${repo_root}/scripts/repo/Pre-Push-Sanity.ps1" "`$@"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "`${sanity_script}" "`$@"
 fi
 "@
 

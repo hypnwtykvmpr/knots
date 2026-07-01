@@ -69,6 +69,9 @@ fn run_knots(repo_root: &Path, db_path: &Path, home: &Path, args: &[&str]) -> Ou
         .arg("--db")
         .arg(db_path)
         .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"))
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args);
     configure_coverage_env(&mut command);
@@ -84,6 +87,9 @@ fn run_repo_debug_knots(repo_root: &Path, db_path: &Path, home: &Path, args: &[&
         .arg("--db")
         .arg(db_path)
         .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"))
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args);
     configure_coverage_env(&mut command);

@@ -380,10 +380,21 @@ fn drain_pending_requests_propagates_response_write_errors() {
     assert!(matches!(err, QueueError::Io(_)));
     assert_eq!(
         list_request_files(&paths.requests_dir)
-            .expect("request files should still list")
+            .expect("request files should not be re-queued")
             .len(),
-        1
+        0
     );
+    let processing_files = fs::read_dir(&paths.requests_dir)
+        .expect("request dir should list")
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".json.processing")
+        })
+        .count();
+    assert_eq!(processing_files, 1);
 
     let _ = fs::remove_dir_all(root);
 }

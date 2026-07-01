@@ -282,6 +282,9 @@ fn install_custom_workflow(root: &std::path::Path, db: &std::path::Path) {
         .arg("--db")
         .arg(db)
         .env("HOME", &home)
+        .env("USERPROFILE", &home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"))
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args([
             "workflow",

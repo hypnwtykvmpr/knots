@@ -261,11 +261,11 @@ fn parse_lines(value: &str) -> Vec<PathBuf> {
     out
 }
 
-fn git_path(path: &Path) -> String {
+pub(crate) fn git_path(path: &Path) -> String {
     strip_windows_verbatim_prefix(&path.to_string_lossy())
 }
 
-fn strip_windows_verbatim_prefix(path: &str) -> String {
+pub(crate) fn strip_windows_verbatim_prefix(path: &str) -> String {
     #[cfg(windows)]
     {
         const VERBATIM: &str = r"\\?\";

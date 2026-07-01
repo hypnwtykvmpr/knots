@@ -57,7 +57,9 @@ fn run_help(home: &Path, curl_bin: Option<&Path>) -> std::process::Output {
         .env("HOME", home)
         .env_remove("KNOTS_SKIP_DOCTOR_UPGRADE")
         .env_remove("XDG_DATA_HOME")
-        .env_remove("APPDATA");
+        .env_remove("USERPROFILE")
+        .env_remove("APPDATA")
+        .env_remove("LOCALAPPDATA");
     if let Some(curl_bin) = curl_bin {
         cmd.env("KNOTS_CURL_BIN", curl_bin);
     } else {

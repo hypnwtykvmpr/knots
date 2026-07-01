@@ -135,6 +135,9 @@ pub fn run_knots(repo_root: &Path, db_path: &Path, args: &[&str]) -> Output {
         .arg(db_path)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .env("HOME", repo_root)
+        .env("USERPROFILE", repo_root)
+        .env("APPDATA", repo_root.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", repo_root.join("AppData").join("Local"))
         .args(args);
     configure_coverage_env(&mut command);
     command.output().expect("knots command should run")

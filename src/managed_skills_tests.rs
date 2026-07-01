@@ -1,13 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 
+use super::test_support::{env_lock, restore_test_home_env, set_test_home_env};
 use super::*;
-
-pub(super) fn env_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
 
 fn unique_root(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("{label}-{}", uuid::Uuid::now_v7()));
@@ -176,14 +171,13 @@ fn managed_skills_describe_parent_child_workflow() {
 #[test]
 fn doctor_fix_reconciles_drifted_skills_and_skips_unconfigured_agents_root() {
     let _guard = env_lock().lock().expect("env lock");
-    let prior_home = std::env::var_os("HOME");
 
     // Reconcile drifted skills for detected root
     let repo = unique_root("managed-skills-fix");
     let home = unique_root("managed-skills-home");
     let agents = repo.join(".agents");
     fs::create_dir_all(&agents).expect("agents root");
-    std::env::set_var("HOME", &home);
+    let prior_home = set_test_home_env(&home);
     install_missing(&repo, Some(&home), SkillTool::Codex).expect("install");
     let knots = agents.join("skills/knots/SKILL.md");
     fs::write(&knots, "stale").expect("stale");
@@ -197,7 +191,8 @@ fn doctor_fix_reconciles_drifted_skills_and_skips_unconfigured_agents_root() {
     // Skip Codex/OpenCode when .agents is absent
     let repo2 = unique_root("managed-skills-fix-missing-root");
     let home2 = unique_root("managed-skills-home");
-    std::env::set_var("HOME", &home2);
+    restore_test_home_env(prior_home);
+    let prior_home = set_test_home_env(&home2);
     let c = doctor_check(&repo2, Some(&home2), SkillTool::Codex);
     assert_eq!(c.status, DoctorStatus::Pass);
     assert!(!repo2.join(".agents/skills/knots/SKILL.md").exists());
@@ -205,10 +200,7 @@ fn doctor_fix_reconciles_drifted_skills_and_skips_unconfigured_agents_root() {
     let c = doctor_check(&repo2, Some(&home2), SkillTool::Codex);
     assert_eq!(c.status, DoctorStatus::Pass);
 
-    match prior_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
+    restore_test_home_env(prior_home);
 }
 
 #[test]
@@ -423,8 +415,7 @@ fn public_environment_based_helpers_use_home_env() {
     let home = unique_root("managed-skills-home");
     fs::create_dir_all(repo_root.join(".agents")).expect("agents root");
 
-    let prior_home = std::env::var_os("HOME");
-    std::env::set_var("HOME", &home);
+    let prior_home = set_test_home_env(&home);
 
     let install = run_command(&repo_root, SkillsCommand::Install(SkillTool::Codex))
         .expect("install should succeed");
@@ -441,10 +432,7 @@ fn public_environment_based_helpers_use_home_env() {
     assert!(knots.exists());
     fix_doctor_check(&repo_root, "unknown");
 
-    match prior_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
+    restore_test_home_env(prior_home);
 }
 
 #[test]
@@ -469,9 +457,8 @@ fn doctor_detects_and_fixes_project_level_codex_skills() {
     let _guard = env_lock().lock().expect("env lock");
     let repo = unique_root("managed-skills-codex-doctor-project");
     let home = unique_root("managed-skills-home");
-    let prior_home = std::env::var_os("HOME");
     fs::create_dir_all(repo.join(".agents")).expect("agents root");
-    std::env::set_var("HOME", &home);
+    let prior_home = set_test_home_env(&home);
 
     let check = doctor_check(&repo, Some(&home), SkillTool::Codex);
     assert_eq!(check.status, DoctorStatus::Warn);
@@ -491,8 +478,5 @@ fn doctor_detects_and_fixes_project_level_codex_skills() {
     assert_eq!(after.status, DoctorStatus::Pass);
     assert!(fs::read_to_string(&knots).expect("read").contains("---"));
 
-    match prior_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
+    restore_test_home_env(prior_home);
 }

@@ -164,16 +164,15 @@ async fn server_tools_route_to_kno_runner() {
             .unwrap()["state"],
         "ready_for_review"
     );
-    assert_eq!(
-        server
-            .knots_rollback(Parameters(IdArgs {
-                id: "k1".to_string()
-            }))
-            .await
-            .structured_content
-            .unwrap()["target_state"],
-        "ready_for_implementation"
-    );
+    let rollback = server
+        .knots_rollback(Parameters(IdArgs {
+            id: "k1".to_string(),
+        }))
+        .await
+        .structured_content
+        .unwrap();
+    assert_eq!(rollback["target_state"], "ready_for_implementation");
+    assert_eq!(rollback["lease_present"], true);
     assert_eq!(
         server.knots_sync().await.structured_content.unwrap()["status"],
         "deferred"

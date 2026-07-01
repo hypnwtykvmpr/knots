@@ -78,7 +78,7 @@ pub fn write_sync_ref_config(
 fn git_config_set(repo_root: &Path, key: &str, value: &str) -> std::io::Result<()> {
     let status = Command::new("git")
         .arg("-C")
-        .arg(repo_root)
+        .arg(crate::sync::git_path(repo_root))
         .args(["config", key, value])
         .status()?;
     status
@@ -113,7 +113,7 @@ fn remote_url(repo_root: &Path, remote: &str) -> Option<String> {
 fn git_output(repo_root: &Path, args: &[&str]) -> Option<String> {
     let output = Command::new("git")
         .arg("-C")
-        .arg(repo_root)
+        .arg(crate::sync::git_path(repo_root))
         .args(args)
         .output()
         .ok()?;

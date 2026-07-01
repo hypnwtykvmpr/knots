@@ -59,8 +59,8 @@ such as "works well", "clean up", or "handle edge cases".
 Run:
 
 ```bash
-kno new "<title>" -d $'Goal:\n<goal>\n\nVerification:\n1. <step>\n2. <step>' \
-  --acceptance $'1. <criterion>\n2. <criterion>' \
+kno new "<title>" -d "<goal, verification steps, and constraints>" \
+  --acceptance "<numbered observable acceptance criteria>" \
   --lease <lease-id>
 ```
 

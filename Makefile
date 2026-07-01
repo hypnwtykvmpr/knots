@@ -1,15 +1,41 @@
 
 COVERAGE_FILE := .ci/coverage-threshold.txt
-COVERAGE_MIN ?= $(shell tr -d '[:space:]' < $(COVERAGE_FILE))
 ARTIFACT_MAX_AGE_HOURS ?= 24
 SANITY_TARGET_DIR ?= target/sanity
 SANITY_COVERAGE_TARGET_DIR ?= target/sanity-coverage
 EXE_SUFFIX := $(if $(filter Windows_NT,$(OS)),.exe,)
 
-.PHONY: fmt lint test coverage sanity reap-artifacts install-hooks check-threshold loom-bundle demo demo-gif
+.PHONY: fmt lint test coverage sanity reap-artifacts install-hooks check-threshold
+.PHONY: loom-bundle demo demo-gif
 
 fmt:
 	cargo fmt --all -- --check
+
+ifeq ($(OS),Windows_NT)
+POWERSHELL := powershell.exe -NoProfile -ExecutionPolicy Bypass
+
+lint: reap-artifacts
+	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1 -SkipTests -SkipCoverage
+
+test: reap-artifacts
+	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1 -SkipCoverage
+
+coverage: reap-artifacts
+	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1
+
+sanity:
+	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1 -Sanity
+
+reap-artifacts:
+	$(POWERSHELL) -File .\scripts\repo\Reap-StaleArtifacts.ps1 -MaxAgeHours "$(ARTIFACT_MAX_AGE_HOURS)"
+
+install-hooks:
+	$(POWERSHELL) -File .\scripts\repo\Install-Hooks.ps1
+
+check-threshold:
+	$(POWERSHELL) -File .\scripts\repo\Check-CoverageThreshold.ps1 -BaseRef origin/main
+else
+COVERAGE_MIN ?= $(shell tr -d '[:space:]' < $(COVERAGE_FILE))
 
 lint: reap-artifacts
 	npm run check-changesets
@@ -43,6 +69,7 @@ install-hooks:
 
 check-threshold:
 	bash scripts/repo/check-coverage-threshold.sh origin/main
+endif
 
 loom-bundle:
 	loom build loom/work_sdlc --emit knots-bundle > loom/work_sdlc/dist/bundle.json

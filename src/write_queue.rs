@@ -37,6 +37,7 @@ pub struct NewOperation {
     pub gate_failure_modes: Vec<String>,
     pub tags: Vec<String>,
     pub scope: crate::cli_scope::ScopeArgs,
+    #[serde(default)]
     pub lease_id: Option<String>,
     #[serde(default)]
     pub json: bool,
@@ -130,6 +131,7 @@ pub struct RollbackOperation {
     pub agent_name: Option<String>,
     pub agent_model: Option<String>,
     pub agent_version: Option<String>,
+    pub lease_id: Option<String>,
     #[serde(default)]
     pub json: bool,
 }

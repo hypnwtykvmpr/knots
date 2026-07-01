@@ -1,5 +1,10 @@
 #[cfg(unix)]
 use super::canonical_binary_path;
+#[cfg(windows)]
+use super::{
+    existing_file_paths, local_file_url_path, plan_windows_deferred_uninstall,
+    windows_deferred_removal_command, windows_update_command,
+};
 use super::{
     format_titled_fields, format_upgrade_summary, paint, parent_dir, remove_file_if_present,
     resolve_binary_path, run_uninstall, run_update, update_install_dir, upgrade_hint_needed,
@@ -204,6 +209,110 @@ fn canonicalize_and_remove_file_helpers_cover_directory_and_missing_paths() {
     }
 
     let _ = std::fs::remove_dir_all(dir);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_deferred_uninstall_helpers_build_expected_command() {
+    let dir = unique_temp_dir();
+    let binary = dir.join("knots.exe");
+    let alias = dir.join("kno.exe");
+    let missing = dir.join("missing.exe");
+    let previous = dir.join("knots.previous.exe");
+    let directory = dir.join("directory");
+    std::fs::write(&binary, b"bin").expect("binary should write");
+    std::fs::write(&alias, b"alias").expect("alias should write");
+    std::fs::write(&previous, b"previous").expect("previous should write");
+    std::fs::create_dir_all(&directory).expect("directory should exist");
+
+    let existing = existing_file_paths(vec![alias.clone(), missing])
+        .expect("existing file collection should skip missing paths");
+    assert_eq!(existing, vec![alias.clone()]);
+    let err = existing_file_paths(vec![directory]).expect_err("directories should be rejected");
+    assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
+
+    let command = windows_deferred_removal_command(
+        123,
+        &binary,
+        std::slice::from_ref(&alias),
+        std::slice::from_ref(&previous),
+    );
+    let args = command
+        .get_args()
+        .map(|arg| arg.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        command.get_program(),
+        std::ffi::OsStr::new("powershell.exe")
+    );
+    assert!(args.iter().any(|arg| arg == "-Command"));
+    assert!(args.iter().any(|arg| arg == "123"));
+    assert!(args.iter().any(|arg| arg.ends_with("knots.exe")));
+    assert!(args.iter().any(|arg| arg.ends_with("kno.exe")));
+    assert!(args.iter().any(|arg| arg.ends_with("knots.previous.exe")));
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_update_command_builds_remote_download_invocation() {
+    let command = windows_update_command(&SelfUpdateOptions {
+        version: Some("v9.9.9-test".to_string()),
+        repo: Some("example/knots".to_string()),
+        install_dir: Some(PathBuf::from("C:\\Tools\\Knots")),
+        script_url: "https://example.invalid/install.ps1".to_string(),
+    });
+    let args = command
+        .get_args()
+        .map(|arg| arg.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        command.get_program(),
+        std::ffi::OsStr::new("powershell.exe")
+    );
+    assert!(args.iter().any(|arg| arg == "-Command"));
+    assert!(args.iter().any(|arg| arg.contains("Invoke-WebRequest")));
+    assert!(args
+        .iter()
+        .any(|arg| arg == "https://example.invalid/install.ps1"));
+    let version_env = command
+        .get_envs()
+        .find(|(key, _)| *key == std::ffi::OsStr::new("KNOTS_VERSION"))
+        .and_then(|(_, value)| value);
+    assert_eq!(version_env, Some(std::ffi::OsStr::new("v9.9.9-test")));
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_deferred_uninstall_plan_collects_existing_files() {
+    let dir = unique_temp_dir();
+    let binary = dir.join("knots.exe");
+    let alias = dir.join("kno.exe");
+    let previous = dir.join("knots.previous.exe");
+    std::fs::write(&binary, b"bin").expect("binary should write");
+    std::fs::write(&alias, b"alias").expect("alias should write");
+    std::fs::write(&previous, b"previous").expect("previous should write");
+
+    let plan = plan_windows_deferred_uninstall(&binary, true)
+        .expect("deferred uninstall plan should resolve");
+
+    assert_eq!(plan.result.binary_path, binary);
+    assert_eq!(plan.result.removed_aliases, vec![alias]);
+    assert!(plan.result.removed_previous);
+    assert_eq!(plan.previous_paths, vec![previous]);
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_local_file_url_path_accepts_drive_prefixed_urls() {
+    assert_eq!(
+        local_file_url_path("file:///C:/Tools/knots/install.ps1"),
+        Some(PathBuf::from("C:/Tools/knots/install.ps1"))
+    );
 }
 
 #[test]

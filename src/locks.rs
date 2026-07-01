@@ -63,21 +63,23 @@ fn try_acquire(path: &Path) -> Result<Option<FileLock>, LockError> {
         std::fs::create_dir_all(parent)?;
     }
 
-    match OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(mut file) => {
-            let _ = write!(file, "{}", std::process::id());
-            Ok(Some(FileLock {
-                path: path.to_path_buf(),
-                _file: file,
-            }))
-        }
-        Err(err) if err.kind() == ErrorKind::AlreadyExists => {
-            if reclaim_stale(path)? {
-                return try_acquire(path);
+    loop {
+        match OpenOptions::new().write(true).create_new(true).open(path) {
+            Ok(mut file) => {
+                let _ = write!(file, "{}", std::process::id());
+                return Ok(Some(FileLock {
+                    path: path.to_path_buf(),
+                    _file: file,
+                }));
             }
-            Ok(None)
+            Err(err) if err.kind() == ErrorKind::AlreadyExists => {
+                if reclaim_stale(path)? {
+                    continue;
+                }
+                return Ok(None);
+            }
+            Err(err) => return Err(LockError::Io(err)),
         }
-        Err(err) => Err(LockError::Io(err)),
     }
 }
 
@@ -94,56 +96,97 @@ fn reclaim_stale(path: &Path) -> Result<bool, LockError> {
     let pid: u32 = match contents.trim().parse() {
         Ok(pid) => pid,
         // No valid PID — could be empty or corrupt. Treat as stale.
-        Err(_) => {
-            let _ = std::fs::remove_file(path);
-            return Ok(true);
-        }
+        Err(_) => return remove_stale_lock(path),
     };
 
-    if process_alive(pid) {
-        Ok(false)
-    } else {
-        let _ = std::fs::remove_file(path);
-        Ok(true)
+    match process_status(pid) {
+        ProcessStatus::Alive | ProcessStatus::Unknown => Ok(false),
+        ProcessStatus::Dead => remove_stale_lock(path),
     }
 }
 
+#[cfg(test)]
 fn process_alive(pid: u32) -> bool {
+    matches!(
+        process_status(pid),
+        ProcessStatus::Alive | ProcessStatus::Unknown
+    )
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProcessStatus {
+    Alive,
+    Dead,
+    Unknown,
+}
+
+fn process_status(pid: u32) -> ProcessStatus {
     #[cfg(unix)]
     {
         let Ok(pid) = i32::try_from(pid) else {
-            return false;
+            return ProcessStatus::Dead;
         };
         if pid <= 0 {
-            return false;
+            return ProcessStatus::Dead;
         }
         // signal 0 checks if the process exists without sending a signal.
         let ret = unsafe { libc_kill(pid, 0) };
-        ret == 0
+        return if ret == 0 {
+            ProcessStatus::Alive
+        } else {
+            ProcessStatus::Dead
+        };
     }
     #[cfg(windows)]
     {
         if pid == 0 {
-            return false;
+            return ProcessStatus::Dead;
         }
         const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
         const SYNCHRONIZE: u32 = 0x00100000;
+        const WAIT_OBJECT_0: u32 = 0x00000000;
         const WAIT_TIMEOUT: u32 = 0x00000102;
+        const WAIT_FAILED: u32 = 0xFFFFFFFF;
+        const ERROR_ACCESS_DENIED: u32 = 5;
+        const ERROR_INVALID_PARAMETER: u32 = 87;
 
         let handle =
             unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, 0, pid) };
         if handle.is_null() {
-            return false;
+            let error = unsafe { GetLastError() };
+            return match error {
+                ERROR_INVALID_PARAMETER => ProcessStatus::Dead,
+                ERROR_ACCESS_DENIED => ProcessStatus::Alive,
+                _ => ProcessStatus::Unknown,
+            };
         }
         let wait_result = unsafe { WaitForSingleObject(handle, 0) };
         unsafe {
             let _ = CloseHandle(handle);
         }
-        wait_result == WAIT_TIMEOUT
+        match wait_result {
+            WAIT_TIMEOUT => ProcessStatus::Alive,
+            WAIT_OBJECT_0 => ProcessStatus::Dead,
+            WAIT_FAILED => ProcessStatus::Unknown,
+            _ => ProcessStatus::Unknown,
+        }
     }
     #[cfg(all(not(unix), not(windows)))]
     {
-        pid != 0
+        if pid == 0 {
+            ProcessStatus::Dead
+        } else {
+            ProcessStatus::Unknown
+        }
+    }
+}
+
+fn remove_stale_lock(path: &Path) -> Result<bool, LockError> {
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(true),
+        Err(err) if err.kind() == ErrorKind::NotFound => Ok(true),
+        Err(err) if err.kind() == ErrorKind::PermissionDenied => Ok(false),
+        Err(err) => Err(LockError::Io(err)),
     }
 }
 
@@ -163,6 +206,7 @@ extern "system" {
     fn OpenProcess(desired_access: u32, inherit_handle: i32, process_id: u32) -> WindowsHandle;
     fn WaitForSingleObject(handle: WindowsHandle, milliseconds: u32) -> u32;
     fn CloseHandle(handle: WindowsHandle) -> i32;
+    fn GetLastError() -> u32;
 }
 
 #[cfg(test)]

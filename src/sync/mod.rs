@@ -15,6 +15,7 @@ mod git;
 mod worktree;
 
 use apply::IncrementalApplier;
+pub(crate) use git::git_path;
 pub use git::GitAdapter;
 pub use worktree::KnotsWorktree;
 

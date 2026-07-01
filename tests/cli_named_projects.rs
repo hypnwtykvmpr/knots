@@ -32,13 +32,27 @@ fn configure_coverage_env(command: &mut Command) {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn configure_home_env(command: &mut Command, home: &Path) {
+    command
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"));
+}
+
+#[cfg(not(target_os = "windows"))]
+fn configure_home_env(command: &mut Command, home: &Path) {
+    command.env("HOME", home);
+}
+
 fn run_knots(home: &Path, cwd: &Path, args: &[&str]) -> Output {
     let mut command = Command::new(knots_binary());
     command
         .current_dir(cwd)
-        .env("HOME", home)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args);
+    configure_home_env(&mut command, home);
     configure_coverage_env(&mut command);
     command.output().expect("knots command should run")
 }
@@ -47,12 +61,12 @@ fn run_knots_with_input(home: &Path, cwd: &Path, args: &[&str], input: &str) -> 
     let mut command = Command::new(knots_binary());
     command
         .current_dir(cwd)
-        .env("HOME", home)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    configure_home_env(&mut command, home);
     configure_coverage_env(&mut command);
     let mut child = command.spawn().expect("knots command should spawn");
     child
@@ -152,9 +166,17 @@ fn app_data_root(home: &Path) -> PathBuf {
             .join("Application Support")
             .join("knots")
     } else if cfg!(target_os = "windows") {
-        home.join("AppData").join("Roaming").join("knots")
+        home.join("AppData").join("Local").join("knots")
     } else {
         home.join(".local").join("share").join("knots")
+    }
+}
+
+fn config_root(home: &Path) -> PathBuf {
+    if cfg!(target_os = "windows") {
+        home.join("AppData").join("Roaming").join("knots")
+    } else {
+        home.join(".config").join("knots")
     }
 }
 
@@ -192,7 +214,7 @@ fn init_project_creates_app_data_without_workspace_knots_dir() {
     let output = run_knots(&home, &workspace, &["--project", "demo", "init"]);
     assert_success(&output);
 
-    let config = std::fs::read_to_string(home.join(".config/knots/config.toml"))
+    let config = std::fs::read_to_string(config_root(&home).join("config.toml"))
         .expect("config should exist");
     assert!(config.contains("active_project = \"demo\""));
 
@@ -330,7 +352,7 @@ fn project_delete_requires_matching_confirmation() {
     assert_failure(&output);
     assert!(String::from_utf8_lossy(&output.stderr).contains("confirmation did not match"));
     assert!(store_root.exists());
-    assert!(home.join(".config/knots/projects/demo.toml").exists());
+    assert!(config_root(&home).join("projects/demo.toml").exists());
 }
 
 #[test]
@@ -348,8 +370,8 @@ fn project_delete_removes_store_and_project_record() {
 
     assert_success(&output);
     assert!(!store_root.exists());
-    assert!(!home.join(".config/knots/projects/demo.toml").exists());
-    let config = std::fs::read_to_string(home.join(".config/knots/config.toml"))
+    assert!(!config_root(&home).join("projects/demo.toml").exists());
+    let config = std::fs::read_to_string(config_root(&home).join("config.toml"))
         .expect("config should still exist");
     assert!(!config.contains("active_project"));
 }
@@ -367,7 +389,7 @@ fn project_delete_yes_skips_confirmation_prompt() {
     let output = run_knots(&home, &workspace, &["project", "delete", "demo", "--yes"]);
 
     assert_success(&output);
-    assert!(!home.join(".config/knots/projects/demo.toml").exists());
+    assert!(!config_root(&home).join("projects/demo.toml").exists());
 }
 
 #[cfg(unix)]
@@ -390,7 +412,7 @@ fn project_select_works_interactively_with_a_tty() {
     let (success, output) = run_knots_in_pty(&home, &workspace, &["project", "select"], "2\n");
     assert!(success, "expected success from PTY select:\n{output}");
 
-    let config = std::fs::read_to_string(home.join(".config/knots/config.toml"))
+    let config = std::fs::read_to_string(config_root(&home).join("config.toml"))
         .expect("config should exist");
     assert!(config.contains("active_project = \"beta\""));
 }

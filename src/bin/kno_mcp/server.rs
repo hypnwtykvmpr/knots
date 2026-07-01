@@ -22,8 +22,8 @@ use crate::runner::KnoRunner;
 use crate::session::LeaseRegistry;
 use crate::sync_loop::spawn_background_sync;
 use crate::tools::{
-    claim_argv, create_argv, id_argv, list_argv, update_argv, ClaimArgs, CreateArgs, IdArgs,
-    ListArgs, UpdateArgs,
+    claim_argv, create_argv, id_argv, leased_id_argv, list_argv, update_argv, ClaimArgs,
+    CreateArgs, IdArgs, ListArgs, UpdateArgs,
 };
 
 #[derive(Debug, Clone)]
@@ -130,17 +130,16 @@ impl KnoMcp {
 
     #[tool(description = "Advance a claimed knot to its next workflow state.")]
     pub async fn knots_next(&self, Parameters(args): Parameters<IdArgs>) -> CallToolResult {
-        let mut argv = id_argv(args);
-        if let Some(lease) = self.lease_registry.current() {
-            argv.push("--lease".to_string());
-            argv.push(lease);
-        }
+        let argv = leased_id_argv(args, self.lease_registry.current());
         self.run_mutating_tool("next", argv)
     }
 
     #[tool(description = "Roll back a knot from an action state to its prior ready state.")]
     pub async fn knots_rollback(&self, Parameters(args): Parameters<IdArgs>) -> CallToolResult {
-        self.run_mutating_tool("rollback", id_argv(args))
+        self.run_mutating_tool(
+            "rollback",
+            leased_id_argv(args, self.lease_registry.current()),
+        )
     }
 
     #[tool(description = "Run Knots git sync and return the SyncOutcome JSON.")]

@@ -63,6 +63,9 @@ fn run_knots(repo_root: &Path, db_path: &Path, home: &Path, args: &[&str]) -> Ou
         .arg("--db")
         .arg(db_path)
         .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"))
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args);
     configure_coverage_env(&mut command);
@@ -256,8 +259,17 @@ fn assert_claim_and_advance(root: &Path, db: &Path, home: &Path, knot_id: &str) 
     let claim_review_json: Value =
         serde_json::from_slice(&claim_review.stdout).expect("claim review json");
     assert_eq!(claim_review_json["state"], "approve");
+    let review_lease_id = claim_review_json["lease_id"]
+        .as_str()
+        .expect("review claim should auto-bind a lease")
+        .to_string();
 
-    let rollback = run_knots(root, db, home, &["rollback", knot_id]);
+    let rollback = run_knots(
+        root,
+        db,
+        home,
+        &["rollback", knot_id, "--lease", &review_lease_id],
+    );
     assert_success(&rollback);
     let after = run_knots(root, db, home, &["show", knot_id, "--json"]);
     assert_success(&after);

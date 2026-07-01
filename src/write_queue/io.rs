@@ -212,22 +212,29 @@ where
             break;
         }
         for request_file in request_files {
-            let request = match read_request_file(&request_file) {
+            let claimed_file = claim_request_file(&request_file)?;
+            let request = match read_request_file(&claimed_file) {
                 Ok(request) => request,
                 Err(err) => {
-                    let _ = fs::remove_file(&request_file);
+                    let _ = fs::remove_file(&claimed_file);
                     return Err(err);
                 }
             };
             let response = executor(&request);
             let response_path = PathBuf::from(&request.response_path);
             write_response_file(&response_path, &response)?;
-            let _ = fs::remove_file(&request_file);
+            fs::remove_file(&claimed_file)?;
             processed += 1;
         }
     }
 
     Ok(processed)
+}
+
+fn claim_request_file(request_file: &Path) -> Result<PathBuf, QueueError> {
+    let claimed_file = request_file.with_extension("json.processing");
+    fs::rename(request_file, &claimed_file)?;
+    Ok(claimed_file)
 }
 
 pub(super) fn list_request_files(requests_dir: &Path) -> Result<Vec<PathBuf>, QueueError> {

@@ -1,4 +1,3 @@
-#[cfg(target_os = "windows")]
 use std::fs;
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -7,6 +6,14 @@ use serde::{Deserialize, Serialize};
 
 const CONFIG_DIR_NAME: &str = "knots";
 const PROJECTS_DIR_NAME: &str = "projects";
+
+#[path = "project/paths.rs"]
+mod paths;
+#[cfg(test)]
+pub use paths::config_dir;
+pub(crate) use paths::home_dir;
+use paths::project_file;
+pub use paths::{config_path, data_dir, projects_dir};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DistributionMode {
@@ -87,64 +94,6 @@ impl NamedProjectRecord {
     }
 }
 
-pub fn config_path(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    Ok(config_dir(home_override)?.join("config.toml"))
-}
-
-pub fn config_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    if let Some(home) = explicit_home(home_override) {
-        return Ok(home.join(".config").join(CONFIG_DIR_NAME));
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Some(appdata) = env_path("APPDATA") {
-            return Ok(appdata.join(CONFIG_DIR_NAME));
-        }
-        if let Some(xdg) = env_path("XDG_CONFIG_HOME") {
-            return Ok(xdg.join(CONFIG_DIR_NAME));
-        }
-    }
-
-    let home = home_dir(None)?;
-    Ok(home.join(".config").join(CONFIG_DIR_NAME))
-}
-
-pub fn data_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    #[cfg(target_os = "macos")]
-    {
-        let home = home_dir(home_override)?;
-        Ok(home
-            .join("Library")
-            .join("Application Support")
-            .join(CONFIG_DIR_NAME))
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Some(home) = explicit_home(home_override) {
-            return Ok(home.join("AppData").join("Roaming").join(CONFIG_DIR_NAME));
-        }
-        if let Some(appdata) = env_path("APPDATA") {
-            return Ok(appdata.join(CONFIG_DIR_NAME));
-        }
-        if let Some(xdg) = env_path("XDG_DATA_HOME") {
-            return Ok(xdg.join(CONFIG_DIR_NAME));
-        }
-        let home = home_dir(home_override)?;
-        Ok(home.join(".local").join("share").join(CONFIG_DIR_NAME))
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        if let Some(xdg) = env_path("XDG_DATA_HOME") {
-            return Ok(xdg.join(CONFIG_DIR_NAME));
-        }
-        let home = home_dir(home_override)?;
-        Ok(home.join(".local").join("share").join(CONFIG_DIR_NAME))
-    }
-}
-
 pub fn read_global_config(home_override: Option<&Path>) -> Result<GlobalConfig, String> {
     let path = config_path(home_override)?;
     if !path.exists() {
@@ -164,10 +113,6 @@ pub fn write_global_config(
     }
     let rendered = toml::to_string_pretty(config).map_err(|err| err.to_string())?;
     fs::write(path, rendered).map_err(|err| err.to_string())
-}
-
-pub fn projects_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    Ok(config_dir(home_override)?.join(PROJECTS_DIR_NAME))
 }
 
 pub fn list_named_projects(
@@ -230,7 +175,7 @@ pub fn create_named_project(
     }
     let record = NamedProjectRecord {
         id: id.to_string(),
-        repo_root: repo_root.map(canonical_or_original),
+        repo_root: repo_root.map(canonical_repo_root).transpose()?,
     };
     let rendered = toml::to_string_pretty(&record).map_err(|err| err.to_string())?;
     fs::write(path, rendered).map_err(|err| err.to_string())?;
@@ -373,6 +318,9 @@ pub fn validate_project_id(id: &str) -> Result<(), String> {
         .chars()
         .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '-' | '_'))
     {
+        if is_windows_reserved_project_id(id) {
+            return Err("project id cannot be a Windows reserved device name".to_string());
+        }
         return Ok(());
     }
     Err("project id must use lowercase letters, digits, '-' or '_'".to_string())
@@ -380,6 +328,20 @@ pub fn validate_project_id(id: &str) -> Result<(), String> {
 
 pub fn canonical_or_original(path: &Path) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+fn canonical_repo_root(path: &Path) -> Result<PathBuf, String> {
+    let canonical = fs::canonicalize(path).map_err(|err| {
+        format!(
+            "repo root '{}' must exist and be readable: {err}",
+            path.display()
+        )
+    })?;
+    if canonical.is_absolute() {
+        Ok(canonical)
+    } else {
+        Err(format!("repo root '{}' is not absolute", path.display()))
+    }
 }
 
 pub fn find_git_root(start: &Path) -> Option<PathBuf> {
@@ -394,10 +356,17 @@ pub fn find_git_root(start: &Path) -> Option<PathBuf> {
     }
 }
 
-fn explicit_home(home_override: Option<&Path>) -> Option<PathBuf> {
-    home_override
-        .map(Path::to_path_buf)
-        .or_else(|| env_path("HOME"))
+fn is_windows_reserved_project_id(id: &str) -> bool {
+    matches!(id, "con" | "prn" | "aux" | "nul")
+        || reserved_device_number(id, "com")
+        || reserved_device_number(id, "lpt")
+}
+
+fn reserved_device_number(id: &str, prefix: &str) -> bool {
+    let Some(suffix) = id.strip_prefix(prefix) else {
+        return false;
+    };
+    matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
 }
 
 fn has_git_marker(path: &Path) -> bool {
@@ -433,42 +402,6 @@ fn git_context(repo_root: &Path) -> ProjectContext {
         repo_root,
         distribution: DistributionMode::Git,
     }
-}
-
-pub(crate) fn home_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    if let Some(home) = home_override {
-        return Ok(home.to_path_buf());
-    }
-    if let Some(home) = env_path("HOME") {
-        return Ok(home);
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Some(home) = env_path("USERPROFILE") {
-            return Ok(home);
-        }
-        if let (Some(drive), Some(path)) =
-            (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH"))
-        {
-            if !drive.is_empty() && !path.is_empty() {
-                let mut combined = drive;
-                combined.push(path);
-                return Ok(PathBuf::from(combined));
-            }
-        }
-    }
-
-    Err("unable to resolve home directory".to_string())
-}
-
-fn project_file(home_override: Option<&Path>, id: &str) -> Result<PathBuf, String> {
-    Ok(projects_dir(home_override)?.join(format!("{id}.toml")))
-}
-
-fn env_path(name: &str) -> Option<PathBuf> {
-    let value = std::env::var_os(name)?;
-    (!value.is_empty()).then(|| PathBuf::from(value))
 }
 
 #[cfg(test)]
