@@ -234,6 +234,62 @@ fn check_only_considers_latest_event_per_knot() {
 }
 
 #[test]
+fn check_skips_malformed_events_and_falls_back_to_filename_event_id() {
+    let root = unique_workspace();
+    let dir = root
+        .join(".knots")
+        .join("_worktree")
+        .join(".knots")
+        .join("index")
+        .join("2026")
+        .join("03")
+        .join("12");
+    std::fs::create_dir_all(&dir).expect("index dir should be creatable");
+    std::fs::write(dir.join("0001-idx.knot_head.json"), "{not json")
+        .expect("bad json should write");
+    std::fs::write(dir.join("0002-idx.knot_head.json"), "{}").expect("empty json should write");
+    std::fs::write(
+        dir.join("0003-idx.knot_head.json"),
+        r#"{"occurred_at":"2026-03-12T10:00:00Z","data":{}}"#,
+    )
+    .expect("missing knot id should write");
+    std::fs::write(
+        dir.join("0004-idx.knot_head.json"),
+        r#"{"occurred_at":"not-a-date","data":{"knot_id":"K-bad-date"}}"#,
+    )
+    .expect("bad date should write");
+    std::fs::write(
+        dir.join("0009-idx.knot_head.json"),
+        r#"{
+  "occurred_at": "2026-03-12T10:05:00Z",
+  "data": {
+    "knot_id": "K-legacy",
+    "title": "Legacy",
+    "state": "implementation",
+    "updated_at": "2026-03-12T10:05:00Z"
+  }
+}"#,
+    )
+    .expect("legacy event should write");
+
+    let store_paths = StorePaths {
+        root: root.join(".knots"),
+    };
+    let check = check_workflow_id_parity_at(&store_paths).expect("check should run");
+    let head = &check.data.expect("warn data should exist")["stale_heads"][0];
+
+    assert_eq!(check.status, DoctorStatus::Warn);
+    assert_eq!(head["knot_id"], "K-legacy");
+    assert_eq!(head["event_id"], "0009");
+    assert_eq!(
+        head["missing_fields"],
+        serde_json::json!(["workflow_id", "type"])
+    );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn fix_emits_repair_event_for_stale_knot_in_db() {
     let root = unique_workspace();
     let conn = open_db(&root);

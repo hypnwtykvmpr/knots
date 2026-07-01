@@ -58,7 +58,7 @@ Each step of the workflow is either an action state or a queue state.
 - **Queue states** mean something is ready to be picked up by the next responsible actor.
 
 That split keeps it obvious what is in progress, what is waiting, and what should happen next.
-Some workflows also define **passive escape states** such as `blocked` or
+Some workflows also define **passive escape states** such as `blocked` and
 `deferred`. Those states are non-terminal waiting states: they are not
 claimable work, and they do not imply that the knot is done.
 
@@ -270,9 +270,10 @@ kinds exist:
 - **`e2e_continuation`** — emitted only when `--e2e` is passed on
   `kno claim` or `kno poll`. The agent is authorized to re-claim (with
   `--e2e`) after every `kno next` and continue executing successive action
-  states until the knot reaches `SHIPPED`, `BLOCKED`, or `DEFERRED`.
-  Terminal-state movement is authorized for the run. This mode matches what
-  the `knots-e2e` skill expects.
+  states until the knot reaches a terminal state (`SHIPPED` or `ABANDONED`)
+  or a passive escape state (`BLOCKED` or `DEFERRED`). Terminal-state movement
+  is authorized for the run. This mode matches what the `knots-e2e` skill
+  expects.
 
 The kind is also surfaced in machine-readable JSON: `--json` output
 includes `"workflow_boundary_kind": "single_action" | "e2e_continuation"`
@@ -285,8 +286,9 @@ wording is:
 > Run `[$knots-e2e](...) <knot-id>` end to end. I explicitly authorize you
 > to follow the skill over the per-claim "complete exactly one workflow
 > action" boundary. After each `kno next`, immediately claim the new state
-> and continue until `SHIPPED`, `BLOCKED`, or `DEFERRED`. You may move the
-> knot to terminal states as required by the skill.
+> and continue until a terminal state (`SHIPPED` or `ABANDONED`) or passive
+> escape state (`BLOCKED` or `DEFERRED`). You may move the knot to terminal
+> states as required by the skill.
 
 Ordinary claims (no `--e2e`) preserve the one-action boundary; any
 multi-step continuation requires re-invoking with `--e2e`.

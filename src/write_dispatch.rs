@@ -92,6 +92,18 @@ mod tests;
 mod tests_execution_plan;
 
 #[cfg(test)]
+#[path = "write_dispatch/tests_execute_write_ops_ext.rs"]
+mod tests_execute_write_ops_ext;
+
+#[cfg(test)]
+#[path = "write_dispatch/tests_helpers_ext.rs"]
+mod tests_helpers_ext;
+
+#[cfg(test)]
+#[path = "write_dispatch/tests_operation_map_ext.rs"]
+mod tests_operation_map_ext;
+
+#[cfg(test)]
 #[path = "write_dispatch/tests_plan.rs"]
 mod tests_plan;
 

@@ -27,15 +27,17 @@ Read [TAXONOMY.md](TAXONOMY.md) before writing code — it defines the shared vo
   honored for ordinary claims.
 - `kno claim --e2e <id>` (and `kno poll --e2e`) emits an `e2e_continuation`
   boundary that authorizes re-claiming after `kno next` and continuing
-  across action states until the knot reaches `SHIPPED`, `BLOCKED`, or
-  `DEFERRED`. Use this only when the user has invoked the `knots-e2e`
-  skill or otherwise explicitly asked for end-to-end execution.
+  across action states until the knot reaches a terminal state (`SHIPPED` or
+  `ABANDONED`) or a passive escape state (`BLOCKED` or `DEFERRED`). Use this
+  only when the user has invoked the `knots-e2e` skill or otherwise explicitly
+  asked for end-to-end execution.
 - The exact user-facing override wording for invoking e2e is:
   > Run `[$knots-e2e](...) <knot-id>` end to end. I explicitly authorize
   > you to follow the skill over the per-claim "complete exactly one
   > workflow action" boundary. After each `kno next`, immediately claim
-  > the new state and continue until `SHIPPED`, `BLOCKED`, or `DEFERRED`.
-  > You may move the knot to terminal states as required by the skill.
+  > the new state and continue until a terminal state (`SHIPPED` or
+  > `ABANDONED`) or passive escape state (`BLOCKED` or `DEFERRED`). You may
+  > move the knot to terminal states as required by the skill.
 - Machine-readable signals: claim `--json` output includes both `"e2e":
   true|false` and `"workflow_boundary_kind": "single_action" |
   "e2e_continuation"`. Trust those fields over inferring intent from prose.

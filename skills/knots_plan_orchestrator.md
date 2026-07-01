@@ -55,10 +55,10 @@ Process the plan using these sequencing rules:
 
 1. **Waves are sequential.** Process waves in ascending `wave_index` order.
    Do not start wave N+1 until every knot in wave N has reached a terminal or
-   passive waiting state.
+   passive escape state.
 2. **Steps within a wave are sequential.** Process steps in ascending
    `step_index` order. Do not start step N+1 until every knot in step N has
-   reached a terminal or passive waiting state.
+   reached a terminal or passive escape state.
 3. **Knots within a step are concurrent.** Launch every knot in one step at
    the same time. Follow your own protocol for launching and managing coding
    agents — this skill does not prescribe how agents are spawned.
@@ -74,13 +74,14 @@ For each step in the current wave:
 kno show <knot-id> --json
 ```
 
-- Skip knots already in a terminal state (`SHIPPED`) or a passive waiting
-  state (`BLOCKED`, `DEFERRED`).
+- Skip knots already in a terminal state (`SHIPPED`, `ABANDONED`) or a
+  passive escape state (`BLOCKED`, `DEFERRED`).
 - Launch all remaining knots concurrently. Delegate to your agent-launching
   protocol and pass each worker its fresh lease id for that claim; do not
   inline the execution of a knot inside the orchestrator.
-- Wait for every launched knot to reach `SHIPPED`, `BLOCKED`, or `DEFERRED`
-  before moving to the next step.
+- Wait for every launched knot to reach a terminal state (`SHIPPED`,
+  `ABANDONED`) or a passive escape state (`BLOCKED`, `DEFERRED`) before
+  moving to the next step.
 
 ## Handle outcomes
 

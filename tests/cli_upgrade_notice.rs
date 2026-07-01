@@ -13,6 +13,18 @@ fn knots_binary() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_knots"))
 }
 
+fn configure_coverage_env(command: &mut Command) {
+    if let Some(profile_file) = std::env::var_os("LLVM_PROFILE_FILE") {
+        let profile_file = PathBuf::from(profile_file);
+        if let Some(parent) = profile_file.parent() {
+            command.env(
+                "LLVM_PROFILE_FILE",
+                parent.join("knots-child-%p-%m.profraw"),
+            );
+        }
+    }
+}
+
 fn upgrade_state_path(home: &Path) -> PathBuf {
     #[cfg(target_os = "macos")]
     {
@@ -51,6 +63,7 @@ fn run_help(home: &Path, curl_bin: Option<&Path>) -> std::process::Output {
     } else {
         cmd.env_remove("KNOTS_CURL_BIN");
     }
+    configure_coverage_env(&mut cmd);
     cmd.output().expect("knots help should run")
 }
 

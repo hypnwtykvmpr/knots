@@ -7,7 +7,7 @@ use crate::progress::{emit_progress, ProgressKind, ProgressReporter};
 use crate::project::StorePaths;
 use crate::sync::{GitAdapter, KnotsWorktree, SyncError, SyncService, SyncSummary};
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct PushSummary {
     pub local_event_files: u64,
     pub copied_files: u64,
@@ -70,12 +70,7 @@ impl<'a> ReplicationService<'a> {
     #[allow(dead_code)]
     pub fn pull(&self) -> Result<SyncSummary, SyncError> {
         self.require_no_active_leases()?;
-        let service = SyncService::with_store_paths(
-            self.conn,
-            self.repo_root.clone(),
-            self.store_paths.clone(),
-        );
-        service.sync()
+        self.sync_service().sync()
     }
 
     pub fn pull_with_progress(
@@ -83,12 +78,7 @@ impl<'a> ReplicationService<'a> {
         reporter: &mut Option<&mut dyn ProgressReporter>,
     ) -> Result<SyncSummary, SyncError> {
         self.require_no_active_leases()?;
-        let service = SyncService::with_store_paths(
-            self.conn,
-            self.repo_root.clone(),
-            self.store_paths.clone(),
-        );
-        service.sync_with_progress(reporter)
+        self.sync_service().sync_with_progress(reporter)
     }
 
     pub fn push(&self) -> Result<PushSummary, SyncError> {
@@ -120,18 +110,9 @@ impl<'a> ReplicationService<'a> {
         let local_files = self.collect_local_event_files()?;
         let local_event_files = local_files.len() as u64;
         if local_event_files == 0 {
-            emit_progress(
-                reporter,
-                ProgressKind::Success,
-                "no local knots events found; nothing to push",
-            )?;
-            return Ok(PushSummary {
-                local_event_files,
-                copied_files: 0,
-                committed: false,
-                pushed: false,
-                commit: None,
-            });
+            let message = "no local knots events found; nothing to push";
+            emit_progress(reporter, ProgressKind::Success, message)?;
+            return Ok(unpushed_summary(local_event_files, 0));
         }
 
         for attempt in 0..MAX_ATTEMPTS {
@@ -139,32 +120,18 @@ impl<'a> ReplicationService<'a> {
                 PushAttemptResult::Success(summary) => return Ok(summary),
                 PushAttemptResult::AlreadySynced(summary) => return Ok(summary),
                 PushAttemptResult::Retry(err) if attempt + 1 < MAX_ATTEMPTS => {
-                    emit_progress(
-                        reporter,
-                        ProgressKind::Warn,
-                        format!(
-                            "push was rejected; refreshing remote \
-                             state and retrying ({}/{})",
-                            attempt + 2,
-                            MAX_ATTEMPTS
-                        ),
-                    )?;
+                    let message = push_retry_message(attempt, MAX_ATTEMPTS);
+                    emit_progress(reporter, ProgressKind::Warn, message)?;
                     let _ = err;
                     continue;
                 }
                 PushAttemptResult::Retry(_) => {
-                    return Err(SyncError::MergeConflictEscalation {
-                        message: "push rejected as non-fast-forward \
-                                  after retries"
-                            .to_string(),
-                    });
+                    return Err(push_rejected_after_retries());
                 }
             }
         }
 
-        Err(SyncError::MergeConflictEscalation {
-            message: "push retries exhausted".to_string(),
-        })
+        Err(push_retries_exhausted())
     }
 
     fn attempt_push(
@@ -177,53 +144,27 @@ impl<'a> ReplicationService<'a> {
         self.reset_worktree_to_remote_or_local(worktree, reporter)?;
         worktree.ensure_clean(&self.git)?;
 
-        emit_progress(
-            reporter,
-            ProgressKind::Info,
-            format!(
-                "checking {local_event_files} local knot file(s) \
-                 against the publish worktree"
-            ),
-        )?;
+        let check_message = push_check_message(local_event_files);
+        emit_progress(reporter, ProgressKind::Info, check_message)?;
         let copied_files = self.copy_files_into_worktree(worktree.path(), local_files)?;
         if copied_files > 0 {
-            emit_progress(
-                reporter,
-                ProgressKind::Info,
-                format!("copied {copied_files} local knot file(s) into the publish worktree"),
-            )?;
+            emit_progress(reporter, ProgressKind::Info, copied_message(copied_files))?;
         }
         let stage_paths = stage_paths(worktree.path());
         if stage_paths.is_empty() {
-            emit_progress(
-                reporter,
-                ProgressKind::Success,
-                "remote knots already includes the local events",
-            )?;
-            return Ok(PushAttemptResult::AlreadySynced(PushSummary {
-                local_event_files,
-                copied_files,
-                committed: false,
-                pushed: false,
-                commit: None,
-            }));
+            let message = "remote knots already includes the local events";
+            emit_progress(reporter, ProgressKind::Success, message)?;
+            let summary = unpushed_summary(local_event_files, copied_files);
+            return Ok(PushAttemptResult::AlreadySynced(summary));
         }
 
         self.git.add_paths(worktree.path(), &stage_paths)?;
 
         if !self.git.has_staged_changes(worktree.path(), &stage_paths)? {
-            emit_progress(
-                reporter,
-                ProgressKind::Success,
-                "remote knots already includes the local events",
-            )?;
-            return Ok(PushAttemptResult::AlreadySynced(PushSummary {
-                local_event_files,
-                copied_files,
-                committed: false,
-                pushed: false,
-                commit: None,
-            }));
+            let message = "remote knots already includes the local events";
+            emit_progress(reporter, ProgressKind::Success, message)?;
+            let summary = unpushed_summary(local_event_files, copied_files);
+            return Ok(PushAttemptResult::AlreadySynced(summary));
         }
 
         emit_progress(reporter, ProgressKind::Info, "creating a publish commit")?;
@@ -231,21 +172,16 @@ impl<'a> ReplicationService<'a> {
             .git
             .commit(worktree.path(), "knots: publish local events")?;
 
-        emit_progress(
-            reporter,
-            ProgressKind::Info,
-            format!("pushing knots data to {}", worktree.remote_display()),
-        )?;
-        match self
+        let push_message = format!("pushing knots data to {}", worktree.remote_display());
+        emit_progress(reporter, ProgressKind::Info, push_message)?;
+        let push_refspec = worktree.push_refspec();
+        let push_result = self
             .git
-            .push_refspec(worktree.path(), worktree.remote(), &worktree.push_refspec())
-        {
+            .push_refspec(worktree.path(), worktree.remote(), &push_refspec);
+        match push_result {
             Ok(()) => {
-                emit_progress(
-                    reporter,
-                    ProgressKind::Success,
-                    format!("push complete at {}", short_commit(&commit)),
-                )?;
+                let message = format!("push complete at {}", short_commit(&commit));
+                emit_progress(reporter, ProgressKind::Success, message)?;
                 Ok(PushAttemptResult::Success(PushSummary {
                     local_event_files,
                     copied_files,
@@ -258,6 +194,10 @@ impl<'a> ReplicationService<'a> {
             Err(err) if err.is_ref_policy_rejection() => Err(err),
             Err(err) => Err(err),
         }
+    }
+
+    fn sync_service(&self) -> SyncService<'a> {
+        SyncService::with_store_paths(self.conn, self.repo_root.clone(), self.store_paths.clone())
     }
 
     pub fn sync(&self) -> Result<ReplicationSummary, SyncError> {
@@ -312,47 +252,46 @@ impl<'a> ReplicationService<'a> {
         worktree: &KnotsWorktree,
         reporter: &mut Option<&mut dyn ProgressReporter>,
     ) -> Result<(), SyncError> {
-        emit_progress(
-            reporter,
-            ProgressKind::Info,
-            format!(
-                "refreshing knots worktree from {}",
-                worktree.remote_display()
-            ),
-        )?;
-        match self.git.fetch_refspec_with_filter(
-            &self.repo_root,
-            worktree.remote(),
-            &worktree.fetch_refspec(),
-            crate::db::get_sync_fetch_blob_limit_kb(self.conn)?,
-        ) {
+        let refresh_message = format!(
+            "refreshing knots worktree from {}",
+            worktree.remote_display()
+        );
+        emit_progress(reporter, ProgressKind::Info, refresh_message)?;
+        let fetch_limit_kb = crate::db::get_sync_fetch_blob_limit_kb(self.conn)?;
+        let fetch_result = self.fetch_worktree_refspec(worktree, fetch_limit_kb);
+        match fetch_result {
             Ok(()) => {
-                emit_progress(
-                    reporter,
-                    ProgressKind::Info,
-                    format!("resetting knots worktree to {}", worktree.tracking_rev()),
-                )?;
-                let head = self
-                    .git
-                    .rev_parse(&self.repo_root, &worktree.tracking_rev())?;
+                let reset_message =
+                    format!("resetting knots worktree to {}", worktree.tracking_rev());
+                emit_progress(reporter, ProgressKind::Info, reset_message)?;
+                let tracking_rev = worktree.tracking_rev();
+                let head = self.git.rev_parse(&self.repo_root, &tracking_rev)?;
                 self.git.reset_hard(worktree.path(), &head)?;
                 Ok(())
             }
             Err(err) if err.is_missing_remote() || err.is_unknown_revision() => {
-                emit_progress(
-                    reporter,
-                    ProgressKind::Warn,
-                    format!(
-                        "{} is unavailable; using local knots worktree state",
-                        worktree.remote_display()
-                    ),
-                )?;
+                let fallback_message = local_worktree_fallback_message(worktree);
+                emit_progress(reporter, ProgressKind::Warn, fallback_message)?;
                 let head = self.git.rev_parse(worktree.path(), "HEAD")?;
                 self.git.reset_hard(worktree.path(), &head)?;
                 Ok(())
             }
             Err(err) => Err(err),
         }
+    }
+
+    fn fetch_worktree_refspec(
+        &self,
+        worktree: &KnotsWorktree,
+        fetch_limit_kb: Option<u64>,
+    ) -> Result<(), SyncError> {
+        let fetch_refspec = worktree.fetch_refspec();
+        self.git.fetch_refspec_with_filter(
+            &self.repo_root,
+            worktree.remote(),
+            &fetch_refspec,
+            fetch_limit_kb,
+        )
     }
 
     fn collect_local_event_files(&self) -> Result<Vec<PathBuf>, SyncError> {
@@ -373,13 +312,7 @@ impl<'a> ReplicationService<'a> {
                     if path.extension().is_none_or(|ext| ext != "json") {
                         continue;
                     }
-                    let relative = path
-                        .strip_prefix(&self.store_paths.root)
-                        .map_err(|err| SyncError::InvalidEvent {
-                            path: path.clone(),
-                            message: format!("failed to relativize event file: {}", err),
-                        })?
-                        .to_path_buf();
+                    let relative = self.store_relative_event_path(&path)?;
                     files.push(Path::new(".knots").join(relative));
                 }
             }
@@ -387,6 +320,15 @@ impl<'a> ReplicationService<'a> {
 
         files.sort();
         Ok(files)
+    }
+
+    fn store_relative_event_path(&self, path: &Path) -> Result<PathBuf, SyncError> {
+        path.strip_prefix(&self.store_paths.root)
+            .map(Path::to_path_buf)
+            .map_err(|err| SyncError::InvalidEvent {
+                path: path.to_path_buf(),
+                message: format!("failed to relativize event file: {}", err),
+            })
     }
 
     fn copy_files_into_worktree(
@@ -465,8 +407,51 @@ impl<'a> ReplicationService<'a> {
     }
 }
 
+fn push_retry_message(attempt: usize, max_attempts: usize) -> String {
+    format!(
+        "push was rejected; refreshing remote state and retrying ({}/{})",
+        attempt + 2,
+        max_attempts
+    )
+}
+
+fn push_rejected_after_retries() -> SyncError {
+    SyncError::MergeConflictEscalation {
+        message: "push rejected as non-fast-forward after retries".to_string(),
+    }
+}
+
+fn push_retries_exhausted() -> SyncError {
+    SyncError::MergeConflictEscalation {
+        message: "push retries exhausted".to_string(),
+    }
+}
+
+fn push_check_message(local_event_files: u64) -> String {
+    format!("checking {local_event_files} local knot file(s) against the publish worktree")
+}
+
+fn copied_message(copied_files: u64) -> String {
+    format!("copied {copied_files} local knot file(s) into the publish worktree")
+}
+
+fn local_worktree_fallback_message(worktree: &KnotsWorktree) -> String {
+    format!(
+        "{} is unavailable; using local knots worktree state",
+        worktree.remote_display()
+    )
+}
+
 fn short_commit(commit: &str) -> &str {
     &commit[..commit.len().min(12)]
+}
+
+fn unpushed_summary(local_event_files: u64, copied_files: u64) -> PushSummary {
+    PushSummary {
+        local_event_files,
+        copied_files,
+        ..PushSummary::default()
+    }
 }
 
 fn stage_paths(worktree_root: &Path) -> Vec<&'static str> {
@@ -481,6 +466,10 @@ fn stage_paths(worktree_root: &Path) -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "replication/tests_local_files.rs"]
+mod tests_local_files;
 
 #[cfg(test)]
 #[path = "replication/tests_ref_policy.rs"]

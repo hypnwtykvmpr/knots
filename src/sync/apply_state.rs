@@ -7,6 +7,7 @@ use crate::tiering::{classify_knot_head_tier, CacheTier};
 
 use super::SyncError;
 
+#[derive(Debug)]
 pub(super) enum FullApplyOutcome {
     EdgeAdded,
     EdgeRemoved,

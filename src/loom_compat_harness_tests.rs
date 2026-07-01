@@ -2,7 +2,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use crate::app::AppError;
-use crate::loom_compat_harness::{run_compat_test, CompatTestConfig, CompatTestMode};
+use crate::loom_compat_harness::{
+    run_compat_test, run_compat_test_with_progress, CompatTestConfig, CompatTestMode,
+    ProgressUpdateKind,
+};
 
 const SAMPLE_BUNDLE: &str = r#"
 [workflow]
@@ -444,6 +447,36 @@ fn compat_harness_reports_builtin_source_in_result() {
     })
     .expect("compat run should succeed");
     assert_eq!(result.source, PathBuf::from("<builtin:work_sdlc>"));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn compat_harness_reports_progress_for_failed_step() {
+    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
+    let root = unique_workspace("knots-loom-progress-fail");
+    let bin_dir = install_stub_loom(&root, SAMPLE_BUNDLE, Some("validate exploded"));
+    let mut updates = Vec::new();
+
+    let err = run_compat_test_with_progress(
+        &CompatTestConfig {
+            mode: CompatTestMode::Smoke,
+            keep_artifacts: false,
+            loom_bin: Some(loom_bin(&bin_dir)),
+        },
+        |update| updates.push(update),
+    )
+    .expect_err("validate failure should bubble up");
+
+    assert!(invalid_argument(err).contains("validate exploded"));
+    assert!(updates.iter().any(|update| {
+        update.kind == ProgressUpdateKind::Started && update.step_name == "validate"
+    }));
+    assert!(updates.iter().any(|update| {
+        update.kind == ProgressUpdateKind::Failed
+            && update.step_name == "validate"
+            && update.detail.contains("validate exploded")
+    }));
 
     let _ = std::fs::remove_dir_all(root);
 }

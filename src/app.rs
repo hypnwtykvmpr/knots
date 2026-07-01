@@ -312,6 +312,9 @@ mod tests_list_lease;
 #[path = "app/tests_planned_by_edge.rs"]
 mod tests_planned_by_edge;
 #[cfg(test)]
+#[path = "app/tests_rehydrate_apply_event_ext.rs"]
+mod tests_rehydrate_apply_event_ext;
+#[cfg(test)]
 #[path = "app/tests_rehydrate_execution_plan.rs"]
 mod tests_rehydrate_execution_plan;
 #[cfg(test)]
@@ -321,11 +324,17 @@ mod tests_scope_events;
 #[path = "app/tests_show_lease.rs"]
 mod tests_show_lease;
 #[cfg(test)]
+#[path = "app/tests_state_resolve_ext.rs"]
+mod tests_state_resolve_ext;
+#[cfg(test)]
 #[path = "app/tests_step_history.rs"]
 mod tests_step_history;
 #[cfg(test)]
 #[path = "app/tests_step_metadata_responses.rs"]
 mod tests_step_metadata_responses;
+#[cfg(test)]
+#[path = "app/tests_sync_ops.rs"]
+mod tests_sync_ops;
 #[cfg(test)]
 #[path = "app/tests_tag_casing.rs"]
 mod tests_tag_casing;
@@ -335,6 +344,9 @@ mod tests_terminal_deferred;
 #[cfg(test)]
 #[path = "app/tests_update_ext.rs"]
 mod tests_update_ext;
+#[cfg(test)]
+#[path = "app/tests_update_more_ext.rs"]
+mod tests_update_more_ext;
 #[cfg(test)]
 #[path = "app/tests_update_normalize_ids.rs"]
 mod tests_update_normalize_ids;

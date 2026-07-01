@@ -133,19 +133,17 @@ where
     paths.create_dirs()?;
 
     let request_id = uuid::Uuid::now_v7().to_string();
-    let response_path = paths
-        .responses_dir
-        .join(format!("{}.json", request_id))
-        .display()
-        .to_string();
+    let response_file = paths.responses_dir.join(format!("{request_id}.json"));
+    let response_path = response_file.display().to_string();
+    let distribution = match distribution {
+        DistributionMode::Git => "git".to_string(),
+        DistributionMode::LocalOnly => "local_only".to_string(),
+    };
     let request = QueuedWriteRequest {
         request_id: request_id.clone(),
         repo_root: absolute_root.display().to_string(),
         store_root: absolute_store.display().to_string(),
-        distribution: match distribution {
-            DistributionMode::Git => "git".to_string(),
-            DistributionMode::LocalOnly => "local_only".to_string(),
-        },
+        distribution,
         project_id,
         db_path: absolute_db,
         response_path: response_path.clone(),
@@ -156,8 +154,8 @@ where
     let start = std::time::Instant::now();
     loop {
         drain_pending_requests(&paths, &mut executor)?;
-        if let Some(response) = read_response_file(Path::new(&response_path))? {
-            let _ = fs::remove_file(&response_path);
+        if let Some(response) = read_response_file(&response_file)? {
+            let _ = fs::remove_file(&response_file);
             return Ok(response);
         }
         if start.elapsed() >= WAIT_TIMEOUT {
@@ -252,7 +250,10 @@ fn read_request_file(path: &Path) -> Result<QueuedWriteRequest, QueueError> {
     Ok(serde_json::from_slice(&bytes)?)
 }
 
-fn write_response_file(path: &Path, response: &QueuedWriteResponse) -> Result<(), QueueError> {
+pub(super) fn write_response_file(
+    path: &Path,
+    response: &QueuedWriteResponse,
+) -> Result<(), QueueError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }

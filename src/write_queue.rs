@@ -16,7 +16,7 @@ pub use plan_ops::{
 #[cfg(test)]
 use io::{
     drain_pending_requests, enqueue_and_wait, enqueue_request, list_request_files,
-    read_response_file, QueuePaths,
+    read_response_file, write_response_file, QueuePaths,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

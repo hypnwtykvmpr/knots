@@ -58,6 +58,8 @@ mod loom_gate_bundle;
 mod loom_lease_bundle;
 mod loom_work_bundle;
 #[cfg(test)]
+mod main_dispatch_tests;
+#[cfg(test)]
 mod main_tests;
 mod managed_skills;
 mod native_command;

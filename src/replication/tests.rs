@@ -4,6 +4,7 @@ use std::process::Command;
 use uuid::Uuid;
 
 use crate::db;
+use crate::progress::{ProgressKind, ProgressReporter};
 use crate::project::StorePaths;
 use crate::remote_init::init_remote_knots_branch;
 use crate::sync::SyncError;
@@ -183,6 +184,18 @@ fn write_conflicting_local_index(repo_root: &Path) {
     .expect("conflicting index event should be writable");
 }
 
+#[derive(Default)]
+struct CapturingReporter {
+    events: Vec<(ProgressKind, String)>,
+}
+
+impl ProgressReporter for CapturingReporter {
+    fn emit(&mut self, kind: ProgressKind, message: &str) -> std::io::Result<()> {
+        self.events.push((kind, message.to_string()));
+        Ok(())
+    }
+}
+
 #[test]
 fn push_then_pull_shares_knots_between_clones() {
     let root = unique_workspace();
@@ -227,6 +240,57 @@ fn push_then_pull_shares_knots_between_clones() {
         .expect("knot should be present after pull");
     assert_eq!(knot.title, "Published knot");
     assert_eq!(knot.description.as_deref(), Some("published details"));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn push_and_sync_with_progress_emit_success_path_messages() {
+    let root = unique_workspace();
+    let (_origin, dev1) = setup_origin_and_dev1(&root);
+    write_local_knot_events(&dev1);
+    init_remote_knots_branch(&dev1).expect("remote knots branch should initialize");
+
+    let db_path = dev1.join(".knots/cache/state.sqlite");
+    std::fs::create_dir_all(db_path.parent().expect("db parent should exist"))
+        .expect("db parent should be creatable");
+    let conn = db::open_connection(db_path.to_str().expect("utf8 path")).expect("db should open");
+    let service = ReplicationService::new(&conn, dev1.clone());
+
+    let mut reporter = CapturingReporter::default();
+    let mut dyn_reporter: Option<&mut dyn ProgressReporter> = Some(&mut reporter);
+    let push = service
+        .push_with_progress(&mut dyn_reporter)
+        .expect("push should succeed");
+    assert!(push.pushed);
+
+    let outcome = service
+        .sync_or_defer_with_progress(&mut dyn_reporter)
+        .expect("sync should complete without active leases");
+    assert!(matches!(outcome, super::SyncOutcome::Completed(_)));
+
+    let messages = reporter
+        .events
+        .iter()
+        .map(|(_, message)| message.as_str())
+        .collect::<Vec<_>>();
+    for expected in [
+        "publishing local knots events",
+        "preparing knots worktree",
+        "scanning local knots event files",
+        "creating a publish commit",
+        "push complete",
+        "remote knots already includes the local events",
+    ] {
+        assert!(
+            messages.iter().any(|message| message.contains(expected)),
+            "missing progress message containing {expected:?}: {messages:?}"
+        );
+    }
+    assert!(reporter
+        .events
+        .iter()
+        .any(|(kind, _)| *kind == ProgressKind::Success));
 
     let _ = std::fs::remove_dir_all(root);
 }

@@ -20,27 +20,41 @@ fn knots_binary() -> PathBuf {
     std::fs::canonicalize(&configured).unwrap_or(configured)
 }
 
+fn configure_coverage_env(command: &mut Command) {
+    if let Some(profile_file) = std::env::var_os("LLVM_PROFILE_FILE") {
+        let profile_file = PathBuf::from(profile_file);
+        if let Some(parent) = profile_file.parent() {
+            command.env(
+                "LLVM_PROFILE_FILE",
+                parent.join("knots-child-%p-%m.profraw"),
+            );
+        }
+    }
+}
+
 fn run_knots(home: &Path, cwd: &Path, args: &[&str]) -> Output {
-    Command::new(knots_binary())
+    let mut command = Command::new(knots_binary());
+    command
         .current_dir(cwd)
         .env("HOME", home)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
-        .args(args)
-        .output()
-        .expect("knots command should run")
+        .args(args);
+    configure_coverage_env(&mut command);
+    command.output().expect("knots command should run")
 }
 
 fn run_knots_with_input(home: &Path, cwd: &Path, args: &[&str], input: &str) -> Output {
-    let mut child = Command::new(knots_binary())
+    let mut command = Command::new(knots_binary());
+    command
         .current_dir(cwd)
         .env("HOME", home)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("knots command should spawn");
+        .stderr(Stdio::piped());
+    configure_coverage_env(&mut command);
+    let mut child = command.spawn().expect("knots command should spawn");
     child
         .stdin
         .as_mut()
@@ -70,6 +84,15 @@ fn run_knots_in_pty(home: &Path, cwd: &Path, args: &[&str], input: &str) -> (boo
     cmd.cwd(cwd);
     cmd.env("HOME", home);
     cmd.env("KNOTS_SKIP_DOCTOR_UPGRADE", "1");
+    if let Some(profile_file) = std::env::var_os("LLVM_PROFILE_FILE") {
+        let profile_file = PathBuf::from(profile_file);
+        if let Some(parent) = profile_file.parent() {
+            cmd.env(
+                "LLVM_PROFILE_FILE",
+                parent.join("knots-child-%p-%m.profraw"),
+            );
+        }
+    }
     for arg in args {
         cmd.arg(arg);
     }

@@ -46,6 +46,47 @@ fn sync_error_classifiers_detect_expected_git_failures() {
 }
 
 #[test]
+fn sync_error_classifiers_cover_alternate_git_messages() {
+    for stderr in [
+        "fatal: Could not read from remote repository.",
+        "fatal: 'origin' does not appear to be a git repository",
+    ] {
+        let err = SyncError::GitCommandFailed {
+            command: "git fetch".to_string(),
+            code: Some(128),
+            stderr: stderr.to_string(),
+        };
+        assert!(err.is_missing_remote(), "{stderr}");
+    }
+
+    for stderr in [
+        "fatal: unknown revision or path not in the working tree.",
+        "fatal: bad revision 'origin/knots'",
+        "fatal: couldn't find remote ref refs/heads/knots",
+    ] {
+        let err = SyncError::GitCommandFailed {
+            command: "git rev-parse".to_string(),
+            code: Some(128),
+            stderr: stderr.to_string(),
+        };
+        assert!(err.is_unknown_revision(), "{stderr}");
+    }
+
+    let fetch_first = SyncError::GitCommandFailed {
+        command: "git push".to_string(),
+        code: Some(1),
+        stderr: "Updates were rejected because the remote contains work; fetch first".to_string(),
+    };
+    assert!(fetch_first.is_non_fast_forward());
+
+    let not_git = SyncError::GitUnavailable;
+    assert!(!not_git.is_missing_remote());
+    assert!(!not_git.is_unknown_revision());
+    assert!(!not_git.is_non_fast_forward());
+    assert!(!not_git.is_ref_policy_rejection());
+}
+
+#[test]
 fn sync_error_display_source_and_from_cover_all_variants() {
     let io: SyncError = std::io::Error::other("disk").into();
     assert!(io.to_string().contains("I/O error"));

@@ -31,7 +31,7 @@ pub use catalog::{
     update_lease_expiry_ts, upsert_cold_catalog, upsert_knot_warm, EdgeDirection, EdgeRecord,
 };
 
-const SQLITE_LOCK_RETRY_LIMIT: usize = 2;
+const SQLITE_LOCK_RETRY_LIMIT: usize = 6;
 const SQLITE_LOCK_RETRY_BASE_DELAY_MS: u64 = 10;
 const SQLITE_LOCK_RETRY_MAX_DELAY_MS: u64 = 250;
 
