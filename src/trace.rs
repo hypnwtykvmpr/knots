@@ -20,6 +20,7 @@ struct TracePhase {
 
 pub struct TraceSession {
     enabled: bool,
+    telemetry: Option<crate::telemetry::TelemetryConfig>,
 }
 
 pub struct TracePhaseGuard {
@@ -31,7 +32,9 @@ pub struct TracePhaseGuard {
 
 impl TraceSession {
     pub fn start(cmd: &str, args: &[String], enabled: bool) -> Self {
-        if enabled {
+        let telemetry = crate::telemetry::from_env();
+        // Collect phase data if either the --trace flag or telemetry is on.
+        if enabled || telemetry.is_some() {
             ACTIVE_TRACE.with(|slot| {
                 *slot.borrow_mut() = Some(TraceState {
                     cmd: cmd.to_string(),
@@ -41,13 +44,13 @@ impl TraceSession {
                 });
             });
         }
-        Self { enabled }
+        Self { enabled, telemetry }
     }
 }
 
 impl Drop for TraceSession {
     fn drop(&mut self) {
-        if !self.enabled {
+        if !self.enabled && self.telemetry.is_none() {
             return;
         }
         ACTIVE_TRACE.with(|slot| {
@@ -55,28 +58,56 @@ impl Drop for TraceSession {
                 return;
             };
             let total_ms = state.start.elapsed().as_millis();
-            let args = if state.args.is_empty() {
-                String::from("[]")
-            } else {
-                format!("[{}]", state.args.join(", "))
-            };
-            eprintln!("[kno] cmd={} args={} total={}ms", state.cmd, args, total_ms);
-            for phase in state.phases {
-                match phase.detail {
-                    Some(detail) => {
-                        eprintln!(
-                            "  {}={}ms({})",
-                            phase.name,
-                            phase.elapsed.as_millis(),
-                            detail
-                        );
-                    }
-                    None => {
-                        eprintln!("  {}={}ms", phase.name, phase.elapsed.as_millis());
-                    }
-                }
+            if self.enabled {
+                emit_trace_to_stderr(&state, total_ms);
+            }
+            if let Some(config) = &self.telemetry {
+                let phases = state
+                    .phases
+                    .iter()
+                    .map(|phase| {
+                        crate::telemetry::phase_tuple(
+                            phase.name.clone(),
+                            phase.elapsed,
+                            phase.detail.clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                crate::telemetry::append(
+                    config,
+                    &crate::telemetry::SessionRecord {
+                        cmd: &state.cmd,
+                        args: &state.args,
+                        total_ms,
+                        phases: &phases,
+                    },
+                );
             }
         });
+    }
+}
+
+fn emit_trace_to_stderr(state: &TraceState, total_ms: u128) {
+    let args = if state.args.is_empty() {
+        String::from("[]")
+    } else {
+        format!("[{}]", state.args.join(", "))
+    };
+    eprintln!("[kno] cmd={} args={} total={}ms", state.cmd, args, total_ms);
+    for phase in &state.phases {
+        match &phase.detail {
+            Some(detail) => {
+                eprintln!(
+                    "  {}={}ms({})",
+                    phase.name,
+                    phase.elapsed.as_millis(),
+                    detail
+                );
+            }
+            None => {
+                eprintln!("  {}={}ms", phase.name, phase.elapsed.as_millis());
+            }
+        }
     }
 }
 
