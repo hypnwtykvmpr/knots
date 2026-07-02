@@ -318,7 +318,7 @@ pub fn validate_project_id(id: &str) -> Result<(), String> {
         .chars()
         .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '-' | '_'))
     {
-        if is_windows_reserved_project_id(id) {
+        if is_platform_reserved_project_id(id) {
             return Err("project id cannot be a Windows reserved device name".to_string());
         }
         return Ok(());
@@ -356,12 +356,26 @@ pub fn find_git_root(start: &Path) -> Option<PathBuf> {
     }
 }
 
+fn is_platform_reserved_project_id(id: &str) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        is_windows_reserved_project_id(id)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = id;
+        false
+    }
+}
+
+#[cfg(target_os = "windows")]
 fn is_windows_reserved_project_id(id: &str) -> bool {
     matches!(id, "con" | "prn" | "aux" | "nul")
         || reserved_device_number(id, "com")
         || reserved_device_number(id, "lpt")
 }
 
+#[cfg(target_os = "windows")]
 fn reserved_device_number(id: &str, prefix: &str) -> bool {
     let Some(suffix) = id.strip_prefix(prefix) else {
         return false;

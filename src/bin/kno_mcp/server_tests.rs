@@ -143,40 +143,56 @@ async fn server_tools_route_to_kno_runner() {
             .unwrap()["title"],
         "updated"
     );
+    let lease_id = server
+        .lease_registry
+        .get(&client)
+        .expect("initialized client should have lease");
+    assert_leased_workflow_tools_route(&server, lease_id);
+    assert_eq!(
+        server.knots_sync().await.structured_content.unwrap()["status"],
+        "deferred"
+    );
+}
+
+fn assert_leased_workflow_tools_route(server: &KnoMcp, lease_id: String) {
     assert_eq!(
         server
-            .knots_claim(Parameters(ClaimArgs {
-                id: "k1".to_string(),
-                e2e: Some(false),
-            }))
-            .await
+            .run_claim_tool(
+                ClaimArgs {
+                    id: "k1".to_string(),
+                    e2e: Some(false),
+                },
+                Some(lease_id.clone()),
+            )
             .structured_content
             .unwrap()["workflow_boundary_kind"],
         "single_action"
     );
     assert_eq!(
         server
-            .knots_next(Parameters(IdArgs {
-                id: "k1".to_string()
-            }))
-            .await
+            .run_leased_id_tool(
+                "next",
+                IdArgs {
+                    id: "k1".to_string()
+                },
+                Some(lease_id.clone()),
+            )
             .structured_content
             .unwrap()["state"],
         "ready_for_review"
     );
     let rollback = server
-        .knots_rollback(Parameters(IdArgs {
-            id: "k1".to_string(),
-        }))
-        .await
+        .run_leased_id_tool(
+            "rollback",
+            IdArgs {
+                id: "k1".to_string(),
+            },
+            Some(lease_id),
+        )
         .structured_content
         .unwrap();
     assert_eq!(rollback["target_state"], "ready_for_implementation");
     assert_eq!(rollback["lease_present"], true);
-    assert_eq!(
-        server.knots_sync().await.structured_content.unwrap()["status"],
-        "deferred"
-    );
 }
 
 #[tokio::test]
@@ -215,6 +231,15 @@ fn build_http_router_accepts_server_configuration() {
     );
 
     drop(router);
+}
+
+#[test]
+fn streamable_http_config_preserves_sessions_for_lease_lookup() {
+    let config = streamable_http_config();
+    assert!(config.stateful_mode);
+    assert!(!config.json_response);
+    assert!(config.sse_keep_alive.is_none());
+    assert!(config.allowed_hosts.is_empty());
 }
 
 #[test]
@@ -276,7 +301,63 @@ fn shared_registry_carries_lease_between_http_instances() {
         .get_or_create(&first.runner, &client, 60)
         .expect("lease");
 
-    assert_eq!(second.lease_registry.current(), Some("L1".to_string()));
+    assert_eq!(second.lease_registry.get(&client), Some("L1".to_string()));
+}
+
+#[test]
+fn shared_registry_keeps_client_leases_separate() {
+    let registry = LeaseRegistry::default();
+    let first = server_with_registry(registry.clone());
+    let second = server_with_registry(registry);
+    let mut first_client = Implementation::new("client", "1.0");
+    first_client.title = Some("provider".to_string());
+    let second_client = Implementation::new("other-client", "1.0");
+
+    first
+        .lease_registry
+        .get_or_create(&first.runner, &first_client, 60)
+        .expect("first lease");
+    second
+        .lease_registry
+        .get_or_create(&second.runner, &second_client, 60)
+        .expect("second lease");
+
+    assert_eq!(
+        first.lease_registry.get(&first_client),
+        Some("L1".to_string())
+    );
+    assert_eq!(
+        first.lease_registry.get(&second_client),
+        Some("L2".to_string())
+    );
+}
+
+#[test]
+fn lease_lookup_uses_peer_client_and_unambiguous_fallback() {
+    let registry = LeaseRegistry::default();
+    let server = server_with_registry(registry);
+    let first_client = Implementation::new("client", "1.0");
+    let second_client = Implementation::new("other-client", "1.0");
+
+    assert_eq!(server.lease_for_client(None), None);
+    server
+        .lease_registry
+        .get_or_create(&server.runner, &first_client, 60)
+        .expect("first lease");
+    assert_eq!(server.lease_for_client(None), Some("L1".to_string()));
+    assert_eq!(
+        server.lease_for_client(Some(&first_client)),
+        Some("L1".to_string())
+    );
+    server
+        .lease_registry
+        .get_or_create(&server.runner, &second_client, 60)
+        .expect("second lease");
+    assert_eq!(server.lease_for_client(None), None);
+    assert_eq!(
+        server.lease_for_client(Some(&second_client)),
+        Some("L2".to_string())
+    );
 }
 
 fn server_with_fixture() -> KnoMcp {

@@ -11,6 +11,10 @@ fn shell_from_path_parses_known_shells() {
         shell_from_path("C:\\Program Files\\PowerShell\\7\\pwsh.exe"),
         Some(Shell::PowerShell)
     );
+    assert_eq!(
+        shell_from_path("C:\\Program Files\\Git\\bin\\bash.EXE"),
+        Some(Shell::Bash)
+    );
     assert_eq!(shell_from_path("/usr/bin/csh"), None);
 }
 
@@ -24,7 +28,10 @@ fn completions_install_path_for_known_shells() {
     let fish = completions_install_path_for_home(Shell::Fish, &home);
     assert!(fish.unwrap().to_str().unwrap().contains("kno.fish"));
     let powershell = completions_install_path_for_home(Shell::PowerShell, &home);
+    #[cfg(target_os = "windows")]
     assert!(powershell.unwrap().to_str().unwrap().contains("PowerShell"));
+    #[cfg(not(target_os = "windows"))]
+    assert!(powershell.unwrap().to_str().unwrap().contains("powershell"));
 }
 
 #[test]
@@ -88,10 +95,7 @@ fn install_completions_with_zshrc_patching() {
     let ps_path =
         install_completions_to(Shell::PowerShell, &dir).expect("PowerShell install should succeed");
     assert!(ps_path.exists());
-    let profile = dir
-        .join("Documents")
-        .join("PowerShell")
-        .join("Microsoft.PowerShell_profile.ps1");
+    let profile = powershell_dir(&dir).join("Microsoft.PowerShell_profile.ps1");
     assert!(profile.exists(), "PowerShell profile should be created");
     let profile_content = std::fs::read_to_string(&profile).expect("should read profile");
     assert!(profile_content.contains("kno.ps1"));
@@ -115,6 +119,33 @@ fn install_completions_with_zshrc_patching() {
     assert!(run_completions_command_with_home(Some("zsh"), true, Some(&dir)).is_ok());
     assert!(run_completions_command_with_home(Some("fish"), true, Some(&dir)).is_ok());
     assert!(run_completions_command_with_home(Some("powershell"), true, Some(&dir)).is_ok());
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn install_completions_uses_detected_home_environment() {
+    let dir = std::env::temp_dir().join(format!("knots-comp-env-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&dir).expect("dir should be creatable");
+    let env = crate::test_env::EnvVarGuard::capture(&[
+        "HOME",
+        "USERPROFILE",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "HOMEDRIVE",
+        "HOMEPATH",
+    ]);
+    env.set("HOME", &dir);
+    env.set("USERPROFILE", &dir);
+    env.set("APPDATA", dir.join("AppData").join("Roaming"));
+    env.set("LOCALAPPDATA", dir.join("AppData").join("Local"));
+    env.remove("HOMEDRIVE");
+    env.remove("HOMEPATH");
+
+    let path = install_completions(Shell::Zsh).expect("zsh install should use temp home");
+    assert!(path.exists());
+    let zshrc = std::fs::read_to_string(dir.join(".zshrc")).expect(".zshrc should read");
+    assert!(zshrc.contains("kno.zsh"));
 
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -222,4 +253,66 @@ fn zsh_commands_are_sorted_alphabetically() {
 fn group_zsh_noop_when_function_not_found() {
     let input = "some random script content";
     assert_eq!(group_zsh_command_fn(input, "_kno_commands"), input);
+}
+
+#[test]
+fn powershell_profile_patch_preserves_utf16le_profiles() {
+    let dir = std::env::temp_dir().join(format!("knots-comp-utf16-{}", uuid::Uuid::now_v7()));
+    let profile = powershell_profile_paths(&dir)
+        .into_iter()
+        .next()
+        .expect("PowerShell profile path should exist");
+    std::fs::create_dir_all(profile.parent().expect("profile should have parent"))
+        .expect("profile parent should be creatable");
+    let mut bytes = vec![0xFF, 0xFE];
+    for word in "# existing\r\n".encode_utf16() {
+        bytes.extend_from_slice(&word.to_le_bytes());
+    }
+    std::fs::write(&profile, bytes).expect("UTF-16 profile should write");
+
+    patch_powershell_profile_file(&profile, ". 'C:\\Tools\\kno.ps1'")
+        .expect("profile patch should succeed");
+    let patched = std::fs::read(&profile).expect("patched profile should read");
+    assert!(patched.starts_with(&[0xFF, 0xFE]));
+    let text = decode_utf16(&patched[2..], true).expect("patched profile should decode");
+    assert!(text.contains("# existing"));
+    assert!(text.contains("kno.ps1"));
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn powershell_profile_text_helpers_cover_encodings_and_errors() {
+    let dir = std::env::temp_dir().join(format!("knots-comp-enc-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&dir).expect("dir should be creatable");
+
+    let new_profile = dir.join("new").join("profile.ps1");
+    patch_powershell_profile_file(&new_profile, ". 'C:\\Tools\\kno.ps1'")
+        .expect("new profile should patch");
+    let new_content = std::fs::read_to_string(&new_profile).expect("new profile should read");
+    assert!(new_content.contains("kno.ps1"));
+
+    let utf8_bom = dir.join("utf8-bom.ps1");
+    write_profile_text(&utf8_bom, "# existing\n", ProfileEncoding::Utf8Bom)
+        .expect("utf8 bom profile should write");
+    let (text, encoding) = read_profile_text(&utf8_bom).expect("utf8 bom profile should read");
+    assert_eq!(encoding, ProfileEncoding::Utf8Bom);
+    assert!(text.contains("existing"));
+
+    let utf16be = dir.join("utf16be.ps1");
+    write_profile_text(&utf16be, "# existing\n", ProfileEncoding::Utf16Be)
+        .expect("utf16be profile should write");
+    patch_powershell_profile_file(&utf16be, ". 'C:\\Tools\\kno.ps1'")
+        .expect("utf16be profile should patch");
+    let patched = std::fs::read(&utf16be).expect("utf16be profile should read");
+    assert!(patched.starts_with(&[0xFE, 0xFF]));
+    let text = decode_utf16(&patched[2..], false).expect("utf16be should decode");
+    assert!(text.contains("kno.ps1"));
+
+    let odd = dir.join("odd.ps1");
+    std::fs::write(&odd, [0xFF, 0xFE, 0x41]).expect("odd profile should write");
+    let err = read_profile_text(&odd).expect_err("odd utf16 should fail");
+    assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
+
+    let _ = std::fs::remove_dir_all(dir);
 }

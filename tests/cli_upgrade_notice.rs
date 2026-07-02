@@ -37,7 +37,7 @@ fn upgrade_state_path(home: &Path) -> PathBuf {
     #[cfg(target_os = "windows")]
     {
         home.join("AppData")
-            .join("Roaming")
+            .join("Local")
             .join("knots")
             .join("upgrade-check.json")
     }
@@ -56,8 +56,15 @@ fn run_help(home: &Path, curl_bin: Option<&Path>) -> std::process::Output {
     cmd.arg("--help")
         .env("HOME", home)
         .env_remove("KNOTS_SKIP_DOCTOR_UPGRADE")
-        .env_remove("XDG_DATA_HOME")
-        .env_remove("USERPROFILE")
+        .env_remove("XDG_DATA_HOME");
+    #[cfg(target_os = "windows")]
+    cmd.env("USERPROFILE", home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"))
+        .env_remove("HOMEDRIVE")
+        .env_remove("HOMEPATH");
+    #[cfg(not(target_os = "windows"))]
+    cmd.env_remove("USERPROFILE")
         .env_remove("APPDATA")
         .env_remove("LOCALAPPDATA");
     if let Some(curl_bin) = curl_bin {

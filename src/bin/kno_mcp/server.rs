@@ -80,6 +80,29 @@ impl KnoMcp {
         }
         result
     }
+
+    fn lease_for_context(&self, context: &RequestContext<RoleServer>) -> Option<String> {
+        self.lease_for_client(context.peer.peer_info().map(|info| &info.client_info))
+    }
+
+    fn lease_for_client(&self, client: Option<&Implementation>) -> Option<String> {
+        client
+            .and_then(|client| self.lease_registry.get(client))
+            .or_else(|| self.lease_registry.single_lease())
+    }
+
+    fn run_claim_tool(&self, args: ClaimArgs, lease_id: Option<String>) -> CallToolResult {
+        self.run_mutating_tool("claim", claim_argv(args, lease_id))
+    }
+
+    fn run_leased_id_tool(
+        &self,
+        subcommand: &str,
+        args: IdArgs,
+        lease_id: Option<String>,
+    ) -> CallToolResult {
+        self.run_mutating_tool(subcommand, leased_id_argv(args, lease_id))
+    }
 }
 
 fn push_detail(value: &serde_json::Value) -> String {
@@ -124,22 +147,30 @@ impl KnoMcp {
     }
 
     #[tool(description = "Claim a knot, preserving the CLI claim-boundary contract.")]
-    pub async fn knots_claim(&self, Parameters(args): Parameters<ClaimArgs>) -> CallToolResult {
-        self.run_mutating_tool("claim", claim_argv(args, self.lease_registry.current()))
+    pub async fn knots_claim(
+        &self,
+        context: RequestContext<RoleServer>,
+        Parameters(args): Parameters<ClaimArgs>,
+    ) -> CallToolResult {
+        self.run_claim_tool(args, self.lease_for_context(&context))
     }
 
     #[tool(description = "Advance a claimed knot to its next workflow state.")]
-    pub async fn knots_next(&self, Parameters(args): Parameters<IdArgs>) -> CallToolResult {
-        let argv = leased_id_argv(args, self.lease_registry.current());
-        self.run_mutating_tool("next", argv)
+    pub async fn knots_next(
+        &self,
+        context: RequestContext<RoleServer>,
+        Parameters(args): Parameters<IdArgs>,
+    ) -> CallToolResult {
+        self.run_leased_id_tool("next", args, self.lease_for_context(&context))
     }
 
     #[tool(description = "Roll back a knot from an action state to its prior ready state.")]
-    pub async fn knots_rollback(&self, Parameters(args): Parameters<IdArgs>) -> CallToolResult {
-        self.run_mutating_tool(
-            "rollback",
-            leased_id_argv(args, self.lease_registry.current()),
-        )
+    pub async fn knots_rollback(
+        &self,
+        context: RequestContext<RoleServer>,
+        Parameters(args): Parameters<IdArgs>,
+    ) -> CallToolResult {
+        self.run_leased_id_tool("rollback", args, self.lease_for_context(&context))
     }
 
     #[tool(description = "Run Knots git sync and return the SyncOutcome JSON.")]
@@ -210,17 +241,21 @@ fn build_http_router(
             ))
         },
         Default::default(),
-        StreamableHttpServerConfig::default()
-            .with_stateful_mode(false)
-            .with_json_response(true)
-            .with_sse_keep_alive(None)
-            .disable_allowed_hosts(),
+        streamable_http_config(),
     );
     Router::new()
         .nest_service("/mcp", service)
         .layer(middleware::from_fn(move |request, next| {
             auth_middleware(request, next, token.clone())
         }))
+}
+
+#[cfg(not(tarpaulin_include))]
+fn streamable_http_config() -> StreamableHttpServerConfig {
+    StreamableHttpServerConfig::default()
+        .with_stateful_mode(true)
+        .with_sse_keep_alive(None)
+        .disable_allowed_hosts()
 }
 
 #[cfg(not(tarpaulin_include))]

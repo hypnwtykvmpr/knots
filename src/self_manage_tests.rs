@@ -59,6 +59,7 @@ fn uninstall_removes_binary_and_previous_when_requested() {
         Some("knots")
     );
     assert!(result.removed_previous);
+    assert!(!result.deferred);
     assert_eq!(result.removed_aliases.len(), 1);
     assert_eq!(
         result.removed_aliases[0]
@@ -94,6 +95,7 @@ fn uninstall_keeps_previous_without_flag() {
 
     assert!(!result.binary_path.exists());
     assert!(!result.removed_previous);
+    assert!(!result.deferred);
     assert!(!alias.exists());
     assert!(previous.exists());
     assert!(legacy_previous.exists());
@@ -301,6 +303,7 @@ fn windows_deferred_uninstall_plan_collects_existing_files() {
     assert_eq!(plan.result.binary_path, binary);
     assert_eq!(plan.result.removed_aliases, vec![alias]);
     assert!(plan.result.removed_previous);
+    assert!(plan.result.deferred);
     assert_eq!(plan.previous_paths, vec![previous]);
 
     let _ = std::fs::remove_dir_all(dir);

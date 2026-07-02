@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::test_support::{env_lock, restore_test_home_env, set_test_home_env};
+use super::test_support::{restore_test_home_env, set_test_home_env};
 use super::*;
 
 fn unique_root(label: &str) -> PathBuf {
@@ -170,8 +170,6 @@ fn managed_skills_describe_parent_child_workflow() {
 
 #[test]
 fn doctor_fix_reconciles_drifted_skills_and_skips_unconfigured_agents_root() {
-    let _guard = env_lock().lock().expect("env lock");
-
     // Reconcile drifted skills for detected root
     let repo = unique_root("managed-skills-fix");
     let home = unique_root("managed-skills-home");
@@ -410,7 +408,6 @@ fn helper_functions_cover_empty_and_missing_paths() {
 
 #[test]
 fn public_environment_based_helpers_use_home_env() {
-    let _guard = env_lock().lock().expect("env lock");
     let repo_root = unique_root("managed-skills-public");
     let home = unique_root("managed-skills-home");
     fs::create_dir_all(repo_root.join(".agents")).expect("agents root");
@@ -454,7 +451,6 @@ fn codex_install_uses_project_agents_only() {
 
 #[test]
 fn doctor_detects_and_fixes_project_level_codex_skills() {
-    let _guard = env_lock().lock().expect("env lock");
     let repo = unique_root("managed-skills-codex-doctor-project");
     let home = unique_root("managed-skills-home");
     fs::create_dir_all(repo.join(".agents")).expect("agents root");

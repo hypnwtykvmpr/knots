@@ -15,25 +15,25 @@ ifeq ($(OS),Windows_NT)
 POWERSHELL := powershell.exe -NoProfile -ExecutionPolicy Bypass
 
 lint: reap-artifacts
-	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1 -SkipTests -SkipCoverage
+	$(POWERSHELL) -File ./Invoke-LocalChecks.ps1 -SkipTests -SkipCoverage
 
 test: reap-artifacts
-	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1 -SkipCoverage
+	$(POWERSHELL) -File ./Invoke-LocalChecks.ps1 -SkipCoverage
 
 coverage: reap-artifacts
-	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1
+	$(POWERSHELL) -File ./Invoke-LocalChecks.ps1
 
 sanity:
-	$(POWERSHELL) -File .\Invoke-LocalChecks.ps1 -Sanity
+	$(POWERSHELL) -File ./Invoke-LocalChecks.ps1 -Sanity
 
 reap-artifacts:
-	$(POWERSHELL) -File .\scripts\repo\Reap-StaleArtifacts.ps1 -MaxAgeHours "$(ARTIFACT_MAX_AGE_HOURS)"
+	$(POWERSHELL) -File ./scripts/repo/Reap-StaleArtifacts.ps1 -MaxAgeHours "$(ARTIFACT_MAX_AGE_HOURS)"
 
 install-hooks:
-	$(POWERSHELL) -File .\scripts\repo\Install-Hooks.ps1
+	$(POWERSHELL) -File ./scripts/repo/Install-Hooks.ps1
 
 check-threshold:
-	$(POWERSHELL) -File .\scripts\repo\Check-CoverageThreshold.ps1 -BaseRef origin/main
+	$(POWERSHELL) -File ./scripts/repo/Check-CoverageThreshold.ps1 -BaseRef origin/main
 else
 COVERAGE_MIN ?= $(shell tr -d '[:space:]' < $(COVERAGE_FILE))
 

@@ -1,27 +1,14 @@
 use std::io::Cursor;
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
 
 use super::*;
+#[cfg(target_os = "windows")]
+use crate::test_env::EnvVarGuard;
 
 fn temp_home() -> PathBuf {
     let path = std::env::temp_dir().join(format!("knots-project-test-{}", uuid::Uuid::now_v7()));
     fs::create_dir_all(&path).expect("temp home should be creatable");
     path
-}
-
-#[cfg(target_os = "windows")]
-fn env_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
-
-#[cfg(target_os = "windows")]
-fn restore_env(name: &str, value: Option<std::ffi::OsString>) {
-    match value {
-        Some(value) => std::env::set_var(name, value),
-        None => std::env::remove_var(name),
-    }
 }
 
 #[test]
@@ -41,24 +28,25 @@ fn create_list_and_resolve_named_projects() {
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_config_and_data_dirs_prefer_native_appdata_env_vars() {
-    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
+    let env = EnvVarGuard::capture(&[
+        "HOME",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+    ]);
     let home = temp_home();
     let appdata = home.join("Roaming");
     let local_appdata = home.join("Local");
     let shell_home = home.join("GitBashHome");
     let xdg_config = home.join("xdg-config");
     let xdg_data = home.join("xdg-data");
-    let old_home = std::env::var_os("HOME");
-    let old_appdata = std::env::var_os("APPDATA");
-    let old_local_appdata = std::env::var_os("LOCALAPPDATA");
-    let old_xdg_config = std::env::var_os("XDG_CONFIG_HOME");
-    let old_xdg_data = std::env::var_os("XDG_DATA_HOME");
 
-    std::env::set_var("HOME", &shell_home);
-    std::env::set_var("APPDATA", &appdata);
-    std::env::set_var("LOCALAPPDATA", &local_appdata);
-    std::env::set_var("XDG_CONFIG_HOME", &xdg_config);
-    std::env::set_var("XDG_DATA_HOME", &xdg_data);
+    env.set("HOME", &shell_home);
+    env.set("APPDATA", &appdata);
+    env.set("LOCALAPPDATA", &local_appdata);
+    env.set("XDG_CONFIG_HOME", &xdg_config);
+    env.set("XDG_DATA_HOME", &xdg_data);
 
     assert_eq!(config_dir(None).expect("config dir"), appdata.join("knots"));
     assert_eq!(
@@ -66,41 +54,37 @@ fn windows_config_and_data_dirs_prefer_native_appdata_env_vars() {
         local_appdata.join("knots")
     );
 
-    restore_env("HOME", old_home);
-    restore_env("APPDATA", old_appdata);
-    restore_env("LOCALAPPDATA", old_local_appdata);
-    restore_env("XDG_CONFIG_HOME", old_xdg_config);
-    restore_env("XDG_DATA_HOME", old_xdg_data);
     let _ = fs::remove_dir_all(home);
 }
 
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_config_and_data_dirs_fall_back_after_appdata() {
-    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
+    let env = EnvVarGuard::capture(&[
+        "HOME",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "USERPROFILE",
+        "HOMEDRIVE",
+        "HOMEPATH",
+    ]);
     let home = temp_home();
     let appdata_only = home.join("RoamingOnly");
     let shell_home = home.join("ShellHome");
     let xdg_config = home.join("xdg-config");
     let xdg_data = home.join("xdg-data");
     let userprofile = home.join("Profile");
-    let old_home = std::env::var_os("HOME");
-    let old_appdata = std::env::var_os("APPDATA");
-    let old_local_appdata = std::env::var_os("LOCALAPPDATA");
-    let old_xdg_config = std::env::var_os("XDG_CONFIG_HOME");
-    let old_xdg_data = std::env::var_os("XDG_DATA_HOME");
-    let old_userprofile = std::env::var_os("USERPROFILE");
-    let old_home_drive = std::env::var_os("HOMEDRIVE");
-    let old_home_path = std::env::var_os("HOMEPATH");
 
-    std::env::remove_var("HOME");
-    std::env::remove_var("APPDATA");
-    std::env::remove_var("LOCALAPPDATA");
-    std::env::remove_var("HOMEDRIVE");
-    std::env::remove_var("HOMEPATH");
-    std::env::set_var("XDG_CONFIG_HOME", &xdg_config);
-    std::env::set_var("XDG_DATA_HOME", &xdg_data);
-    std::env::set_var("USERPROFILE", &userprofile);
+    env.remove("HOME");
+    env.remove("APPDATA");
+    env.remove("LOCALAPPDATA");
+    env.remove("HOMEDRIVE");
+    env.remove("HOMEPATH");
+    env.set("XDG_CONFIG_HOME", &xdg_config);
+    env.set("XDG_DATA_HOME", &xdg_data);
+    env.set("USERPROFILE", &userprofile);
 
     assert_eq!(
         config_dir(None).expect("config dir"),
@@ -111,13 +95,13 @@ fn windows_config_and_data_dirs_fall_back_after_appdata() {
         userprofile.join("AppData").join("Local").join("knots")
     );
 
-    std::env::remove_var("USERPROFILE");
-    std::env::set_var("APPDATA", &appdata_only);
+    env.remove("USERPROFILE");
+    env.set("APPDATA", &appdata_only);
     assert_eq!(
         data_dir(None).expect("data appdata fallback"),
         appdata_only.join("knots")
     );
-    std::env::remove_var("APPDATA");
+    env.remove("APPDATA");
     assert_eq!(
         config_dir(None).expect("config xdg fallback"),
         xdg_config.join("knots")
@@ -126,9 +110,9 @@ fn windows_config_and_data_dirs_fall_back_after_appdata() {
         data_dir(None).expect("data xdg fallback"),
         xdg_data.join("knots")
     );
-    std::env::remove_var("XDG_CONFIG_HOME");
-    std::env::remove_var("XDG_DATA_HOME");
-    std::env::set_var("HOME", &shell_home);
+    env.remove("XDG_CONFIG_HOME");
+    env.remove("XDG_DATA_HOME");
+    env.set("HOME", &shell_home);
 
     assert_eq!(
         config_dir(None).expect("config home fallback"),
@@ -138,8 +122,8 @@ fn windows_config_and_data_dirs_fall_back_after_appdata() {
         data_dir(None).expect("data home fallback"),
         shell_home.join(".local").join("share").join("knots")
     );
-    std::env::remove_var("HOME");
-    std::env::set_var("USERPROFILE", &userprofile);
+    env.remove("HOME");
+    env.set("USERPROFILE", &userprofile);
 
     assert_eq!(
         config_dir(None).expect("config home fallback"),
@@ -150,113 +134,75 @@ fn windows_config_and_data_dirs_fall_back_after_appdata() {
         userprofile.join("AppData").join("Local").join("knots")
     );
 
-    restore_env("HOME", old_home);
-    restore_env("APPDATA", old_appdata);
-    restore_env("LOCALAPPDATA", old_local_appdata);
-    restore_env("XDG_CONFIG_HOME", old_xdg_config);
-    restore_env("XDG_DATA_HOME", old_xdg_data);
-    restore_env("USERPROFILE", old_userprofile);
-    restore_env("HOMEDRIVE", old_home_drive);
-    restore_env("HOMEPATH", old_home_path);
     let _ = fs::remove_dir_all(home);
 }
 
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_home_dir_falls_back_to_drive_and_homepath() {
-    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
-    let old_home = std::env::var_os("HOME");
-    let old_userprofile = std::env::var_os("USERPROFILE");
-    let old_home_drive = std::env::var_os("HOMEDRIVE");
-    let old_home_path = std::env::var_os("HOMEPATH");
+    let env = EnvVarGuard::capture(&["HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"]);
 
-    std::env::remove_var("HOME");
-    std::env::remove_var("USERPROFILE");
-    std::env::set_var("HOMEDRIVE", "Z:");
-    std::env::set_var("HOMEPATH", "\\Users\\Knots");
+    env.remove("HOME");
+    env.remove("USERPROFILE");
+    env.set("HOMEDRIVE", "Z:");
+    env.set("HOMEPATH", "\\Users\\Knots");
 
     assert_eq!(
         home_dir(None).expect("home dir should resolve"),
         PathBuf::from("Z:\\Users\\Knots")
     );
-
-    restore_env("HOME", old_home);
-    restore_env("USERPROFILE", old_userprofile);
-    restore_env("HOMEDRIVE", old_home_drive);
-    restore_env("HOMEPATH", old_home_path);
 }
 
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_home_dir_prefers_userprofile_over_shell_home() {
-    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
+    let env = EnvVarGuard::capture(&["HOME", "USERPROFILE"]);
     let home = temp_home();
     let shell_home = home.join("GitBashHome");
     let userprofile = home.join("Profile");
-    let old_home = std::env::var_os("HOME");
-    let old_userprofile = std::env::var_os("USERPROFILE");
 
-    std::env::set_var("HOME", &shell_home);
-    std::env::set_var("USERPROFILE", &userprofile);
+    env.set("HOME", &shell_home);
+    env.set("USERPROFILE", &userprofile);
 
     assert_eq!(home_dir(None).expect("home dir"), userprofile);
 
-    restore_env("HOME", old_home);
-    restore_env("USERPROFILE", old_userprofile);
     let _ = fs::remove_dir_all(home);
 }
 
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_home_dir_rejects_drive_relative_homepath() {
-    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
-    let old_home = std::env::var_os("HOME");
-    let old_userprofile = std::env::var_os("USERPROFILE");
-    let old_home_drive = std::env::var_os("HOMEDRIVE");
-    let old_home_path = std::env::var_os("HOMEPATH");
+    let env = EnvVarGuard::capture(&["HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"]);
 
-    std::env::remove_var("HOME");
-    std::env::remove_var("USERPROFILE");
-    std::env::set_var("HOMEDRIVE", "Z:");
-    std::env::set_var("HOMEPATH", "Users\\Knots");
+    env.remove("HOME");
+    env.remove("USERPROFILE");
+    env.set("HOMEDRIVE", "Z:");
+    env.set("HOMEPATH", "Users\\Knots");
 
     assert_eq!(
         home_dir(None).expect_err("drive-relative home should fail"),
         "unable to resolve home directory"
     );
-
-    restore_env("HOME", old_home);
-    restore_env("USERPROFILE", old_userprofile);
-    restore_env("HOMEDRIVE", old_home_drive);
-    restore_env("HOMEPATH", old_home_path);
 }
 
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_home_dir_uses_explicit_override_and_reports_missing_env() {
-    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
+    let env = EnvVarGuard::capture(&["HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"]);
     let home = temp_home();
-    let old_home = std::env::var_os("HOME");
-    let old_userprofile = std::env::var_os("USERPROFILE");
-    let old_home_drive = std::env::var_os("HOMEDRIVE");
-    let old_home_path = std::env::var_os("HOMEPATH");
 
     assert_eq!(home_dir(Some(&home)).expect("explicit home"), home);
 
-    std::env::remove_var("HOME");
-    std::env::remove_var("USERPROFILE");
-    std::env::remove_var("HOMEDRIVE");
-    std::env::remove_var("HOMEPATH");
+    env.remove("HOME");
+    env.remove("USERPROFILE");
+    env.remove("HOMEDRIVE");
+    env.remove("HOMEPATH");
 
     assert_eq!(
         home_dir(None).expect_err("missing env should fail"),
         "unable to resolve home directory"
     );
 
-    restore_env("HOME", old_home);
-    restore_env("USERPROFILE", old_userprofile);
-    restore_env("HOMEDRIVE", old_home_drive);
-    restore_env("HOMEPATH", old_home_path);
     let _ = fs::remove_dir_all(home);
 }
 
@@ -430,10 +376,19 @@ fn config_and_project_validation_errors_are_reported() {
 
     assert!(validate_project_id("").is_err());
     assert!(validate_project_id("UPPER").is_err());
-    for reserved in ["con", "prn", "aux", "nul", "com1", "com9", "lpt1", "lpt9"] {
+    let reserved = ["con", "prn", "aux", "nul", "com1", "com9", "lpt1", "lpt9"];
+    #[cfg(target_os = "windows")]
+    for reserved in reserved {
         assert!(
             validate_project_id(reserved).is_err(),
             "{reserved} should be rejected"
+        );
+    }
+    #[cfg(not(target_os = "windows"))]
+    for reserved in reserved {
+        assert!(
+            validate_project_id(reserved).is_ok(),
+            "{reserved} should remain valid off Windows"
         );
     }
     assert!(load_named_project(Some(&home), "missing")

@@ -93,6 +93,8 @@ mod stream_output;
 mod sync;
 mod sync_ref;
 mod sync_ref_migrate;
+#[cfg(test)]
+mod test_env;
 mod tiering;
 mod trace;
 mod ui;

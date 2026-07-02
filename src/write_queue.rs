@@ -131,6 +131,7 @@ pub struct RollbackOperation {
     pub agent_name: Option<String>,
     pub agent_model: Option<String>,
     pub agent_version: Option<String>,
+    #[serde(default)]
     pub lease_id: Option<String>,
     #[serde(default)]
     pub json: bool,

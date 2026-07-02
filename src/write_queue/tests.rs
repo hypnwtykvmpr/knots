@@ -150,6 +150,64 @@ fn drain_pending_requests_removes_invalid_request_files() {
 }
 
 #[test]
+fn drain_pending_requests_recovers_claimed_processing_files() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    paths.create_dirs().expect("queue dirs should exist");
+    let request = state_request(&root, &paths, "stale-processing", "K-stale");
+    let stale = paths.requests_dir.join("stale.json.processing");
+    let bytes = serde_json::to_vec(&request).expect("request should serialize");
+    fs::write(&stale, bytes).expect("stale processing request should write");
+
+    let processed = drain_pending_requests(&paths, &mut |request| {
+        QueuedWriteResponse::success(request.request_id.clone())
+    })
+    .expect("stale processing request should drain");
+
+    assert_eq!(processed, 1);
+    assert!(!stale.exists());
+    let response = read_response_file(&paths.responses_dir.join("stale-processing.json"))
+        .expect("response should read")
+        .expect("response should exist");
+    assert_eq!(response.output, "stale-processing");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn drain_pending_requests_discards_claimed_file_when_response_already_exists() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    paths.create_dirs().expect("queue dirs should exist");
+    let request = state_request(&root, &paths, "already-responded", "K-stale");
+    let stale = paths.requests_dir.join("already-responded.json.processing");
+    let bytes = serde_json::to_vec(&request).expect("request should serialize");
+    fs::write(&stale, bytes).expect("stale processing request should write");
+    write_response_file(
+        Path::new(&request.response_path),
+        &QueuedWriteResponse::success("persisted-response".to_string()),
+    )
+    .expect("response should write");
+
+    let mut executor_called = false;
+    let processed = drain_pending_requests(&paths, &mut |_request| {
+        executor_called = true;
+        QueuedWriteResponse::success("duplicate".to_string())
+    })
+    .expect("already responded processing request should drain");
+
+    assert_eq!(processed, 0);
+    assert!(!executor_called);
+    assert!(!stale.exists());
+    let response = read_response_file(Path::new(&request.response_path))
+        .expect("response should read")
+        .expect("response should exist");
+    assert_eq!(response.output, "persisted-response");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn enqueue_and_wait_spins_until_worker_lock_is_released() {
     let root = unique_root();
     let paths = QueuePaths::for_repo(&root);
@@ -378,12 +436,13 @@ fn drain_pending_requests_propagates_response_write_errors() {
     })
     .expect_err("response write should fail when parent path is a file");
     assert!(matches!(err, QueueError::Io(_)));
-    assert_eq!(
-        list_request_files(&paths.requests_dir)
-            .expect("request files should not be re-queued")
-            .len(),
-        0
-    );
+    let files = list_request_files(&paths.requests_dir)
+        .expect("claimed request files should remain recoverable");
+    assert_eq!(files.len(), 1);
+    assert!(files[0]
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|name| name.ends_with(".json.processing")));
     let processing_files = fs::read_dir(&paths.requests_dir)
         .expect("request dir should list")
         .filter_map(Result::ok)
@@ -475,4 +534,26 @@ fn lease_extend_operation_serializes_round_trip() {
     let json = serde_json::to_string(&op).expect("should serialize");
     let parsed: WriteOperation = serde_json::from_str(&json).expect("should deserialize");
     assert_eq!(parsed, op);
+}
+
+#[test]
+fn rollback_operation_deserializes_without_lease_for_old_queued_requests() {
+    let raw = serde_json::json!({
+        "Rollback": {
+            "id": "K-123",
+            "dry_run": false,
+            "actor_kind": null,
+            "agent_name": null,
+            "agent_model": null,
+            "agent_version": null,
+            "json": true
+        }
+    });
+    let parsed: WriteOperation =
+        serde_json::from_value(raw).expect("old rollback operation should deserialize");
+    let WriteOperation::Rollback(operation) = parsed else {
+        panic!("expected rollback operation");
+    };
+    assert_eq!(operation.lease_id, None);
+    assert!(operation.json);
 }

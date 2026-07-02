@@ -22,6 +22,7 @@ pub struct UninstallResult {
     pub binary_path: PathBuf,
     pub removed_previous: bool,
     pub removed_aliases: Vec<PathBuf>,
+    pub deferred: bool,
 }
 
 pub fn run_update(options: &SelfUpdateOptions) -> io::Result<()> {
@@ -138,6 +139,7 @@ pub fn run_uninstall(options: &SelfUninstallOptions) -> io::Result<UninstallResu
         binary_path,
         removed_previous,
         removed_aliases,
+        deferred: false,
     })
 }
 
@@ -242,6 +244,7 @@ fn plan_windows_deferred_uninstall(
         binary_path: binary_path.to_path_buf(),
         removed_previous: !previous_paths.is_empty(),
         removed_aliases,
+        deferred: true,
     };
     Ok(WindowsDeferredUninstall {
         result,
@@ -421,8 +424,18 @@ pub fn maybe_run_self_command(
                 bin_path: uninstall_args.bin_path.clone(),
                 remove_previous: uninstall_args.remove_previous,
             })?;
-            let mut lines = vec![format!("removed {}", result.binary_path.display())];
-            if result.removed_previous {
+            let action = if result.deferred {
+                "scheduled removal of"
+            } else {
+                "removed"
+            };
+            let mut lines = vec![format!("{action} {}", result.binary_path.display())];
+            if result.removed_previous && result.deferred {
+                lines.push(
+                    "scheduled removal of previous backups (kno.previous/knots.previous)"
+                        .to_string(),
+                );
+            } else if result.removed_previous {
                 lines.push("removed previous backups (kno.previous/knots.previous)".to_string());
             }
             Ok(Some(lines.join("\n")))

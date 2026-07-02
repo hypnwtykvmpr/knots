@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap_complete::{generate, Shell};
 
@@ -35,11 +35,9 @@ pub fn detect_current_shell() -> Option<Shell> {
 
 fn shell_from_path(path: &str) -> Option<Shell> {
     let basename = path.rsplit(['/', '\\']).next()?;
-    let basename = basename
-        .strip_suffix(".exe")
-        .unwrap_or(basename)
-        .to_ascii_lowercase();
-    match basename.as_str() {
+    let basename = basename.to_ascii_lowercase();
+    let basename = basename.strip_suffix(".exe").unwrap_or(&basename);
+    match basename {
         "bash" => Some(Shell::Bash),
         "zsh" => Some(Shell::Zsh),
         "fish" => Some(Shell::Fish),
@@ -121,36 +119,132 @@ fn patch_zshrc(home: &std::path::Path, completions_path: &std::path::Path) -> io
     Ok(())
 }
 
-fn patch_powershell_profile(
-    home: &std::path::Path,
-    completions_path: &std::path::Path,
-) -> io::Result<()> {
+fn patch_powershell_profile(home: &Path, completions_path: &Path) -> io::Result<()> {
     let source_line = format!(". '{}'", escape_powershell_single_quoted(completions_path));
 
     for profile in powershell_profile_paths(home) {
-        if profile.exists() {
-            let content = std::fs::read_to_string(&profile)?;
-            if content.contains(&source_line) {
-                continue;
-            }
-        }
-
-        if let Some(parent) = profile.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&profile)?;
-        writeln!(file)?;
-        writeln!(file, "# kno shell completions")?;
-        writeln!(file, "{source_line}")?;
+        patch_powershell_profile_file(&profile, &source_line)?;
     }
     Ok(())
 }
 
+fn patch_powershell_profile_file(profile: &Path, source_line: &str) -> io::Result<()> {
+    let (mut content, encoding) = if profile.exists() {
+        let (content, encoding) = read_profile_text(profile)?;
+        if content.contains(source_line) {
+            return Ok(());
+        }
+        (content, encoding)
+    } else {
+        (String::new(), ProfileEncoding::Utf8)
+    };
+
+    if let Some(parent) = profile.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    append_profile_source(&mut content, source_line);
+    write_profile_text(profile, &content, encoding)
+}
+
+fn append_profile_source(content: &mut String, source_line: &str) {
+    if !content.is_empty() && !content.ends_with('\n') {
+        content.push('\n');
+    }
+    content.push('\n');
+    content.push_str("# kno shell completions\n");
+    content.push_str(source_line);
+    content.push('\n');
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProfileEncoding {
+    Utf8,
+    Utf8Bom,
+    Utf16Le,
+    Utf16Be,
+}
+
+fn read_profile_text(path: &Path) -> io::Result<(String, ProfileEncoding)> {
+    let bytes = std::fs::read(path)?;
+    if bytes.starts_with(&[0xFF, 0xFE]) {
+        return Ok((decode_utf16(&bytes[2..], true)?, ProfileEncoding::Utf16Le));
+    }
+    if bytes.starts_with(&[0xFE, 0xFF]) {
+        return Ok((decode_utf16(&bytes[2..], false)?, ProfileEncoding::Utf16Be));
+    }
+    if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        let text = String::from_utf8(bytes[3..].to_vec()).map_err(invalid_data)?;
+        return Ok((text, ProfileEncoding::Utf8Bom));
+    }
+    String::from_utf8(bytes)
+        .map(|text| (text, ProfileEncoding::Utf8))
+        .map_err(invalid_data)
+}
+
+fn decode_utf16(bytes: &[u8], little_endian: bool) -> io::Result<String> {
+    let chunks = bytes.chunks_exact(2);
+    if !chunks.remainder().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "UTF-16 profile has an odd byte count",
+        ));
+    }
+    let words = chunks
+        .map(|chunk| {
+            let pair = [chunk[0], chunk[1]];
+            if little_endian {
+                u16::from_le_bytes(pair)
+            } else {
+                u16::from_be_bytes(pair)
+            }
+        })
+        .collect::<Vec<_>>();
+    String::from_utf16(&words).map_err(invalid_data)
+}
+
+fn write_profile_text(path: &Path, content: &str, encoding: ProfileEncoding) -> io::Result<()> {
+    let bytes = match encoding {
+        ProfileEncoding::Utf8 => content.as_bytes().to_vec(),
+        ProfileEncoding::Utf8Bom => {
+            let mut bytes = vec![0xEF, 0xBB, 0xBF];
+            bytes.extend_from_slice(content.as_bytes());
+            bytes
+        }
+        ProfileEncoding::Utf16Le => encode_utf16(content, true),
+        ProfileEncoding::Utf16Be => encode_utf16(content, false),
+    };
+    std::fs::write(path, bytes)
+}
+
+fn encode_utf16(content: &str, little_endian: bool) -> Vec<u8> {
+    let mut bytes = if little_endian {
+        vec![0xFF, 0xFE]
+    } else {
+        vec![0xFE, 0xFF]
+    };
+    for word in content.encode_utf16() {
+        let pair = if little_endian {
+            word.to_le_bytes()
+        } else {
+            word.to_be_bytes()
+        };
+        bytes.extend_from_slice(&pair);
+    }
+    bytes
+}
+
+fn invalid_data(err: impl std::error::Error + Send + Sync + 'static) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, err)
+}
+
+#[cfg(target_os = "windows")]
 fn powershell_dir(home: &std::path::Path) -> PathBuf {
     home.join("Documents").join("PowerShell")
+}
+
+#[cfg(not(target_os = "windows"))]
+fn powershell_dir(home: &std::path::Path) -> PathBuf {
+    home.join(".config").join("powershell")
 }
 
 fn powershell_profile_paths(home: &std::path::Path) -> Vec<PathBuf> {

@@ -31,7 +31,7 @@ pub(crate) fn command_for_program(program: impl AsRef<OsStr>) -> Command {
 #[cfg(windows)]
 fn resolve_windows_program(program: &OsStr) -> OsString {
     let path = Path::new(program);
-    if is_explicit_path(path) || path.extension().is_some() {
+    if is_explicit_path(path) {
         return program.to_os_string();
     }
     find_windows_path_program(program)

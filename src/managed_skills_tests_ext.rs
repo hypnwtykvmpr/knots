@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-use super::test_support::{env_lock, restore_test_home_env, set_test_home_env};
+use super::test_support::{restore_test_home_env, set_test_home_env};
 use super::{
     doctor_check, fix_doctor_check, install_missing, managed_skills, render_skill, update_managed,
     DoctorStatus, SkillTool,
@@ -428,7 +428,6 @@ fn doctor_fix_updates_drifted_skills_without_rewriting_effective_gitignore() {
 
 #[test]
 fn doctor_skips_codex_and_opencode_when_agents_root_is_absent() {
-    let _guard = env_lock().lock().expect("env lock");
     let repo = unique_root("managed-skills-doctor-skip");
     let home = unique_root("managed-skills-home");
     let prior_home = set_test_home_env(&home);

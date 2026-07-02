@@ -220,6 +220,10 @@ where
                     return Err(err);
                 }
             };
+            if is_claimed_request_file(&claimed_file) && response_already_written(&request)? {
+                fs::remove_file(&claimed_file)?;
+                continue;
+            }
             let response = executor(&request);
             let response_path = PathBuf::from(&request.response_path);
             write_response_file(&response_path, &response)?;
@@ -232,6 +236,9 @@ where
 }
 
 fn claim_request_file(request_file: &Path) -> Result<PathBuf, QueueError> {
+    if is_claimed_request_file(request_file) {
+        return Ok(request_file.to_path_buf());
+    }
     let claimed_file = request_file.with_extension("json.processing");
     fs::rename(request_file, &claimed_file)?;
     Ok(claimed_file)
@@ -244,7 +251,7 @@ pub(super) fn list_request_files(requests_dir: &Path) -> Result<Vec<PathBuf>, Qu
     }
     for entry in fs::read_dir(requests_dir)? {
         let path = entry?.path();
-        if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
+        if is_pending_request_file(&path) {
             files.push(path);
         }
     }
@@ -252,9 +259,23 @@ pub(super) fn list_request_files(requests_dir: &Path) -> Result<Vec<PathBuf>, Qu
     Ok(files)
 }
 
+fn is_pending_request_file(path: &Path) -> bool {
+    path.extension().and_then(|ext| ext.to_str()) == Some("json") || is_claimed_request_file(path)
+}
+
+fn is_claimed_request_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|name| name.ends_with(".json.processing"))
+}
+
 fn read_request_file(path: &Path) -> Result<QueuedWriteRequest, QueueError> {
     let bytes = fs::read(path)?;
     Ok(serde_json::from_slice(&bytes)?)
+}
+
+fn response_already_written(request: &QueuedWriteRequest) -> Result<bool, QueueError> {
+    read_response_file(Path::new(&request.response_path)).map(|response| response.is_some())
 }
 
 pub(super) fn write_response_file(

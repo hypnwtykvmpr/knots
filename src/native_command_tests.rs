@@ -58,6 +58,31 @@ fn command_for_program_leaves_explicit_non_ps1_programs_native() {
 
 #[cfg(windows)]
 #[test]
+fn command_for_program_resolves_bare_ps1_names_on_path() {
+    let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
+    let dir = std::env::temp_dir().join(format!("knots-native-command-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&dir).expect("temp dir should exist");
+    let shim = dir.join("kno.ps1");
+    std::fs::write(&shim, "exit 0").expect("shim should write");
+    let old_path = std::env::var_os("PATH");
+
+    std::env::set_var("PATH", &dir);
+    let command = command_for_program("kno.ps1");
+    let args = command
+        .get_args()
+        .map(|arg| arg.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+
+    assert_eq!(command.get_program(), OsStr::new("powershell.exe"));
+    assert!(args.iter().any(|arg| arg == "-File"));
+    assert!(args.iter().any(|arg| arg == &shim.display().to_string()));
+
+    restore_env("PATH", old_path);
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[cfg(windows)]
+#[test]
 fn command_for_program_accepts_exact_path_entry_without_extension() {
     let _guard = env_lock().lock().unwrap_or_else(|err| err.into_inner());
     let dir = std::env::temp_dir().join(format!("knots-native-command-{}", uuid::Uuid::now_v7()));
