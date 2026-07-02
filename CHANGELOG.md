@@ -1,5 +1,13 @@
 # kno
 
+## 0.17.1
+
+### Patch Changes
+
+- d4e4a31: Clarify managed Knots skills so agents understand that claim leases are
+  single-action tokens: `kno next` and rollback release the current lease, and
+  follow-on work must claim with a fresh lease.
+
 ## 0.17.0
 
 ### Minor Changes
