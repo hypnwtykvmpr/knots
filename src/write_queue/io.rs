@@ -11,6 +11,8 @@ const REQUESTS_DIR: &str = "writes";
 const RESPONSES_DIR: &str = "responses";
 const WAIT_TIMEOUT: Duration = Duration::from_secs(120);
 const WAIT_POLL_INTERVAL: Duration = Duration::from_millis(20);
+const FS_RETRY_ATTEMPTS: u32 = 5;
+const FS_RETRY_DELAY: Duration = Duration::from_millis(20);
 
 #[derive(Debug)]
 pub enum QueueError {
@@ -212,7 +214,9 @@ where
             break;
         }
         for request_file in request_files {
-            let claimed_file = claim_request_file(&request_file)?;
+            let Some(claimed_file) = claim_request_file(&request_file)? else {
+                continue;
+            };
             let request = match read_request_file(&claimed_file) {
                 Ok(request) => request,
                 Err(err) => {
@@ -220,28 +224,135 @@ where
                     return Err(err);
                 }
             };
-            if is_claimed_request_file(&claimed_file) && response_already_written(&request)? {
-                fs::remove_file(&claimed_file)?;
-                continue;
+            let done_marker = done_marker_path(&request);
+            if is_claimed_request_file(&claimed_file) {
+                // Crash recovery: a done marker means the operation already
+                // committed; finish delivering its response instead of
+                // re-executing a non-idempotent write.
+                if let Some(response) = read_response_file(&done_marker)? {
+                    write_response_file(&PathBuf::from(&request.response_path), &response)?;
+                    if remove_file_with_retry(&claimed_file).is_ok() {
+                        let _ = fs::remove_file(&done_marker);
+                    }
+                    continue;
+                }
+                if response_already_written(&request)? {
+                    let _ = remove_file_with_retry(&claimed_file);
+                    continue;
+                }
             }
             let response = executor(&request);
-            let response_path = PathBuf::from(&request.response_path);
-            write_response_file(&response_path, &response)?;
-            fs::remove_file(&claimed_file)?;
+            // Persist the outcome before delivering it: a crash between
+            // execution and cleanup is then replayed as delivery, never as
+            // re-execution.
+            write_response_file(&done_marker, &response)?;
+            write_response_file(&PathBuf::from(&request.response_path), &response)?;
+            // The work is committed and the response delivered; a stuck
+            // claimed file must not fail the operation. The lingering pair
+            // is resolved by the recovery branch on a later drain.
+            if remove_file_with_retry(&claimed_file).is_ok() {
+                let _ = fs::remove_file(&done_marker);
+            }
             processed += 1;
         }
     }
+    sweep_orphan_done_markers(paths)?;
 
     Ok(processed)
 }
 
-fn claim_request_file(request_file: &Path) -> Result<PathBuf, QueueError> {
+/// Returns `None` when the request was claimed by someone else between
+/// listing and renaming.
+pub(super) fn claim_request_file(request_file: &Path) -> Result<Option<PathBuf>, QueueError> {
     if is_claimed_request_file(request_file) {
-        return Ok(request_file.to_path_buf());
+        return Ok(Some(request_file.to_path_buf()));
     }
     let claimed_file = request_file.with_extension("json.processing");
-    fs::rename(request_file, &claimed_file)?;
-    Ok(claimed_file)
+    match rename_with_retry(request_file, &claimed_file) {
+        Ok(()) => Ok(Some(claimed_file)),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err.into()),
+    }
+}
+
+fn done_marker_path(request: &QueuedWriteRequest) -> PathBuf {
+    PathBuf::from(&request.response_path).with_extension("done")
+}
+
+/// Remove `.done` markers whose request no longer exists in any form; these
+/// are left behind when a crash lands between claimed-file removal and
+/// marker removal.
+fn sweep_orphan_done_markers(paths: &QueuePaths) -> Result<(), QueueError> {
+    if !paths.responses_dir.exists() {
+        return Ok(());
+    }
+    let pending = list_request_files(&paths.requests_dir)?;
+    for entry in fs::read_dir(&paths.responses_dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("done") {
+            continue;
+        }
+        let Some(request_id) = path.file_stem().and_then(|stem| stem.to_str()) else {
+            continue;
+        };
+        let referenced = pending.iter().any(|file| {
+            file.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.contains(request_id))
+        });
+        if !referenced {
+            let _ = fs::remove_file(&path);
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn remove_file_with_retry(path: &Path) -> std::io::Result<()> {
+    retry_transient(|| match fs::remove_file(path) {
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        other => other,
+    })
+}
+
+fn rename_with_retry(from: &Path, to: &Path) -> std::io::Result<()> {
+    retry_transient(|| fs::rename(from, to))
+}
+
+/// Retry short-lived Windows file holds (antivirus/indexer scans) that
+/// surface as access errors on rename/remove of recently written files.
+pub(super) fn retry_transient<F>(mut op: F) -> std::io::Result<()>
+where
+    F: FnMut() -> std::io::Result<()>,
+{
+    let mut attempt = 0;
+    loop {
+        match op() {
+            Ok(()) => return Ok(()),
+            Err(err) if attempt + 1 < FS_RETRY_ATTEMPTS && is_transient_fs_error(&err) => {
+                attempt += 1;
+                thread::sleep(FS_RETRY_DELAY);
+            }
+            Err(err) => return Err(err),
+        }
+    }
+}
+
+fn is_transient_fs_error(err: &std::io::Error) -> bool {
+    if err.kind() == std::io::ErrorKind::PermissionDenied {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        const ERROR_SHARING_VIOLATION: i32 = 32;
+        const ERROR_LOCK_VIOLATION: i32 = 33;
+        if matches!(
+            err.raw_os_error(),
+            Some(ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION)
+        ) {
+            return true;
+        }
+    }
+    false
 }
 
 pub(super) fn list_request_files(requests_dir: &Path) -> Result<Vec<PathBuf>, QueueError> {

@@ -1,0 +1,7 @@
+# Normalize all text files to LF in the index and working tree so checkouts
+# behave identically regardless of core.autocrlf (notably Git for Windows'
+# default autocrlf=true, used by GitHub windows runners). Byte-sensitive
+# consumers (managed-skill drift hashes, fixture comparisons) depend on this.
+* text=auto eol=lf
+*.gif binary
+*.png binary

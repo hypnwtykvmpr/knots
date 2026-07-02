@@ -11,7 +11,14 @@ pub fn spawn_background_sync(runner: KnoRunner, interval: Duration) {
         let mut tick = tokio::time::interval(interval);
         loop {
             tick.tick().await;
-            if let Some(message) = sync_retry_message(runner.run("sync", &[])) {
+            // The sync subprocess blocks; keep it off the async workers.
+            let sync_runner = runner.clone();
+            let result = tokio::task::spawn_blocking(move || sync_runner.run("sync", &[])).await;
+            let message = match result {
+                Ok(outcome) => sync_retry_message(outcome),
+                Err(err) => Some(format!("kno-mcp sync worker failed: {err}")),
+            };
+            if let Some(message) = message {
                 eprintln!("{message}");
             }
         }
@@ -41,6 +48,23 @@ fn deferred_sync_detail(value: &Value) -> Option<String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[tokio::test]
+    async fn background_sync_executes_its_first_tick() {
+        let fixture = if cfg!(windows) {
+            "tests/fixtures/kno-stub.ps1"
+        } else {
+            "tests/fixtures/kno-stub.sh"
+        };
+        let runner = KnoRunner::new(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(fixture),
+            std::path::PathBuf::from("/tmp/repo"),
+        );
+        // The first interval tick fires immediately; give the blocking sync
+        // one moment to run against the stub (which reports deferred).
+        spawn_background_sync(runner, Duration::from_secs(3600));
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
 
     #[test]
     fn deferred_sync_detail_reports_active_leases() {

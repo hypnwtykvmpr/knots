@@ -15,8 +15,9 @@ pub use plan_ops::{
 
 #[cfg(test)]
 use io::{
-    drain_pending_requests, enqueue_and_wait, enqueue_request, list_request_files,
-    read_response_file, write_response_file, QueuePaths,
+    claim_request_file, drain_pending_requests, enqueue_and_wait, enqueue_request,
+    list_request_files, read_response_file, remove_file_with_retry, retry_transient,
+    write_response_file, QueuePaths,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -255,3 +256,5 @@ impl QueuedWriteResponse {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_recovery;

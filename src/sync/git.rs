@@ -221,7 +221,15 @@ impl GitAdapter {
 
     fn run_allow_failure(&self, cwd: &Path, args: Vec<String>) -> Result<Output, SyncError> {
         let mut cmd = Command::new("git");
-        cmd.arg("-C").arg(git_path(cwd)).args(&args);
+        // Synced event files are compared byte-for-byte against the local
+        // store, so every adapter command must treat them as opaque bytes.
+        // Without this, core.autocrlf=true (the Git for Windows default)
+        // smudges LF to CRLF on checkout/merge and every later push fails
+        // with a persistent FileConflict.
+        cmd.arg("-C")
+            .arg(repo_path_arg(cwd))
+            .args(["-c", "core.autocrlf=false"])
+            .args(&args);
         cmd.output().map_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
                 SyncError::GitUnavailable
@@ -265,6 +273,20 @@ pub(crate) fn git_path(path: &Path) -> String {
     strip_windows_verbatim_prefix(&path.to_string_lossy())
 }
 
+/// The `-C` repo path is passed through as OS-native bytes on Unix so
+/// non-UTF-8 repo paths survive; only Windows needs the lossy round-trip,
+/// where `\\?\` verbatim prefixes must be stripped for git.
+fn repo_path_arg(cwd: &Path) -> std::ffi::OsString {
+    #[cfg(windows)]
+    {
+        std::ffi::OsString::from(git_path(cwd))
+    }
+    #[cfg(not(windows))]
+    {
+        cwd.as_os_str().to_os_string()
+    }
+}
+
 pub(crate) fn strip_windows_verbatim_prefix(path: &str) -> String {
     #[cfg(windows)]
     {
@@ -286,6 +308,58 @@ fn display_command(cwd: &Path, args: &[String]) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
+    fn unique_temp_dir() -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock should be after UNIX_EPOCH")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("knots-git-adapter-{nanos}"));
+        std::fs::create_dir_all(&dir).expect("temp dir should be created");
+        dir
+    }
+
+    fn run_git(dir: &std::path::Path, args: &[&str]) {
+        let status = std::process::Command::new("git")
+            .arg("-C")
+            .arg(dir)
+            .args(args)
+            .status()
+            .expect("git should run");
+        assert!(status.success(), "git {args:?} should succeed");
+    }
+
+    #[test]
+    fn adapter_commands_bypass_autocrlf_conversion() {
+        let dir = unique_temp_dir();
+        run_git(&dir, &["init", "-b", "main"]);
+        run_git(&dir, &["config", "core.autocrlf", "true"]);
+        run_git(&dir, &["config", "user.email", "test@example.invalid"]);
+        run_git(&dir, &["config", "user.name", "Knots Test"]);
+
+        let event = dir.join("event.json");
+        std::fs::write(&event, b"{\n  \"id\": 1\n}\n").expect("event fixture should write");
+
+        let adapter = super::GitAdapter::new();
+        adapter
+            .add_paths(&dir, &["event.json"])
+            .expect("add should succeed");
+        adapter.commit(&dir, "init").expect("commit should succeed");
+
+        std::fs::remove_file(&event).expect("event file should be removable");
+        adapter
+            .reset_hard(&dir, "HEAD")
+            .expect("reset should succeed");
+
+        let restored = std::fs::read(&event).expect("event file should be restored");
+        assert!(
+            !restored.contains(&b'\r'),
+            "checkout via the adapter must not smudge LF to CRLF"
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
     #[test]
     fn strips_windows_verbatim_paths_for_git() {
         if cfg!(windows) {

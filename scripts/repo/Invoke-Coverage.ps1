@@ -156,6 +156,15 @@ try {
     $env:RUSTFLAGS = '-C instrument-coverage'
     $env:LLVM_PROFILE_FILE = Join-Path $profileRoot 'knots-%p-%m.profraw'
 
+    # Stale test executables from earlier builds have no profile data in
+    # this run and would be reported as fully uncovered, silently failing
+    # the gate. Keep only binaries the current build links.
+    $depsDir = Join-Path $targetRoot 'debug\deps'
+    if (Test-Path -LiteralPath $depsDir) {
+        Get-ChildItem -LiteralPath $depsDir -Filter '*.exe' -File |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+
     Invoke-Checked 'coverage tests' {
         cargo test --all-targets --all-features -- --test-threads=1
     }
@@ -180,8 +189,12 @@ Invoke-Checked 'merge coverage profiles' {
 
 $objects = Get-CoverageObjects -BuildDir $targetRoot
 $objectArgs = Convert-ToObjectArgs -Objects $objects
+# src\bin\kno_mcp.rs holds only the #[tokio::main] entrypoint; the Unix
+# tarpaulin gate compiles it out entirely (cfg(tarpaulin_include) stub main),
+# so it is excluded here for cross-gate parity.
 $ignoreRegex = '[\\/](\.cargo|\.rustup)[\\/]|[\\/]tests[\\/]|' +
-    '(^|[\\/])src[\\/].*tests?.*\.rs$'
+    '(^|[\\/])src[\\/].*tests?.*\.rs$|' +
+    '(^|[\\/])src[\\/]bin[\\/]kno_mcp\.rs$'
 
 $report = & $llvmCov report @objectArgs --instr-profile $profdata `
     --ignore-filename-regex $ignoreRegex --summary-only

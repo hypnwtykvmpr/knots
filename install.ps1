@@ -126,7 +126,8 @@ function Schedule-InstallAfterParentExit {
 param(
     [Parameter(Mandatory = $true)][string]$ExtractedBinary,
     [Parameter(Mandatory = $true)][string]$DestinationDir,
-    [Parameter(Mandatory = $true)][int]$ProcessId
+    [Parameter(Mandatory = $true)][int]$ProcessId,
+    [string]$CleanupDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -157,39 +158,65 @@ try {
 } catch {
     Copy-Item -LiteralPath $destination -Destination $alias -Force
 }
+
+if ($CleanupDir -and (Test-Path -LiteralPath $CleanupDir)) {
+    # The helper script itself lives in $CleanupDir; PowerShell has fully
+    # parsed this file by now, so the directory can be removed safely.
+    Set-Location -LiteralPath ([IO.Path]::GetTempPath())
+    Remove-Item -LiteralPath $CleanupDir -Recurse -Force -ErrorAction SilentlyContinue
+}
 '@ | Set-Content -LiteralPath $helper -Encoding UTF8
 
+    # Start-Process joins -ArgumentList entries with spaces into one command
+    # line; every path must carry embedded quotes or spaced paths shatter
+    # into separate tokens and the helper's parameter binding fails.
     $powershellExe = (Get-Process -Id $PID).Path
     Start-Process -FilePath $powershellExe -WindowStyle Hidden -ArgumentList @(
         '-NoProfile',
         '-ExecutionPolicy',
         'Bypass',
         '-File',
-        $helper,
+        ('"{0}"' -f $helper),
         '-ExtractedBinary',
-        $ExtractedBinary,
+        ('"{0}"' -f $ExtractedBinary),
         '-DestinationDir',
-        $DestinationDir,
+        ('"{0}"' -f $DestinationDir),
         '-ProcessId',
-        $ProcessId
+        $ProcessId,
+        '-CleanupDir',
+        ('"{0}"' -f $TempDir)
     ) | Out-Null
 }
 
 function Ensure-UserPath {
     param([Parameter(Mandatory = $true)][string]$Directory)
 
-    $current = [Environment]::GetEnvironmentVariable('Path', 'User')
-    $parts = @()
-    if ($current) {
-        $parts = $current -split ';' | Where-Object { $_ }
+    # Read and write the raw registry value so REG_EXPAND_SZ entries like
+    # %USERPROFILE%\bin are preserved unexpanded instead of being flattened.
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+    try {
+        $current = ''
+        $kind = [Microsoft.Win32.RegistryValueKind]::ExpandString
+        if ($key -and ($null -ne $key.GetValue('Path'))) {
+            $current = $key.GetValue(
+                'Path', '',
+                [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+            $kind = $key.GetValueKind('Path')
+        }
+        $parts = @()
+        if ($current) {
+            $parts = $current -split ';' | Where-Object { $_ }
+        }
+        if ($parts -notcontains $Directory) {
+            $next = (($parts + $Directory) -join ';')
+            $key.SetValue('Path', $next, $kind)
+            $env:Path = $env:Path + ';' + $Directory
+            return $true
+        }
+        return $false
+    } finally {
+        if ($key) { $key.Dispose() }
     }
-    if ($parts -notcontains $Directory) {
-        $next = (($parts + $Directory) -join ';')
-        [Environment]::SetEnvironmentVariable('Path', $next, 'User')
-        $env:Path = $env:Path + ';' + $Directory
-        return $true
-    }
-    return $false
 }
 
 if ($Help) {

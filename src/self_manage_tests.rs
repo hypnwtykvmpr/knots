@@ -1,10 +1,9 @@
 #[cfg(unix)]
 use super::canonical_binary_path;
 #[cfg(windows)]
-use super::{
-    existing_file_paths, local_file_url_path, plan_windows_deferred_uninstall,
-    windows_deferred_removal_command, windows_update_command,
-};
+use super::windows::{windows_deferred_removal_command, windows_update_command};
+#[cfg(windows)]
+use super::{existing_file_paths, plan_windows_deferred_uninstall};
 use super::{
     format_titled_fields, format_upgrade_summary, paint, parent_dir, remove_file_if_present,
     resolve_binary_path, run_uninstall, run_update, update_install_dir, upgrade_hint_needed,
@@ -244,14 +243,14 @@ fn windows_deferred_uninstall_helpers_build_expected_command() {
         .map(|arg| arg.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
     assert_eq!(
-        command.get_program(),
-        std::ffi::OsStr::new("powershell.exe")
+        Path::new(command.get_program()).file_name(),
+        Some(std::ffi::OsStr::new("powershell.exe"))
     );
-    assert!(args.iter().any(|arg| arg == "-Command"));
-    assert!(args.iter().any(|arg| arg == "123"));
-    assert!(args.iter().any(|arg| arg.ends_with("knots.exe")));
-    assert!(args.iter().any(|arg| arg.ends_with("kno.exe")));
-    assert!(args.iter().any(|arg| arg.ends_with("knots.previous.exe")));
+    // Runtime values are embedded in the encoded script, never passed as
+    // trailing argv (powershell -Command does not bind $args).
+    assert!(args.iter().any(|arg| arg == "-EncodedCommand"));
+    assert!(!args.iter().any(|arg| arg == "-Command"));
+    assert!(!args.iter().any(|arg| arg == "123"));
 
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -271,12 +270,11 @@ fn windows_update_command_builds_remote_download_invocation() {
         .collect::<Vec<_>>();
 
     assert_eq!(
-        command.get_program(),
-        std::ffi::OsStr::new("powershell.exe")
+        Path::new(command.get_program()).file_name(),
+        Some(std::ffi::OsStr::new("powershell.exe"))
     );
-    assert!(args.iter().any(|arg| arg == "-Command"));
-    assert!(args.iter().any(|arg| arg.contains("Invoke-WebRequest")));
-    assert!(args
+    assert!(args.iter().any(|arg| arg == "-EncodedCommand"));
+    assert!(!args
         .iter()
         .any(|arg| arg == "https://example.invalid/install.ps1"));
     let version_env = command
@@ -307,15 +305,6 @@ fn windows_deferred_uninstall_plan_collects_existing_files() {
     assert_eq!(plan.previous_paths, vec![previous]);
 
     let _ = std::fs::remove_dir_all(dir);
-}
-
-#[cfg(windows)]
-#[test]
-fn windows_local_file_url_path_accepts_drive_prefixed_urls() {
-    assert_eq!(
-        local_file_url_path("file:///C:/Tools/knots/install.ps1"),
-        Some(PathBuf::from("C:/Tools/knots/install.ps1"))
-    );
 }
 
 #[test]

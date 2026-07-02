@@ -170,23 +170,26 @@ pub(crate) fn run_doctor_with_fix_at_with_progress(
 fn check_locks(store_paths: &StorePaths) -> Result<DoctorCheck, DoctorError> {
     let repo_lock_path = store_paths.repo_lock_path();
     let cache_lock_path = store_paths.cache_lock_path();
+    let worker_lock_path = store_paths.write_queue_worker_lock_path();
 
     let repo_guard = FileLock::try_acquire(&repo_lock_path)?;
     let cache_guard = FileLock::try_acquire(&cache_lock_path)?;
+    let worker_guard = FileLock::try_acquire(&worker_lock_path)?;
 
-    let status = if repo_guard.is_some() && cache_guard.is_some() {
+    let status = if repo_guard.is_some() && cache_guard.is_some() && worker_guard.is_some() {
         DoctorStatus::Pass
     } else {
         DoctorStatus::Warn
     };
     let detail = if status == DoctorStatus::Pass {
-        "repo/cache locks are acquirable".to_string()
+        "repo/cache/write-queue locks are acquirable".to_string()
     } else {
         "one or more locks are currently busy".to_string()
     };
 
     drop(repo_guard);
     drop(cache_guard);
+    drop(worker_guard);
 
     Ok(DoctorCheck::simple("lock_health", status, detail))
 }

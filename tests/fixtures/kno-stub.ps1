@@ -171,7 +171,15 @@ switch ($subcmd) {
         '{"status":"deferred","active_leases":1}'
     }
     'lease' {
-        if ($joined -like '* --agent-name other-client *') {
+        if ($joined -like '* extend *') {
+            if ($joined -like '* --lease-id L-expired *') {
+                [Console]::Error.WriteLine("error: lease 'L-expired' is not active")
+                exit 1
+            }
+            '{"id":"L1","title":"mcp-session","state":"active"}'
+        } elseif ($joined -like '* terminate *') {
+            'terminated'
+        } elseif ($joined -like '* --agent-name other-client *') {
             '{"id":"L2","title":"mcp-session","state":"active","agent_info":{"model":"other"}}'
         } else {
             '{"id":"L1","title":"mcp-session","state":"active","agent_info":{"model":"test-model"}}'

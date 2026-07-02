@@ -316,3 +316,54 @@ fn powershell_profile_text_helpers_cover_encodings_and_errors() {
 
     let _ = std::fs::remove_dir_all(dir);
 }
+
+#[test]
+fn utf16_decode_rejects_lone_surrogates() {
+    let dir = std::env::temp_dir().join(format!("knots-comp-surrogate-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&dir).expect("dir should be creatable");
+    let bad = dir.join("surrogate.ps1");
+    // UTF-16LE BOM followed by a lone high surrogate (0xD800).
+    std::fs::write(&bad, [0xFF, 0xFE, 0x00, 0xD8]).expect("fixture should write");
+
+    let err = read_profile_text(&bad).expect_err("lone surrogate should fail decode");
+    assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn group_zsh_noop_when_block_end_is_missing() {
+    let script = "(( $+functions[_kno_commands] )) || _kno_commands() { local x";
+    assert_eq!(group_zsh_toplevel_commands(script), script);
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn documents_dir_prefers_known_folder_only_within_home() {
+    let home = Path::new(r"C:\Users\example");
+    let redirected = Path::new(r"C:\Users\example\OneDrive\Documents");
+    assert_eq!(documents_dir_for(home, Some(redirected)), redirected);
+
+    let foreign = Path::new(r"D:\CorpDocs\Documents");
+    assert_eq!(
+        documents_dir_for(home, Some(foreign)),
+        home.join("Documents")
+    );
+    assert_eq!(documents_dir_for(home, None), home.join("Documents"));
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn known_folder_documents_resolves_on_real_windows() {
+    // Parallel tests mutate process-global env (PATH and friends), which can
+    // fail an individual resolution attempt; failures are not cached, so
+    // retry until the environment settles.
+    let documents = (0..20)
+        .find_map(|attempt| {
+            if attempt > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+            known_folder_documents()
+        })
+        .expect("known folder should resolve");
+    assert!(documents.is_absolute());
+}

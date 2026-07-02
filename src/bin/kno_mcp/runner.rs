@@ -65,16 +65,39 @@ impl KnoRunner {
             Err(err) => failure_result(&err),
         }
     }
+
+    /// Run a subcommand that has no `--json` mode (e.g. `lease terminate`),
+    /// checking only the exit status.
+    pub fn run_raw(&self, subcommand: &str, args: &[String]) -> Result<(), KnoFailure> {
+        let mut command = crate::native_command::command_for_program(&self.kno_bin);
+        command.args(build_argv_without_json(&self.repo, subcommand, args));
+        let output = command.output().map_err(|err| KnoFailure {
+            exit_code: None,
+            stderr: err.to_string(),
+        })?;
+        if !output.status.success() {
+            return Err(KnoFailure {
+                exit_code: output.status.code(),
+                stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            });
+        }
+        Ok(())
+    }
 }
 
 pub fn build_argv(repo: &Path, subcommand: &str, args: &[String]) -> Vec<String> {
+    let mut argv = build_argv_without_json(repo, subcommand, args);
+    argv.push("--json".to_string());
+    argv
+}
+
+fn build_argv_without_json(repo: &Path, subcommand: &str, args: &[String]) -> Vec<String> {
     let mut argv = vec![
         "-C".to_string(),
         repo.display().to_string(),
         subcommand.to_string(),
     ];
     argv.extend(args.iter().cloned());
-    argv.push("--json".to_string());
     argv
 }
 

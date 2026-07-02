@@ -239,7 +239,60 @@ fn invalid_data(err: impl std::error::Error + Send + Sync + 'static) -> io::Erro
 
 #[cfg(target_os = "windows")]
 fn powershell_dir(home: &std::path::Path) -> PathBuf {
-    home.join("Documents").join("PowerShell")
+    windows_documents_dir(home).join("PowerShell")
+}
+
+/// Documents may be redirected away from `home\Documents` (OneDrive or
+/// enterprise folder redirection), so ask the shell for the known folder.
+/// The redirected path is honored only when it lives under the home being
+/// resolved: synthetic homes (tests, env overrides) must never leak profile
+/// writes into the real user's Documents.
+#[cfg(target_os = "windows")]
+fn windows_documents_dir(home: &std::path::Path) -> PathBuf {
+    documents_dir_for(home, known_folder_documents().as_deref())
+}
+
+#[cfg(target_os = "windows")]
+fn documents_dir_for(home: &std::path::Path, known: Option<&std::path::Path>) -> PathBuf {
+    match known {
+        Some(known) if known.starts_with(home) => known.to_path_buf(),
+        _ => home.join("Documents"),
+    }
+}
+
+/// Only successful resolutions are cached: a transient spawn failure (e.g.
+/// process pressure or a hostile PATH) must not permanently degrade the
+/// process to the unredirected layout.
+#[cfg(target_os = "windows")]
+fn known_folder_documents() -> Option<PathBuf> {
+    static DOCUMENTS: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    if let Some(cached) = DOCUMENTS.get() {
+        return Some(cached.clone());
+    }
+    let resolved = query_known_folder_documents()?;
+    Some(DOCUMENTS.get_or_init(|| resolved).clone())
+}
+
+#[cfg(target_os = "windows")]
+fn query_known_folder_documents() -> Option<PathBuf> {
+    let output = std::process::Command::new(crate::native_command::windows_powershell_exe())
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "[Environment]::GetFolderPath('MyDocuments')",
+        ])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(PathBuf::from(trimmed))
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -248,14 +301,14 @@ fn powershell_dir(home: &std::path::Path) -> PathBuf {
 }
 
 fn powershell_profile_paths(home: &std::path::Path) -> Vec<PathBuf> {
+    #[allow(unused_mut)]
     let mut profiles = vec![powershell_dir(home).join("Microsoft.PowerShell_profile.ps1")];
-    if cfg!(windows) {
-        profiles.push(
-            home.join("Documents")
-                .join("WindowsPowerShell")
-                .join("Microsoft.PowerShell_profile.ps1"),
-        );
-    }
+    #[cfg(target_os = "windows")]
+    profiles.push(
+        windows_documents_dir(home)
+            .join("WindowsPowerShell")
+            .join("Microsoft.PowerShell_profile.ps1"),
+    );
     profiles
 }
 

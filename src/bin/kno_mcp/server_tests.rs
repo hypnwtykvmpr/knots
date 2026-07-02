@@ -86,7 +86,7 @@ async fn server_tools_route_to_kno_runner() {
     client.title = Some("provider".to_string());
     server
         .lease_registry
-        .get_or_create(&server.runner, &client, 60)
+        .ensure_active(&server.runner, &server.session_key, &client, 60)
         .expect("lease");
 
     let list = server
@@ -145,8 +145,8 @@ async fn server_tools_route_to_kno_runner() {
     );
     let lease_id = server
         .lease_registry
-        .get(&client)
-        .expect("initialized client should have lease");
+        .get(&server.session_key)
+        .expect("initialized session should have lease");
     assert_leased_workflow_tools_route(&server, lease_id);
     assert_eq!(
         server.knots_sync().await.structured_content.unwrap()["status"],
@@ -289,75 +289,202 @@ async fn mutating_tool_reports_spawn_error_when_push_also_fails() {
 }
 
 #[test]
-fn shared_registry_carries_lease_between_http_instances() {
+fn identical_clients_on_distinct_sessions_get_independent_leases() {
     let registry = LeaseRegistry::default();
     let first = server_with_registry(registry.clone());
-    let second = server_with_registry(registry);
+    let second = server_with_registry(registry.clone());
     let mut client = Implementation::new("client", "1.0");
     client.title = Some("provider".to_string());
 
+    assert_ne!(first.session_key, second.session_key);
     first
         .lease_registry
-        .get_or_create(&first.runner, &client, 60)
-        .expect("lease");
+        .ensure_active(&first.runner, &first.session_key, &client, 60)
+        .expect("first session lease");
+    second
+        .lease_registry
+        .ensure_active(&second.runner, &second.session_key, &client, 60)
+        .expect("second session lease");
 
-    assert_eq!(second.lease_registry.get(&client), Some("L1".to_string()));
+    // Two sessions of the same client app must never share a lease entry.
+    assert_eq!(registry.len(), 2);
 }
 
 #[test]
-fn shared_registry_keeps_client_leases_separate() {
+fn session_lease_revalidates_and_falls_back_unambiguously() {
     let registry = LeaseRegistry::default();
     let first = server_with_registry(registry.clone());
     let second = server_with_registry(registry);
-    let mut first_client = Implementation::new("client", "1.0");
-    first_client.title = Some("provider".to_string());
-    let second_client = Implementation::new("other-client", "1.0");
-
-    first
-        .lease_registry
-        .get_or_create(&first.runner, &first_client, 60)
-        .expect("first lease");
-    second
-        .lease_registry
-        .get_or_create(&second.runner, &second_client, 60)
-        .expect("second lease");
-
-    assert_eq!(
-        first.lease_registry.get(&first_client),
-        Some("L1".to_string())
-    );
-    assert_eq!(
-        first.lease_registry.get(&second_client),
-        Some("L2".to_string())
-    );
-}
-
-#[test]
-fn lease_lookup_uses_peer_client_and_unambiguous_fallback() {
-    let registry = LeaseRegistry::default();
-    let server = server_with_registry(registry);
     let first_client = Implementation::new("client", "1.0");
     let second_client = Implementation::new("other-client", "1.0");
 
-    assert_eq!(server.lease_for_client(None), None);
-    server
+    assert_eq!(first.session_lease(None), None);
+    first
         .lease_registry
-        .get_or_create(&server.runner, &first_client, 60)
+        .ensure_active(&first.runner, &first.session_key, &first_client, 60)
         .expect("first lease");
-    assert_eq!(server.lease_for_client(None), Some("L1".to_string()));
+    assert_eq!(first.session_lease(None), Some("L1".to_string()));
     assert_eq!(
-        server.lease_for_client(Some(&first_client)),
+        first.session_lease(Some(&first_client)),
         Some("L1".to_string())
     );
+    // A sibling session without its own lease falls back to the single
+    // unambiguous lease.
+    assert_eq!(second.session_lease(None), Some("L1".to_string()));
+
+    second
+        .lease_registry
+        .ensure_active(&second.runner, &second.session_key, &second_client, 60)
+        .expect("second lease");
+    assert_eq!(second.session_lease(None), Some("L2".to_string()));
+    assert_eq!(first.session_lease(None), Some("L1".to_string()));
+}
+
+#[tokio::test]
+async fn run_blocking_reports_worker_panics_as_tool_errors() {
+    let result = run_blocking(|| panic!("worker exploded")).await;
+    assert_eq!(result.is_error, Some(true));
+}
+
+/// Drives a real MCP session over an in-process transport: initialize
+/// creates the session lease, and claim/next/rollback resolve it through
+/// the wire path (peer info -> session key -> lease revalidation).
+#[tokio::test]
+async fn mcp_wire_session_initializes_and_claims_with_lease() {
+    use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _};
+
+    let (client_io, server_io) = tokio::io::duplex(64 * 1024);
+    let server = server_with_fixture();
+    let registry = server.lease_registry.clone();
+    // serve() performs the initialize handshake itself, so it must run
+    // concurrently with the client side below.
+    let server_task = tokio::spawn(async move {
+        let running = rmcp::ServiceExt::serve(server, tokio::io::split(server_io))
+            .await
+            .expect("server should start");
+        let _ = running.waiting().await;
+    });
+
+    async fn send<W: tokio::io::AsyncWrite + Unpin>(writer: &mut W, message: &str) {
+        writer
+            .write_all(format!("{message}\n").as_bytes())
+            .await
+            .expect("request should send");
+    }
+
+    async fn call<W, R>(
+        writer: &mut W,
+        lines: &mut tokio::io::Lines<tokio::io::BufReader<R>>,
+        message: &str,
+    ) -> String
+    where
+        W: tokio::io::AsyncWrite + Unpin,
+        R: tokio::io::AsyncRead + Unpin,
+    {
+        send(writer, message).await;
+        tokio::time::timeout(std::time::Duration::from_secs(30), lines.next_line())
+            .await
+            .expect("response should arrive before timeout")
+            .expect("response should read")
+            .expect("response should arrive")
+    }
+
+    let (client_read, mut client_write) = tokio::io::split(client_io);
+    let mut lines = tokio::io::BufReader::new(client_read).lines();
+
+    let init = call(
+        &mut client_write,
+        &mut lines,
+        concat!(
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"#,
+            r#""protocolVersion":"2025-03-26","capabilities":{},"#,
+            r#""clientInfo":{"name":"test-client","version":"1.2.3"}}}"#,
+        ),
+    )
+    .await;
+    assert!(init.contains("serverInfo"), "handshake failed: {init}");
+    assert_eq!(
+        registry.len(),
+        1,
+        "initialize should create a session lease"
+    );
+
+    send(
+        &mut client_write,
+        r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+    )
+    .await;
+
+    let claim = call(
+        &mut client_write,
+        &mut lines,
+        concat!(
+            r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"#,
+            r#""name":"knots_claim","arguments":{"id":"k1"}}}"#,
+        ),
+    )
+    .await;
+    assert!(claim.contains("single_action"), "claim failed: {claim}");
+    assert!(
+        claim.contains(r#""lease_present":true"#),
+        "session lease should flow into claim: {claim}"
+    );
+
+    let next = call(
+        &mut client_write,
+        &mut lines,
+        concat!(
+            r#"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"#,
+            r#""name":"knots_next","arguments":{"id":"k1"}}}"#,
+        ),
+    )
+    .await;
+    assert!(next.contains("ready_for_review"), "next failed: {next}");
+
+    let rollback = call(
+        &mut client_write,
+        &mut lines,
+        concat!(
+            r#"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"#,
+            r#""name":"knots_rollback","arguments":{"id":"k1"}}}"#,
+        ),
+    )
+    .await;
+    assert!(
+        rollback.contains("ready_for_implementation"),
+        "rollback failed: {rollback}"
+    );
+
+    drop(client_write);
+    drop(lines);
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(10), server_task).await;
+}
+
+#[test]
+fn session_lease_survives_refresh_failure() {
+    let server = KnoMcp::new(ServerConfig {
+        repo: PathBuf::from("/tmp/repo"),
+        kno_bin: PathBuf::from("missing-kno-mcp-test-binary"),
+        lease_timeout_seconds: 600,
+    });
+    let client = Implementation::new("client", "1.0");
+    // Lease refresh fails (no kno binary); the lookup degrades gracefully
+    // instead of erroring the tool call.
+    assert_eq!(server.session_lease(Some(&client)), None);
+}
+
+#[test]
+fn terminate_session_leases_empties_the_registry() {
+    let server = server_with_fixture();
+    let client = Implementation::new("client", "1.0");
     server
         .lease_registry
-        .get_or_create(&server.runner, &second_client, 60)
-        .expect("second lease");
-    assert_eq!(server.lease_for_client(None), None);
-    assert_eq!(
-        server.lease_for_client(Some(&second_client)),
-        Some("L2".to_string())
-    );
+        .ensure_active(&server.runner, &server.session_key, &client, 60)
+        .expect("lease");
+
+    server.terminate_session_leases();
+
+    assert_eq!(server.lease_registry.get(&server.session_key), None);
 }
 
 fn server_with_fixture() -> KnoMcp {

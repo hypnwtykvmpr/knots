@@ -45,6 +45,7 @@ pub struct KnoMcp {
     runner: KnoRunner,
     lease_registry: LeaseRegistry,
     lease_timeout_seconds: u64,
+    session_key: String,
     tool_router: ToolRouter<Self>,
 }
 
@@ -58,8 +59,19 @@ impl KnoMcp {
             runner: KnoRunner::new(config.kno_bin, config.repo),
             lease_registry,
             lease_timeout_seconds: config.lease_timeout_seconds,
+            // One KnoMcp instance is constructed per MCP session (the HTTP
+            // service factory runs per session; stdio serves one session),
+            // so an instance-unique key gives per-session lease identity.
+            session_key: uuid::Uuid::now_v7().to_string(),
             tool_router: Self::tool_router(),
         }
+    }
+
+    /// Terminate the leases tracked by this server's registry. Called after
+    /// the transport shuts down so sync is not deferred for the remainder of
+    /// the lease timeout.
+    pub fn terminate_session_leases(&self) {
+        self.lease_registry.terminate_all(&self.runner);
     }
 
     fn run_tool(&self, subcommand: &str, args: Vec<String>) -> CallToolResult {
@@ -81,13 +93,30 @@ impl KnoMcp {
         result
     }
 
-    fn lease_for_context(&self, context: &RequestContext<RoleServer>) -> Option<String> {
-        self.lease_for_client(context.peer.peer_info().map(|info| &info.client_info))
+    fn client_for_context(context: &RequestContext<RoleServer>) -> Option<Implementation> {
+        context
+            .peer
+            .peer_info()
+            .map(|info| info.client_info.clone())
     }
 
-    fn lease_for_client(&self, client: Option<&Implementation>) -> Option<String> {
-        client
-            .and_then(|client| self.lease_registry.get(client))
+    /// Resolve this session's lease, revalidating (and recreating if
+    /// expired) when the client identity is known. Blocking: call from a
+    /// blocking context only.
+    fn session_lease(&self, client: Option<&Implementation>) -> Option<String> {
+        if let Some(client) = client {
+            match self.lease_registry.ensure_active(
+                &self.runner,
+                &self.session_key,
+                client,
+                self.lease_timeout_seconds,
+            ) {
+                Ok(lease) => return Some(lease),
+                Err(err) => eprintln!("kno-mcp lease refresh failed: {err}"),
+            }
+        }
+        self.lease_registry
+            .get(&self.session_key)
             .or_else(|| self.lease_registry.single_lease())
     }
 
@@ -105,6 +134,21 @@ impl KnoMcp {
     }
 }
 
+/// Subprocess work (kno invocations, including a git push per mutation) must
+/// not run directly on async workers; funnel it through spawn_blocking.
+async fn run_blocking<F>(task: F) -> CallToolResult
+where
+    F: FnOnce() -> CallToolResult + Send + 'static,
+{
+    match tokio::task::spawn_blocking(task).await {
+        Ok(result) => result,
+        Err(err) => crate::runner::failure_result(&crate::runner::KnoFailure {
+            exit_code: None,
+            stderr: format!("blocking task failed: {err}"),
+        }),
+    }
+}
+
 fn push_detail(value: &serde_json::Value) -> String {
     let copied = value
         .get("copied_files")
@@ -117,33 +161,41 @@ fn push_detail(value: &serde_json::Value) -> String {
 impl KnoMcp {
     #[tool(description = "List knots, optionally filtered by state, tag, type, or limit.")]
     pub async fn knots_list(&self, Parameters(args): Parameters<ListArgs>) -> CallToolResult {
-        self.run_tool("ls", list_argv(args))
+        let server = self.clone();
+        run_blocking(move || server.run_tool("ls", list_argv(args))).await
     }
 
     #[tool(description = "Show a single knot by id or alias.")]
     pub async fn knots_show(&self, Parameters(args): Parameters<IdArgs>) -> CallToolResult {
-        self.run_tool("show", id_argv(args))
+        let server = self.clone();
+        run_blocking(move || server.run_tool("show", id_argv(args))).await
     }
 
     #[tool(description = "Poll for the highest-priority claimable knot.")]
     pub async fn knots_poll(&self) -> CallToolResult {
-        self.run_tool("poll", Vec::new())
+        let server = self.clone();
+        run_blocking(move || server.run_tool("poll", Vec::new())).await
     }
 
     #[tool(description = "Create a new knot and return the created KnotView JSON.")]
     pub async fn knots_create(&self, Parameters(args): Parameters<CreateArgs>) -> CallToolResult {
-        let priority = args.priority;
-        let result = self.run_mutating_tool("new", create_argv(args));
-        if let (Some(priority), Some(id)) = (priority, created_id(&result)) {
-            let update_args = vec![id, "--priority".to_string(), priority.to_string()];
-            return self.run_mutating_tool("update", update_args);
-        }
-        result
+        let server = self.clone();
+        run_blocking(move || {
+            let priority = args.priority;
+            let result = server.run_mutating_tool("new", create_argv(args));
+            if let (Some(priority), Some(id)) = (priority, created_id(&result)) {
+                let update_args = vec![id, "--priority".to_string(), priority.to_string()];
+                return server.run_mutating_tool("update", update_args);
+            }
+            result
+        })
+        .await
     }
 
     #[tool(description = "Update knot fields.")]
     pub async fn knots_update(&self, Parameters(args): Parameters<UpdateArgs>) -> CallToolResult {
-        self.run_mutating_tool("update", update_argv(args))
+        let server = self.clone();
+        run_blocking(move || server.run_mutating_tool("update", update_argv(args))).await
     }
 
     #[tool(description = "Claim a knot, preserving the CLI claim-boundary contract.")]
@@ -152,7 +204,13 @@ impl KnoMcp {
         context: RequestContext<RoleServer>,
         Parameters(args): Parameters<ClaimArgs>,
     ) -> CallToolResult {
-        self.run_claim_tool(args, self.lease_for_context(&context))
+        let server = self.clone();
+        let client = Self::client_for_context(&context);
+        run_blocking(move || {
+            let lease = server.session_lease(client.as_ref());
+            server.run_claim_tool(args, lease)
+        })
+        .await
     }
 
     #[tool(description = "Advance a claimed knot to its next workflow state.")]
@@ -161,7 +219,13 @@ impl KnoMcp {
         context: RequestContext<RoleServer>,
         Parameters(args): Parameters<IdArgs>,
     ) -> CallToolResult {
-        self.run_leased_id_tool("next", args, self.lease_for_context(&context))
+        let server = self.clone();
+        let client = Self::client_for_context(&context);
+        run_blocking(move || {
+            let lease = server.session_lease(client.as_ref());
+            server.run_leased_id_tool("next", args, lease)
+        })
+        .await
     }
 
     #[tool(description = "Roll back a knot from an action state to its prior ready state.")]
@@ -170,12 +234,19 @@ impl KnoMcp {
         context: RequestContext<RoleServer>,
         Parameters(args): Parameters<IdArgs>,
     ) -> CallToolResult {
-        self.run_leased_id_tool("rollback", args, self.lease_for_context(&context))
+        let server = self.clone();
+        let client = Self::client_for_context(&context);
+        run_blocking(move || {
+            let lease = server.session_lease(client.as_ref());
+            server.run_leased_id_tool("rollback", args, lease)
+        })
+        .await
     }
 
     #[tool(description = "Run Knots git sync and return the SyncOutcome JSON.")]
     pub async fn knots_sync(&self) -> CallToolResult {
-        self.run_tool("sync", Vec::new())
+        let server = self.clone();
+        run_blocking(move || server.run_tool("sync", Vec::new())).await
     }
 }
 
@@ -197,13 +268,19 @@ impl ServerHandler for KnoMcp {
             context.peer.set_peer_info(request.clone());
         }
         async move {
-            self.lease_registry
-                .get_or_create(
-                    &self.runner,
-                    &request.client_info,
-                    self.lease_timeout_seconds,
+            let server = self.clone();
+            let client = request.client_info.clone();
+            tokio::task::spawn_blocking(move || {
+                server.lease_registry.ensure_active(
+                    &server.runner,
+                    &server.session_key,
+                    &client,
+                    server.lease_timeout_seconds,
                 )
-                .map_err(|err| McpError::internal_error(err, None))?;
+            })
+            .await
+            .map_err(|err| McpError::internal_error(format!("lease worker failed: {err}"), None))?
+            .map_err(|err| McpError::internal_error(err, None))?;
             Ok(self.get_info())
         }
     }
@@ -220,11 +297,22 @@ pub async fn serve_http(
         sync_interval,
     } = http;
     let runner = KnoRunner::new(server_config.kno_bin.clone(), server_config.repo.clone());
-    spawn_background_sync(runner, sync_interval);
-    let router = build_http_router(server_config, token, LeaseRegistry::default());
+    spawn_background_sync(runner.clone(), sync_interval);
+    let lease_registry = LeaseRegistry::default();
+    let router = build_http_router(server_config, token, lease_registry.clone());
     let listener = tokio::net::TcpListener::bind(&bind).await?;
-    axum::serve(listener, router).await?;
+    axum::serve(listener, router)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
+    // Release session leases on the way out so sync resumes immediately
+    // instead of waiting out the lease timeout.
+    let _ = tokio::task::spawn_blocking(move || lease_registry.terminate_all(&runner)).await;
     Ok(())
+}
+
+#[cfg(not(tarpaulin_include))]
+async fn shutdown_signal() {
+    let _ = tokio::signal::ctrl_c().await;
 }
 
 #[cfg(not(tarpaulin_include))]

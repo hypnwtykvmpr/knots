@@ -54,7 +54,7 @@ fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
 
 #[cfg(target_os = "windows")]
 fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
-    let mut command = windows_update_command(options);
+    let mut command = windows::windows_update_command(options);
     let status = command.status()?;
     if status.success() {
         Ok(())
@@ -63,35 +63,6 @@ fn run_update_impl(options: &SelfUpdateOptions) -> io::Result<()> {
             "update installer failed with status {status}"
         )))
     }
-}
-
-#[cfg(target_os = "windows")]
-fn windows_update_command(options: &SelfUpdateOptions) -> Command {
-    let mut command = Command::new("powershell.exe");
-    command.args(["-NoProfile", "-ExecutionPolicy", "Bypass"]);
-    if let Some(script_path) = local_file_url_path(&options.script_url) {
-        command.arg("-File").arg(script_path);
-    } else {
-        command
-            .arg("-Command")
-            .arg(
-                "$ErrorActionPreference = 'Stop'; \
-                 $script = Join-Path ([IO.Path]::GetTempPath()) \
-                   ('knots-install-' + [IO.Path]::GetRandomFileName() + '.ps1'); \
-                 try { \
-                   Invoke-WebRequest -UseBasicParsing -Uri $args[0] -OutFile $script; \
-                   & $script; \
-                   $exit = $LASTEXITCODE; \
-                   if ($null -ne $exit) { exit $exit } \
-                 } finally { \
-                   Remove-Item -LiteralPath $script -ErrorAction SilentlyContinue \
-                 }",
-            )
-            .arg(&options.script_url);
-    }
-    command.env("KNOTS_PARENT_PID", std::process::id().to_string());
-    apply_update_env(&mut command, options);
-    command
 }
 
 pub fn run_uninstall(options: &SelfUninstallOptions) -> io::Result<UninstallResult> {
@@ -264,45 +235,13 @@ fn schedule_windows_deferred_removal(
     aliases: &[PathBuf],
     previous_paths: &[PathBuf],
 ) -> io::Result<()> {
-    let mut command =
-        windows_deferred_removal_command(std::process::id(), binary_path, aliases, previous_paths);
+    let mut command = windows::windows_deferred_removal_command(
+        std::process::id(),
+        binary_path,
+        aliases,
+        previous_paths,
+    );
     command.spawn().map(|_| ())
-}
-
-#[cfg(target_os = "windows")]
-fn windows_deferred_removal_command(
-    parent_pid: u32,
-    binary_path: &Path,
-    aliases: &[PathBuf],
-    previous_paths: &[PathBuf],
-) -> Command {
-    use std::os::windows::process::CommandExt;
-
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-    let script = "\
-$ErrorActionPreference = 'SilentlyContinue'; \
-$parent = [int]$args[0]; \
-Wait-Process -Id $parent -ErrorAction SilentlyContinue; \
-Start-Sleep -Milliseconds 300; \
-for ($i = 1; $i -lt $args.Count; $i++) { \
-  Remove-Item -LiteralPath $args[$i] -Force -ErrorAction SilentlyContinue \
-}";
-    let mut command = Command::new("powershell.exe");
-    command
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-        ])
-        .arg(parent_pid.to_string())
-        .arg(binary_path);
-    for path in aliases.iter().chain(previous_paths.iter()) {
-        command.arg(path);
-    }
-    command.creation_flags(CREATE_NO_WINDOW);
-    command
 }
 
 fn alias_paths(binary_path: &Path) -> Vec<PathBuf> {
@@ -386,15 +325,6 @@ fn preferred_binary_path(path: PathBuf) -> PathBuf {
 #[cfg(not(target_os = "windows"))]
 fn preferred_binary_path(path: PathBuf) -> PathBuf {
     path
-}
-
-#[cfg(target_os = "windows")]
-fn local_file_url_path(url: &str) -> Option<PathBuf> {
-    let raw = url.strip_prefix("file://")?;
-    if raw.len() >= 3 && raw.as_bytes()[0] == b'/' && raw.as_bytes()[2] == b':' {
-        return Some(PathBuf::from(&raw[1..]));
-    }
-    Some(PathBuf::from(raw))
 }
 
 pub fn maybe_run_self_command(
@@ -502,6 +432,10 @@ fn paint(code: &str, text: &str) -> String {
         text.to_string()
     }
 }
+
+#[cfg(target_os = "windows")]
+#[path = "self_manage_windows.rs"]
+mod windows;
 
 #[cfg(test)]
 #[path = "self_manage_tests.rs"]

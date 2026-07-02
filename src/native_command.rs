@@ -98,6 +98,25 @@ fn is_powershell_script(program: &OsStr) -> bool {
         .is_some_and(|ext| ext.eq_ignore_ascii_case("ps1"))
 }
 
+/// Absolute path to Windows PowerShell, resolved via %SystemRoot% so spawns
+/// stay reliable when PATH is unusual (or clobbered by parallel tests).
+/// Falls back to plain PATH lookup when the well-known location is missing.
+/// Unused by the kno-mcp binary, which shares this module.
+#[cfg(windows)]
+#[allow(dead_code)]
+pub(crate) fn windows_powershell_exe() -> PathBuf {
+    std::env::var_os("SystemRoot")
+        .map(|root| {
+            Path::new(&root)
+                .join("System32")
+                .join("WindowsPowerShell")
+                .join("v1.0")
+                .join("powershell.exe")
+        })
+        .filter(|path| path.is_file())
+        .unwrap_or_else(|| PathBuf::from("powershell.exe"))
+}
+
 #[cfg(test)]
 #[path = "native_command_tests.rs"]
 mod tests;

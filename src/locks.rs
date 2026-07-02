@@ -2,7 +2,16 @@ use std::fs::{File, OpenOptions};
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
+
+/// How long an unparseable (usually empty) lock file is given before being
+/// treated as stale. A freshly created lock is legitimately empty for the
+/// instant between `create_new` and the holder's PID write landing.
+const CORRUPT_LOCK_GRACE: Duration = Duration::from_secs(2);
+
+/// How long a reclaim guard left behind by a crashed reclaimer survives
+/// before contenders break it.
+const RECLAIM_GUARD_GRACE: Duration = Duration::from_secs(10);
 
 #[derive(Debug)]
 pub enum LockError {
@@ -66,7 +75,13 @@ fn try_acquire(path: &Path) -> Result<Option<FileLock>, LockError> {
     loop {
         match OpenOptions::new().write(true).create_new(true).open(path) {
             Ok(mut file) => {
-                let _ = write!(file, "{}", std::process::id());
+                // Contenders judge staleness by the PID in this file; a
+                // failed write must not leave an anonymous lock behind.
+                if let Err(err) = write!(file, "{}", std::process::id()) {
+                    drop(file);
+                    let _ = std::fs::remove_file(path);
+                    return Err(LockError::Io(err));
+                }
                 return Ok(Some(FileLock {
                     path: path.to_path_buf(),
                     _file: file,
@@ -78,6 +93,12 @@ fn try_acquire(path: &Path) -> Result<Option<FileLock>, LockError> {
                 }
                 return Ok(None);
             }
+            Err(err) if cfg!(windows) && err.kind() == ErrorKind::PermissionDenied => {
+                // Windows reports ERROR_ACCESS_DENIED while the previous
+                // holder's file is delete-pending; treat it as busy so
+                // acquire() keeps polling instead of failing hard.
+                return Ok(None);
+            }
             Err(err) => return Err(LockError::Io(err)),
         }
     }
@@ -86,6 +107,22 @@ fn try_acquire(path: &Path) -> Result<Option<FileLock>, LockError> {
 /// Read the PID from the lock file and check if that process is alive.
 /// If the process is gone, remove the stale lock and return `true`.
 fn reclaim_stale(path: &Path) -> Result<bool, LockError> {
+    reclaim_stale_with_grace(path, CORRUPT_LOCK_GRACE, RECLAIM_GUARD_GRACE)
+}
+
+fn reclaim_stale_with_grace(
+    path: &Path,
+    corrupt_grace: Duration,
+    guard_grace: Duration,
+) -> Result<bool, LockError> {
+    // Serialize reclamation through a sidecar guard so two contenders can
+    // never interleave the dead-check with each other's remove/re-acquire;
+    // without this a contender could delete a lock that was just reclaimed
+    // and re-acquired by a live process.
+    let Some(_guard) = ReclaimGuard::acquire(path, guard_grace)? else {
+        return Ok(false);
+    };
+
     let mut contents = String::new();
     match File::open(path).and_then(|mut f| f.read_to_string(&mut contents)) {
         Ok(_) => {}
@@ -95,14 +132,75 @@ fn reclaim_stale(path: &Path) -> Result<bool, LockError> {
 
     let pid: u32 = match contents.trim().parse() {
         Ok(pid) => pid,
-        // No valid PID — could be empty or corrupt. Treat as stale.
-        Err(_) => return remove_stale_lock(path),
+        // Unparseable content is usually the creator's PID write that has
+        // not landed yet; only treat it as stale once it has aged past the
+        // write window.
+        Err(_) => {
+            return if file_older_than(path, corrupt_grace) {
+                remove_stale_lock(path)
+            } else {
+                Ok(false)
+            };
+        }
     };
 
     match process_status(pid) {
         ProcessStatus::Alive | ProcessStatus::Unknown => Ok(false),
         ProcessStatus::Dead => remove_stale_lock(path),
     }
+}
+
+struct ReclaimGuard {
+    path: PathBuf,
+}
+
+impl ReclaimGuard {
+    fn acquire(lock_path: &Path, grace: Duration) -> Result<Option<Self>, LockError> {
+        let path = reclaim_guard_path(lock_path);
+        loop {
+            match OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(_) => return Ok(Some(Self { path })),
+                Err(err) if err.kind() == ErrorKind::AlreadyExists => {
+                    // A guard left by a crashed reclaimer is broken only
+                    // once it is clearly abandoned.
+                    if !file_older_than(&path, grace) {
+                        return Ok(None);
+                    }
+                    match std::fs::remove_file(&path) {
+                        Ok(()) => continue,
+                        Err(err) if err.kind() == ErrorKind::NotFound => continue,
+                        Err(_) => return Ok(None),
+                    }
+                }
+                Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
+                Err(err) if err.kind() == ErrorKind::PermissionDenied => return Ok(None),
+                Err(err) => return Err(LockError::Io(err)),
+            }
+        }
+    }
+}
+
+impl Drop for ReclaimGuard {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+fn reclaim_guard_path(lock_path: &Path) -> PathBuf {
+    let mut name = lock_path
+        .file_name()
+        .map(std::ffi::OsStr::to_os_string)
+        .unwrap_or_default();
+    name.push(".reclaim");
+    lock_path.with_file_name(name)
+}
+
+fn file_older_than(path: &Path, age: Duration) -> bool {
+    std::fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|modified| SystemTime::now().duration_since(modified).ok())
+        .is_some_and(|elapsed| elapsed >= age)
 }
 
 #[cfg(test)]
@@ -210,152 +308,5 @@ extern "system" {
 }
 
 #[cfg(test)]
-mod tests {
-    #[cfg(unix)]
-    use std::os::unix::fs::PermissionsExt;
-    use std::path::PathBuf;
-    use std::time::Duration;
-    use uuid::Uuid;
-
-    use super::{process_alive, reclaim_stale, FileLock, LockError};
-
-    fn lock_path() -> PathBuf {
-        std::env::temp_dir().join(format!("knots-lock-test-{}.lock", Uuid::now_v7()))
-    }
-
-    #[test]
-    fn try_lock_is_non_blocking() {
-        let path = lock_path();
-        let first = FileLock::try_acquire(&path)
-            .expect("initial lock should not fail")
-            .expect("initial lock should succeed");
-        let second = FileLock::try_acquire(&path).expect("second lock call should not fail");
-        assert!(second.is_none());
-        drop(first);
-        let _ = std::fs::remove_file(path);
-    }
-
-    #[test]
-    fn acquire_times_out_when_held() {
-        let path = lock_path();
-        let first = FileLock::try_acquire(&path)
-            .expect("initial lock should not fail")
-            .expect("initial lock should succeed");
-        let err = FileLock::acquire(&path, Duration::from_millis(20))
-            .expect_err("lock should time out when already held");
-        assert!(err.to_string().contains("lock busy"));
-        drop(first);
-        let _ = std::fs::remove_file(path);
-    }
-
-    #[test]
-    fn lock_file_contains_pid() {
-        let path = lock_path();
-        let _guard = FileLock::try_acquire(&path)
-            .expect("lock should not fail")
-            .expect("lock should succeed");
-        let contents = std::fs::read_to_string(&path).expect("lock file should be readable");
-        let pid: u32 = contents
-            .trim()
-            .parse()
-            .expect("lock file should contain a PID");
-        assert_eq!(pid, std::process::id());
-    }
-
-    #[test]
-    fn stale_lock_is_reclaimed() {
-        let path = lock_path();
-        // Write a PID that doesn't exist (PID 1 is init, use a very
-        // high number that almost certainly isn't running).
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).expect("parent dir should be creatable");
-        }
-        std::fs::write(&path, "4294967295").expect("stale lock fixture should be writable");
-        let reclaimed = reclaim_stale(&path).expect("reclaim should not fail");
-        assert!(reclaimed);
-        assert!(!path.exists());
-    }
-
-    #[test]
-    fn corrupt_lock_is_reclaimed() {
-        let path = lock_path();
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).expect("parent dir should be creatable");
-        }
-        std::fs::write(&path, "not-a-pid").expect("corrupt lock fixture should be writable");
-        let reclaimed = reclaim_stale(&path).expect("reclaim should not fail");
-        assert!(reclaimed);
-        assert!(!path.exists());
-    }
-
-    #[test]
-    fn live_process_is_not_reclaimed() {
-        assert!(process_alive(std::process::id()));
-    }
-
-    #[test]
-    fn dead_process_is_detected() {
-        // PID 4294967295 overflows i32 and should be treated as dead.
-        assert!(!process_alive(4294967295));
-    }
-
-    #[test]
-    fn zero_pid_is_not_alive() {
-        assert!(!process_alive(0));
-    }
-
-    #[test]
-    fn stale_lock_is_reclaimed_via_try_acquire() {
-        let path = lock_path();
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).expect("parent dir should be creatable");
-        }
-        // Plant a stale lock with a dead PID.
-        std::fs::write(&path, "99999").expect("stale lock fixture should be writable");
-        // try_acquire should reclaim the stale lock and succeed.
-        let guard = FileLock::try_acquire(&path)
-            .expect("try_acquire should not fail")
-            .expect("stale lock should be reclaimed");
-        drop(guard);
-    }
-
-    #[test]
-    fn reclaim_stale_returns_true_for_missing_file() {
-        let path = lock_path();
-        // File doesn't exist — reclaim should return true.
-        let reclaimed = reclaim_stale(&path).expect("reclaim should not fail");
-        assert!(reclaimed);
-    }
-
-    #[test]
-    fn io_error_paths_surface_as_lock_errors() {
-        let path = std::env::temp_dir().join(format!("knots-lock-dir-{}", Uuid::now_v7()));
-        std::fs::create_dir_all(&path).expect("directory path should be creatable");
-
-        let converted = LockError::from(std::io::Error::other("boom"));
-        assert!(converted.to_string().contains("boom"));
-
-        assert!(!reclaim_stale(&path).expect("directory should not be reclaimed as stale"));
-        let _ = std::fs::remove_dir_all(path);
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn try_acquire_reports_open_errors_from_read_only_directories() {
-        let parent = std::env::temp_dir().join(format!("knots-lock-readonly-{}", Uuid::now_v7()));
-        std::fs::create_dir_all(&parent).expect("parent dir should be creatable");
-        let original = std::fs::metadata(&parent)
-            .expect("metadata should be readable")
-            .permissions();
-        let mut readonly = original.clone();
-        readonly.set_mode(0o555);
-        std::fs::set_permissions(&parent, readonly).expect("permissions should update");
-
-        let path = parent.join("child.lock");
-        let err = super::try_acquire(&path).expect_err("read-only directory should fail");
-        assert!(err.to_string().contains("lock I/O error"));
-
-        std::fs::set_permissions(&parent, original).expect("permissions should restore");
-        let _ = std::fs::remove_dir_all(parent);
-    }
-}
+#[path = "locks_tests.rs"]
+mod tests;

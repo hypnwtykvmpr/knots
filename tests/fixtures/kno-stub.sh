@@ -178,7 +178,15 @@ JSON
     echo '{"status":"deferred","active_leases":1}'
     ;;
   lease)
-    if [[ " ${args[*]} " == *" --agent-name other-client "* ]]; then
+    if [[ " ${args[*]} " == *" extend "* ]]; then
+      if [[ " ${args[*]} " == *" --lease-id L-expired "* ]]; then
+        echo "error: lease 'L-expired' is not active" >&2
+        exit 1
+      fi
+      echo '{"id":"L1","title":"mcp-session","state":"active"}'
+    elif [[ " ${args[*]} " == *" terminate "* ]]; then
+      echo 'terminated'
+    elif [[ " ${args[*]} " == *" --agent-name other-client "* ]]; then
       echo '{"id":"L2","title":"mcp-session","state":"active","agent_info":{"model":"other"}}'
     else
       echo '{"id":"L1","title":"mcp-session","state":"active","agent_info":{"model":"test-model"}}'
