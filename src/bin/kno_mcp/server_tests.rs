@@ -346,12 +346,38 @@ async fn run_blocking_reports_worker_panics_as_tool_errors() {
     assert_eq!(result.is_error, Some(true));
 }
 
+async fn wire_send<W: tokio::io::AsyncWrite + Unpin>(writer: &mut W, message: &str) {
+    use tokio::io::AsyncWriteExt as _;
+
+    writer
+        .write_all(format!("{message}\n").as_bytes())
+        .await
+        .expect("request should send");
+}
+
+async fn wire_call<W, R>(
+    writer: &mut W,
+    lines: &mut tokio::io::Lines<tokio::io::BufReader<R>>,
+    message: &str,
+) -> String
+where
+    W: tokio::io::AsyncWrite + Unpin,
+    R: tokio::io::AsyncRead + Unpin,
+{
+    wire_send(writer, message).await;
+    tokio::time::timeout(std::time::Duration::from_secs(30), lines.next_line())
+        .await
+        .expect("response should arrive before timeout")
+        .expect("response should read")
+        .expect("response should arrive")
+}
+
 /// Drives a real MCP session over an in-process transport: initialize
 /// creates the session lease, and claim/next/rollback resolve it through
 /// the wire path (peer info -> session key -> lease revalidation).
 #[tokio::test]
 async fn mcp_wire_session_initializes_and_claims_with_lease() {
-    use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _};
+    use tokio::io::AsyncBufReadExt as _;
 
     let (client_io, server_io) = tokio::io::duplex(64 * 1024);
     let server = server_with_fixture();
@@ -365,34 +391,10 @@ async fn mcp_wire_session_initializes_and_claims_with_lease() {
         let _ = running.waiting().await;
     });
 
-    async fn send<W: tokio::io::AsyncWrite + Unpin>(writer: &mut W, message: &str) {
-        writer
-            .write_all(format!("{message}\n").as_bytes())
-            .await
-            .expect("request should send");
-    }
-
-    async fn call<W, R>(
-        writer: &mut W,
-        lines: &mut tokio::io::Lines<tokio::io::BufReader<R>>,
-        message: &str,
-    ) -> String
-    where
-        W: tokio::io::AsyncWrite + Unpin,
-        R: tokio::io::AsyncRead + Unpin,
-    {
-        send(writer, message).await;
-        tokio::time::timeout(std::time::Duration::from_secs(30), lines.next_line())
-            .await
-            .expect("response should arrive before timeout")
-            .expect("response should read")
-            .expect("response should arrive")
-    }
-
     let (client_read, mut client_write) = tokio::io::split(client_io);
     let mut lines = tokio::io::BufReader::new(client_read).lines();
 
-    let init = call(
+    let init = wire_call(
         &mut client_write,
         &mut lines,
         concat!(
@@ -409,13 +411,13 @@ async fn mcp_wire_session_initializes_and_claims_with_lease() {
         "initialize should create a session lease"
     );
 
-    send(
+    wire_send(
         &mut client_write,
         r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
     )
     .await;
 
-    let claim = call(
+    let claim = wire_call(
         &mut client_write,
         &mut lines,
         concat!(
@@ -430,7 +432,7 @@ async fn mcp_wire_session_initializes_and_claims_with_lease() {
         "session lease should flow into claim: {claim}"
     );
 
-    let next = call(
+    let next = wire_call(
         &mut client_write,
         &mut lines,
         concat!(
@@ -441,7 +443,7 @@ async fn mcp_wire_session_initializes_and_claims_with_lease() {
     .await;
     assert!(next.contains("ready_for_review"), "next failed: {next}");
 
-    let rollback = call(
+    let rollback = wire_call(
         &mut client_write,
         &mut lines,
         concat!(
@@ -458,6 +460,14 @@ async fn mcp_wire_session_initializes_and_claims_with_lease() {
     drop(client_write);
     drop(lines);
     let _ = tokio::time::timeout(std::time::Duration::from_secs(10), server_task).await;
+
+    // The transport is gone and rmcp has dropped the session's server, so
+    // the session lease guard must have released the lease.
+    assert_eq!(
+        registry.len(),
+        0,
+        "session disconnect should terminate its lease"
+    );
 }
 
 #[test]

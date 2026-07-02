@@ -19,7 +19,7 @@ use rmcp::{tool, tool_handler, tool_router, ErrorData as McpError, ServerHandler
 
 use crate::auth::bearer_token_matches;
 use crate::runner::KnoRunner;
-use crate::session::LeaseRegistry;
+use crate::session::{LeaseRegistry, SessionLeaseGuard};
 use crate::sync_loop::spawn_background_sync;
 use crate::tools::{
     claim_argv, create_argv, id_argv, leased_id_argv, list_argv, update_argv, ClaimArgs,
@@ -46,6 +46,9 @@ pub struct KnoMcp {
     lease_registry: LeaseRegistry,
     lease_timeout_seconds: u64,
     session_key: String,
+    // Held only for its Drop: when rmcp releases the last clone of this
+    // session's server, the session lease is terminated.
+    _session_guard: std::sync::Arc<SessionLeaseGuard>,
     tool_router: ToolRouter<Self>,
 }
 
@@ -55,14 +58,22 @@ impl KnoMcp {
     }
 
     fn with_lease_registry(config: ServerConfig, lease_registry: LeaseRegistry) -> Self {
+        let runner = KnoRunner::new(config.kno_bin, config.repo);
+        // One KnoMcp instance is constructed per MCP session (the HTTP
+        // service factory runs per session; stdio serves one session),
+        // so an instance-unique key gives per-session lease identity.
+        let session_key = uuid::Uuid::now_v7().to_string();
+        let session_guard = std::sync::Arc::new(SessionLeaseGuard::new(
+            lease_registry.clone(),
+            runner.clone(),
+            session_key.clone(),
+        ));
         Self {
-            runner: KnoRunner::new(config.kno_bin, config.repo),
+            runner,
             lease_registry,
             lease_timeout_seconds: config.lease_timeout_seconds,
-            // One KnoMcp instance is constructed per MCP session (the HTTP
-            // service factory runs per session; stdio serves one session),
-            // so an instance-unique key gives per-session lease identity.
-            session_key: uuid::Uuid::now_v7().to_string(),
+            session_key,
+            _session_guard: session_guard,
             tool_router: Self::tool_router(),
         }
     }

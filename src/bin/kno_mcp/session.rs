@@ -91,6 +91,15 @@ impl LeaseRegistry {
         }
     }
 
+    /// Remove a single session's lease id from the registry.
+    pub fn remove(&self, session_key: &str) -> Option<String> {
+        self.inner
+            .lock()
+            .expect("lease map poisoned")
+            .leases
+            .remove(session_key)
+    }
+
     #[cfg(test)]
     fn insert(&self, session_key: &str, lease_id: &str) {
         self.inner
@@ -103,6 +112,45 @@ impl LeaseRegistry {
     #[cfg(test)]
     pub fn len(&self) -> usize {
         self.inner.lock().expect("lease map poisoned").leases.len()
+    }
+}
+
+/// Terminates a session's lease when the per-session server instance goes
+/// away (rmcp closes the MCP session or the transport ends). Every clone of
+/// a session's server shares one guard through an `Arc`, so termination
+/// happens exactly once, after in-flight tool calls finish. Clients that
+/// vanish without closing their session still fall back to lease expiry —
+/// the protocol cannot distinguish "gone" from "between requests".
+#[derive(Debug)]
+pub struct SessionLeaseGuard {
+    registry: LeaseRegistry,
+    runner: KnoRunner,
+    session_key: String,
+}
+
+impl SessionLeaseGuard {
+    pub fn new(registry: LeaseRegistry, runner: KnoRunner, session_key: String) -> Self {
+        Self {
+            registry,
+            runner,
+            session_key,
+        }
+    }
+}
+
+impl Drop for SessionLeaseGuard {
+    fn drop(&mut self) {
+        let Some(lease) = self.registry.remove(&self.session_key) else {
+            return;
+        };
+        let runner = self.runner.clone();
+        // Drop may run on an async worker; keep the blocking subprocess off
+        // it and never stall session teardown.
+        std::thread::spawn(move || {
+            if let Err(err) = terminate_lease(&runner, &lease) {
+                eprintln!("kno-mcp failed to terminate lease {lease}: {err}");
+            }
+        });
     }
 }
 
@@ -242,6 +290,22 @@ mod tests {
             .ensure_active(&runner, "s2", &second, 30)
             .expect("second lease");
         assert_eq!(registry.single_lease(), None);
+    }
+
+    #[test]
+    fn guard_drop_releases_the_session_lease_exactly_once() {
+        let registry = LeaseRegistry::default();
+        let runner = KnoRunner::new(fixture_kno(), PathBuf::from("/tmp/repo"));
+        registry.insert("s1", "L1");
+
+        let guard = SessionLeaseGuard::new(registry.clone(), runner.clone(), "s1".to_string());
+        drop(guard);
+        assert_eq!(registry.len(), 0, "drop should release the session lease");
+
+        // A guard for an already-released session is a no-op.
+        let guard = SessionLeaseGuard::new(registry.clone(), runner, "s1".to_string());
+        drop(guard);
+        assert_eq!(registry.len(), 0);
     }
 
     #[test]

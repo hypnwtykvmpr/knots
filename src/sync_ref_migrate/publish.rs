@@ -89,7 +89,7 @@ fn fast_import_knots_commit(
     let mut child = Command::new("git")
         .arg("-C")
         .arg(repo_root)
-        .args(["fast-import", "--quiet"])
+        .args(["-c", "core.autocrlf=false", "fast-import", "--quiet"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

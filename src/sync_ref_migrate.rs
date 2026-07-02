@@ -292,9 +292,11 @@ fn git_checked_bytes(repo_root: &Path, args: &[&str]) -> Result<Vec<u8>, AppErro
 
 fn git_output(repo_root: &Path, args: &[&str]) -> Result<Output, AppError> {
     record_git_command();
+    // Sync-ref data must stay byte-exact; never let eol conversion touch it.
     Command::new("git")
         .arg("-C")
         .arg(repo_root)
+        .args(["-c", "core.autocrlf=false"])
         .args(args)
         .output()
         .map_err(AppError::Io)
