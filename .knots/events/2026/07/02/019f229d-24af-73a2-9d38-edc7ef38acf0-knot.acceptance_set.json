@@ -1,0 +1,9 @@
+{
+  "event_id": "019f229d-24af-73a2-9d38-edc7ef38acf0",
+  "occurred_at": "2026-07-02T11:35:51.727895Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.acceptance_set",
+  "data": {
+    "acceptance": "1. MCP and CLI advance/rollback paths agree on lease lifecycle: the lease used for the action is unbound from the work knot and moved to `lease_terminated`, not returned to `lease_ready`.\n2. Follow-on MCP work creates or receives a fresh lease before re-claiming or continuing, matching CLI/e2e guidance.\n3. Managed skill text tells agents to treat leases as spent after advance/rollback in both CLI and MCP paths, with no reusable MCP session-lease exception.\n4. Regression coverage fails if MCP reintroduces lease reuse across claims or if managed skills describe MCP leases as reusable after `next`/rollback.\n5. Verification commands `cargo test managed_skills`, the relevant MCP/lease tests, and `make sanity` pass."
+  }
+}
