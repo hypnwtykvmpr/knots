@@ -1,0 +1,9 @@
+{
+  "event_id": "019f2299-2135-7993-8028-7d65cf4a9174",
+  "occurred_at": "2026-07-02T11:31:28.69285Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.description_set",
+  "data": {
+    "description": "Goal:\nUpdate MCP lease handling and managed skill guidance so MCP-owned leases follow the same action-scoped lifecycle as CLI claim leases. A lease created for a claim/session may be activated and bound while work is in an action state, but a successful `next` or rollback must release that claim: unbind it from the knot and move the lease to `lease_terminated`. MCP must not return the same lease to `lease_ready` for reuse across the next claim.\n\nDesired behavior:\n1. CLI and MCP agree on the lease lifecycle: after `kno next`, rollback, or the MCP equivalent, the lease used for that action is spent.\n2. Follow-on MCP work must create or receive a fresh lease before re-claiming or continuing, just like CLI/e2e guidance.\n3. Agent-facing managed skills should describe this parity and avoid implying MCP has a reusable session-lease exception.\n4. Runtime behavior should change only where MCP currently differs from CLI; do not loosen CLI lease enforcement.\n\nVerification:\n1. Add or update tests proving MCP advance/rollback terminates the bound lease instead of returning it to `lease_ready`.\n2. Run the relevant MCP/lease tests and `cargo test managed_skills`.\n3. Run `make sanity`; expect formatting, lint, tests, and coverage to pass.\n4. Inspect generated/managed skill wording and confirm it tells agents to treat leases as spent after advance/rollback in both CLI and MCP paths.\n\nConstraints:\nDo not lower `.ci/coverage-threshold.txt`. Keep terminology aligned with `TAXONOMY.md`: leases are knots, `lease_ready` is pre-claim, `lease_active` is bound action state, and `lease_terminated` is terminal/audit record. Do not use the forbidden yeet/GitHub PR flow."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "event_id": "019f2297-a049-72c2-aa67-c13278e5d697",
+  "occurred_at": "2026-07-02T11:29:50.153749Z",
+  "knot_id": "knots-fb31",
+  "type": "knot.lease_data_set",
+  "data": {
+    "lease_data": {
+      "agent_info": {
+        "agent_name": "codex",
+        "agent_type": "cli",
+        "model": "gpt-5",
+        "model_version": "",
+        "provider": "OpenAI"
+      },
+      "lease_type": "agent",
+      "nickname": "codex-correct-4d3d",
+      "timeout_seconds": 600
+    }
+  }
+}

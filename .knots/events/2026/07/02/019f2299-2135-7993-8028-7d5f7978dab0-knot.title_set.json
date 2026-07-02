@@ -1,0 +1,10 @@
+{
+  "event_id": "019f2299-2135-7993-8028-7d5f7978dab0",
+  "occurred_at": "2026-07-02T11:31:28.69285Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.title_set",
+  "data": {
+    "from": "Correct lease lifecycle guidance",
+    "to": "Align MCP lease lifecycle with CLI"
+  }
+}

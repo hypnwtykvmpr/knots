@@ -1,0 +1,15 @@
+{
+  "event_id": "019f2299-2135-7993-8028-7d885d92ac47",
+  "occurred_at": "2026-07-02T11:31:28.69285Z",
+  "knot_id": "knots-4d3d",
+  "type": "knot.handoff_capsule_added",
+  "data": {
+    "agentname": "unknown",
+    "content": "Correction: previous wording framed MCP session leases as reusable by returning them to `lease_ready`. The intent is the opposite: make MCP lease behavior match CLI claim leases. After an MCP `next`/rollback equivalent, the bound lease should be unbound and moved to `lease_terminated`; any follow-on claim needs a fresh lease.",
+    "datetime": "2026-07-02T11:31:28.69285Z",
+    "entry_id": "019f2299-2135-7993-8028-7d7fad721d4a",
+    "model": "unknown",
+    "username": "unknown",
+    "version": "unknown"
+  }
+}
