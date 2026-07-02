@@ -4,9 +4,10 @@
 //! - OFF by default. Nothing is written unless `KNOTS_TELEMETRY_LOG` is set.
 //! - Writes only to a local runtime path outside the repo (or an explicit
 //!   path the operator chooses). Never committed; never network.
-//! - Redacts argument VALUES by default. Only flags (tokens starting with
-//!   `-`) and phase timings are recorded. Full args are logged solely when
-//!   `KNOTS_TELEMETRY_ARGS=1` is also set — an explicit second opt-in.
+//! - Redacts argument VALUES by default: positional values AND values
+//!   attached to a flag (`--desc=secret`, `-dsecret`) are stripped; only bare
+//!   flags (`--json`, `-C`) and phase timings survive. Full args are logged
+//!   solely when `KNOTS_TELEMETRY_ARGS=1` is also set — a second opt-in.
 //! - Best-effort: any failure is swallowed so telemetry never affects the
 //!   command's exit status or output.
 
@@ -27,26 +28,47 @@ pub fn from_env() -> Option<TelemetryConfig> {
     let raw = std::env::var_os(ENABLE_VAR)?;
     let raw = raw.to_string_lossy();
     let trimmed = raw.trim();
-    if trimmed.is_empty() {
+    if trimmed.is_empty() || is_falsy(trimmed) {
+        // Falsy values (0/false/off/no/disable) must DISABLE, never be
+        // mistaken for a relative file path that writes into the cwd.
         return None;
     }
-    let path = match trimmed {
-        "1" | "true" | "TRUE" | "on" | "ON" => default_log_path()?,
-        explicit => PathBuf::from(explicit),
+    let path = if is_truthy(trimmed) {
+        default_log_path()?
+    } else {
+        PathBuf::from(trimmed)
     };
     let include_args = std::env::var_os(ARGS_VAR)
-        .map(|value| {
-            let value = value.to_string_lossy();
-            matches!(value.trim(), "1" | "true" | "TRUE" | "on" | "ON")
-        })
+        .map(|value| is_truthy(value.to_string_lossy().trim()))
         .unwrap_or(false);
     Some(TelemetryConfig { path, include_args })
+}
+
+fn is_truthy(value: &str) -> bool {
+    matches!(
+        value.to_ascii_lowercase().as_str(),
+        "1" | "true" | "on" | "yes"
+    )
+}
+
+fn is_falsy(value: &str) -> bool {
+    matches!(
+        value.to_ascii_lowercase().as_str(),
+        "0" | "false" | "off" | "no" | "disable" | "disabled"
+    )
 }
 
 /// Default runtime location, outside any repo working tree.
 fn default_log_path() -> Option<PathBuf> {
     #[cfg(windows)]
-    let base = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
+    let base = std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .or_else(|| {
+            // Fallback so an explicit opt-in is not silently dropped when
+            // LOCALAPPDATA is unset (stripped service/CI environments).
+            std::env::var_os("USERPROFILE")
+                .map(|home| PathBuf::from(home).join("AppData").join("Local"))
+        });
     #[cfg(not(windows))]
     let base = std::env::var_os("XDG_STATE_HOME")
         .map(PathBuf::from)
@@ -68,15 +90,21 @@ pub fn append(config: &TelemetryConfig, record: &SessionRecord<'_>) {
 
 fn try_append(config: &TelemetryConfig, record: &SessionRecord<'_>) -> std::io::Result<()> {
     if let Some(parent) = config.path.parent() {
-        std::fs::create_dir_all(parent)?;
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
     }
-    let line = serde_json::to_string(&build_value(config, record))
+    let mut line = serde_json::to_string(&build_value(config, record))
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?;
+    line.push('\n');
     let mut file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&config.path)?;
-    writeln!(file, "{line}")
+    // One write_all of the line-plus-newline: under O_APPEND a single write
+    // is atomic for our small records, so concurrent kno processes cannot
+    // interleave the body and newline into a torn JSONL line.
+    file.write_all(line.as_bytes())
 }
 
 fn build_value(config: &TelemetryConfig, record: &SessionRecord<'_>) -> serde_json::Value {
@@ -96,21 +124,46 @@ fn build_value(config: &TelemetryConfig, record: &SessionRecord<'_>) -> serde_js
     })
 }
 
-/// Keep flags verbatim; replace positional VALUES with a typed placeholder
-/// unless the operator explicitly opted into full-arg logging.
+const REDACTED: &str = "<redacted>";
+
+/// Redact positional VALUES and any value ATTACHED to a flag, unless the
+/// operator explicitly opted into full-arg logging. Only a bare flag with no
+/// attached data is safe to keep: `--json`, `-C`. Attached forms
+/// (`--desc=secret`, `-dsecret`) carry user content and must have their value
+/// portion stripped — the flag heuristic `starts_with('-')` alone is not
+/// enough, because clap accepts those as a single argv token.
 fn redact_args(args: &[String], include_args: bool) -> Vec<String> {
     if include_args {
         return args.to_vec();
     }
-    args.iter()
-        .map(|arg| {
-            if arg.starts_with('-') {
-                arg.clone()
-            } else {
-                "<redacted>".to_string()
-            }
-        })
-        .collect()
+    args.iter().map(|arg| redact_one(arg)).collect()
+}
+
+fn redact_one(arg: &str) -> String {
+    if let Some(long) = arg.strip_prefix("--") {
+        // `--flag=value` -> `--flag=<redacted>`; bare `--flag` kept as-is.
+        return match long.split_once('=') {
+            Some((flag, _)) => format!("--{flag}={REDACTED}"),
+            None => arg.to_string(),
+        };
+    }
+    if let Some(short) = arg.strip_prefix('-') {
+        if short.is_empty() {
+            return arg.to_string(); // a lone "-" (stdin convention)
+        }
+        // A single short flag (`-C`) is a bare flag; anything longer is
+        // either an attached value (`-dsecret`) or bundled flags — redact
+        // the trailing data either way, keeping only the first flag char.
+        let mut chars = short.chars();
+        let first = chars.next().expect("non-empty");
+        return if chars.next().is_none() {
+            arg.to_string()
+        } else {
+            format!("-{first}{REDACTED}")
+        };
+    }
+    // Positional value.
+    REDACTED.to_string()
 }
 
 /// Small adapter so callers can pass a `Duration` phase list.

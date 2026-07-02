@@ -178,9 +178,24 @@ mod tests {
     use std::time::Duration;
 
     use super::{measure, phase, TraceSession};
+    use crate::test_env::EnvVarGuard;
+
+    const TELEMETRY_VARS: &[&str] = &["KNOTS_TELEMETRY_LOG", "KNOTS_TELEMETRY_ARGS"];
+
+    /// TraceSession::start reads the telemetry env vars, so tests that build a
+    /// session must hold the shared env lock and clear telemetry to avoid
+    /// racing a concurrent telemetry test's log path.
+    fn guard_without_telemetry() -> EnvVarGuard {
+        let env = EnvVarGuard::capture(TELEMETRY_VARS);
+        for var in TELEMETRY_VARS {
+            env.remove(var);
+        }
+        env
+    }
 
     #[test]
     fn trace_session_records_manual_and_measured_phases() {
+        let _env = guard_without_telemetry();
         let _session = TraceSession::start("ls", &["--json".to_string()], true);
         {
             let mut lock = phase("repo_lock");
@@ -191,6 +206,7 @@ mod tests {
 
     #[test]
     fn trace_record_and_empty_args() {
+        let _env = guard_without_telemetry();
         let _session = TraceSession::start("show", &[], true);
         super::record(
             "cache_hit",
@@ -203,5 +219,27 @@ mod tests {
     #[test]
     fn record_noop_when_disabled() {
         super::record("orphan", Duration::from_millis(1), None);
+    }
+
+    #[test]
+    fn telemetry_only_session_appends_record_on_drop() {
+        // --trace off (enabled=false), telemetry on via env: the session
+        // still collects phases and the Drop path appends a JSONL record.
+        let env = EnvVarGuard::capture(TELEMETRY_VARS);
+        let path = std::env::temp_dir().join(format!(
+            "knots-trace-telemetry-{}.jsonl",
+            uuid::Uuid::now_v7()
+        ));
+        env.set("KNOTS_TELEMETRY_LOG", &path);
+        env.remove("KNOTS_TELEMETRY_ARGS");
+        {
+            let _session = TraceSession::start("ls", &["--json".to_string()], false);
+            measure("query", || {});
+        }
+        let contents = std::fs::read_to_string(&path)
+            .expect("telemetry record should be written from the trace Drop path");
+        assert!(contents.contains("\"cmd\":\"ls\""));
+        assert!(contents.contains("\"name\":\"query\""));
+        let _ = std::fs::remove_file(path);
     }
 }

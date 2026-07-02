@@ -390,9 +390,15 @@ fn fix_terminal_parents(repo_root: &Path) {
 }
 
 fn run_git(cwd: &Path, args: &[&str]) -> bool {
+    // The worktree fix runs `reset --hard HEAD` / `clean -fd`, which check out
+    // the tracked .knots event blobs. Guard byte-exactness here too: without
+    // it, Git-for-Windows' default core.autocrlf=true smudges LF to CRLF and
+    // the next GitAdapter sync (autocrlf=false) sees a dirty/conflicting
+    // worktree — the exact FileConflict this fork exists to prevent.
     Command::new("git")
         .arg("-C")
         .arg(cwd)
+        .args(["-c", "core.autocrlf=false"])
         .args(args)
         .status()
         .map(|status| status.success())

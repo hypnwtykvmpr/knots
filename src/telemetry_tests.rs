@@ -22,6 +22,15 @@ fn from_env_is_off_by_default() {
         from_env().is_none(),
         "empty value must not enable telemetry"
     );
+
+    // Falsy values must DISABLE, not be treated as a relative log path.
+    for falsy in ["0", "false", "off", "no", "FALSE", "Off", "disable"] {
+        env.set(ENABLE_VAR, falsy);
+        assert!(
+            from_env().is_none(),
+            "falsy value {falsy:?} must keep telemetry off"
+        );
+    }
 }
 
 #[test]
@@ -66,6 +75,39 @@ fn redact_keeps_flags_and_hides_positional_values() {
 
     let full = redact_args(&args, true);
     assert_eq!(full, args, "opt-in keeps everything verbatim");
+}
+
+#[test]
+fn redact_strips_values_attached_to_flags() {
+    // The bug the verification pass caught: attached values start with '-'
+    // and must NOT be logged verbatim in the default-redaction path.
+    let args = vec![
+        "--desc=confidential PII".to_string(),
+        "--acceptance=secret criteria".to_string(),
+        "-dattached secret".to_string(),
+        "--json".to_string(),
+        "-C".to_string(),
+        "-".to_string(),
+    ];
+    let redacted = redact_args(&args, false);
+    assert_eq!(
+        redacted,
+        vec![
+            "--desc=<redacted>".to_string(),
+            "--acceptance=<redacted>".to_string(),
+            "-d<redacted>".to_string(),
+            "--json".to_string(),
+            "-C".to_string(),
+            "-".to_string(),
+        ]
+    );
+    let joined = redacted.join(" ");
+    assert!(!joined.contains("confidential"), "PII must not survive");
+    assert!(!joined.contains("secret"), "secrets must not survive");
+    assert!(
+        !joined.contains("attached"),
+        "attached value must not survive"
+    );
 }
 
 #[test]
@@ -123,6 +165,49 @@ fn append_writes_redacted_jsonl_record() {
     assert!(args_json.iter().any(|value| value == "<redacted>"));
 
     let _ = std::fs::remove_dir_all(path.parent().expect("parent"));
+}
+
+#[test]
+fn from_env_truthy_resolves_default_path_under_base_dir() {
+    let env = EnvVarGuard::capture(&[
+        ENABLE_VAR,
+        ARGS_VAR,
+        "LOCALAPPDATA",
+        "USERPROFILE",
+        "XDG_STATE_HOME",
+        "HOME",
+    ]);
+    env.remove(ARGS_VAR);
+    let base = unique_log_path();
+    #[cfg(windows)]
+    env.set("LOCALAPPDATA", &base);
+    #[cfg(not(windows))]
+    {
+        env.set("XDG_STATE_HOME", &base);
+        env.remove("HOME");
+    }
+    env.set(ENABLE_VAR, "1");
+
+    let config = from_env().expect("truthy value enables the default path");
+    assert!(
+        config.path.starts_with(&base),
+        "default log path should live under the base runtime dir"
+    );
+    assert!(config.path.ends_with("events.jsonl"));
+}
+
+#[cfg(windows)]
+#[test]
+fn default_path_falls_back_to_userprofile_when_localappdata_unset() {
+    let env = EnvVarGuard::capture(&[ENABLE_VAR, ARGS_VAR, "LOCALAPPDATA", "USERPROFILE"]);
+    env.remove(ARGS_VAR);
+    env.remove("LOCALAPPDATA");
+    let base = unique_log_path();
+    env.set("USERPROFILE", &base);
+    env.set(ENABLE_VAR, "1");
+
+    let config = from_env().expect("USERPROFILE fallback should resolve");
+    assert!(config.path.starts_with(base.join("AppData").join("Local")));
 }
 
 #[test]
