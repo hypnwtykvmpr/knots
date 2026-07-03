@@ -220,6 +220,13 @@ lease_id=$(kno lease create --nickname "my-session" --type agent \
     --provider <provider> --agent-type <type> --json | jq -r .id)
 kno claim <knot-id> --lease "$lease_id"
 ```
+Or in PowerShell:
+```powershell
+$lease = kno lease create --nickname "my-session" --type agent `
+    --agent-name <name> --model <model> --model-version <version> `
+    --provider <provider> --agent-type <type> --json | ConvertFrom-Json
+kno claim <knot-id> --lease $lease.id
+```
 
 All subsequent `kno` calls within that claim operate on the bound lease
 and MUST NOT pass agent-identity flags. The deprecation warning above is

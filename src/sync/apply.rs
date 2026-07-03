@@ -18,14 +18,16 @@ mod apply_state;
 #[path = "apply_step_history.rs"]
 mod apply_step_history;
 use apply_helpers::{
-    build_index_upsert, current_unix_ms_string, invalid_event, is_stale_full_precondition,
-    is_stale_precondition, optional_i64, optional_string, parse_execution_plan_data,
-    parse_gate_data, parse_invariants, parse_lease_data, parse_metadata_entry, parse_scope_data,
-    parse_string_vec, read_json_file, required_profile_id, required_string, required_workflow_id,
-    IndexUpsertParams, MetadataProjection, WorkflowIdResolution,
+    build_index_upsert, current_unix_ms_string, is_stale_full_precondition, is_stale_precondition,
+    optional_i64, optional_string, parse_execution_plan_data, parse_gate_data, parse_invariants,
+    parse_lease_data, parse_metadata_entry, parse_scope_data, parse_string_vec, read_json_file,
+    required_profile_id, required_string, required_workflow_id, IndexUpsertParams,
+    MetadataProjection, WorkflowIdResolution,
 };
-use apply_state::resolve_tier;
-use apply_state::FullApplyOutcome;
+use apply_state::{
+    full_event_data, index_event_data, resolve_tier, sync_summary, unknown_workflow_warning,
+    FullApplyOutcome,
+};
 use apply_step_history::apply_state_set_step_history;
 
 pub struct IncrementalApplier<'a> {
@@ -83,14 +85,7 @@ impl<'a> IncrementalApplier<'a> {
             self.changed_files("last_full_head_commit", ".knots/events", target_head)
         })?;
 
-        let mut summary = SyncSummary {
-            target_head: target_head.to_string(),
-            index_files: index_files.len() as u64,
-            full_files: full_files.len() as u64,
-            knot_updates: 0,
-            edge_adds: 0,
-            edge_removes: 0,
-        };
+        let mut summary = sync_summary(target_head, index_files.len(), full_files.len());
 
         for rel_path in index_files {
             if self.apply_index_event(&rel_path)? {
@@ -109,11 +104,8 @@ impl<'a> IncrementalApplier<'a> {
         db::set_meta(self.conn, "last_index_head_commit", target_head)?;
         db::set_meta(self.conn, "last_full_head_commit", target_head)?;
         db::set_meta(self.conn, "sync_pending", "false")?;
-        db::set_meta(
-            self.conn,
-            "last_sync_success_at_ms",
-            &current_unix_ms_string(),
-        )?;
+        let synced_at = current_unix_ms_string();
+        db::set_meta(self.conn, "last_sync_success_at_ms", &synced_at)?;
         Ok(summary)
     }
 
@@ -129,10 +121,8 @@ impl<'a> IncrementalApplier<'a> {
                 return Ok(Vec::new());
             }
 
-            match self
-                .git
-                .diff_name_only(&self.worktree, &base_head, target_head, prefix)
-            {
+            let diff = self.diff_changed_files(&base_head, target_head, prefix);
+            match diff {
                 Ok(mut files) => {
                     files.retain(|path| path.extension().is_some_and(|ext| ext == "json"));
                     files.sort();
@@ -166,17 +156,30 @@ impl<'a> IncrementalApplier<'a> {
                 if path.extension().is_none_or(|ext| ext != "json") {
                     continue;
                 }
-                let relative = path
-                    .strip_prefix(&self.worktree)
-                    .map_err(|err| SyncError::InvalidEvent {
-                        path: path.clone(),
-                        message: format!("failed to relativize path: {}", err),
-                    })?
-                    .to_path_buf();
+                let relative = self.relative_worktree_path(&path)?;
                 files.push(relative);
             }
         }
         Ok(files)
+    }
+
+    fn diff_changed_files(
+        &self,
+        base_head: &str,
+        target_head: &str,
+        prefix: &str,
+    ) -> Result<Vec<PathBuf>, SyncError> {
+        self.git
+            .diff_name_only(&self.worktree, base_head, target_head, prefix)
+    }
+
+    fn relative_worktree_path(&self, path: &Path) -> Result<PathBuf, SyncError> {
+        path.strip_prefix(&self.worktree)
+            .map(Path::to_path_buf)
+            .map_err(|err| SyncError::InvalidEvent {
+                path: path.to_path_buf(),
+                message: format!("failed to relativize path: {}", err),
+            })
     }
 
     fn apply_index_event(&mut self, relative_path: &Path) -> Result<bool, SyncError> {
@@ -190,10 +193,7 @@ impl<'a> IncrementalApplier<'a> {
             return Ok(false);
         }
 
-        let data = event
-            .data
-            .as_object()
-            .ok_or_else(|| invalid_event(&absolute_path, "idx.knot_head data must be an object"))?;
+        let data = index_event_data(&event, &absolute_path)?;
 
         let knot_id = required_string(data, "knot_id", &absolute_path)?;
         let title = required_string(data, "title", &absolute_path)?;
@@ -225,12 +225,7 @@ impl<'a> IncrementalApplier<'a> {
         }
         if !self.known_workflows.contains(&resolved.id) {
             self.skipped_unknown_workflow_knots.insert(knot_id.clone());
-            eprintln!(
-                "warning: can't import knot '{}', unknown workflow '{}'. \
-                 The knot creator should install the workflow into the repository \
-                 so other users can view the knot.",
-                knot_id, resolved.id
-            );
+            eprintln!("{}", unknown_workflow_warning(&knot_id, &resolved.id));
             return Ok(false);
         }
         let workflow_id = resolved.id;
@@ -287,10 +282,7 @@ impl<'a> IncrementalApplier<'a> {
         if self.skipped_unknown_workflow_knots.contains(&event.knot_id) {
             return Ok(FullApplyOutcome::Ignored);
         }
-        let data = event
-            .data
-            .as_object()
-            .ok_or_else(|| invalid_event(&absolute_path, "full event data must be an object"))?;
+        let data = full_event_data(&event, &absolute_path)?;
 
         if is_stale_full_precondition(self.conn, &event)? {
             return Ok(FullApplyOutcome::Ignored);
@@ -488,6 +480,12 @@ mod tests_invariant;
 #[cfg(test)]
 #[path = "apply_tests_legacy_defaults.rs"]
 mod tests_legacy_defaults;
+#[cfg(test)]
+#[path = "apply_tests_local_files.rs"]
+mod tests_local_files;
+#[cfg(test)]
+#[path = "apply_tests_local_files_ext.rs"]
+mod tests_local_files_ext;
 #[cfg(test)]
 #[path = "apply_tests_step_history.rs"]
 mod tests_step_history;

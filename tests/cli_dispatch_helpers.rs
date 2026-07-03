@@ -114,8 +114,16 @@ pub fn knots_binary() -> PathBuf {
     configured
 }
 
-fn configure_coverage_env(command: &mut Command) {
-    let _ = command;
+pub fn configure_coverage_env(command: &mut Command) {
+    if let Some(profile_file) = std::env::var_os("LLVM_PROFILE_FILE") {
+        let profile_file = PathBuf::from(profile_file);
+        if let Some(parent) = profile_file.parent() {
+            command.env(
+                "LLVM_PROFILE_FILE",
+                parent.join("knots-child-%p-%m.profraw"),
+            );
+        }
+    }
 }
 
 pub fn run_knots(repo_root: &Path, db_path: &Path, args: &[&str]) -> Output {
@@ -127,6 +135,9 @@ pub fn run_knots(repo_root: &Path, db_path: &Path, args: &[&str]) -> Output {
         .arg(db_path)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .env("HOME", repo_root)
+        .env("USERPROFILE", repo_root)
+        .env("APPDATA", repo_root.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", repo_root.join("AppData").join("Local"))
         .args(args);
     configure_coverage_env(&mut command);
     command.output().expect("knots command should run")

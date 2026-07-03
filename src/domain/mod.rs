@@ -12,3 +12,6 @@ pub mod step_history;
 #[cfg(test)]
 #[path = "execution_plan_edit_tests.rs"]
 mod execution_plan_edit_tests;
+#[cfg(test)]
+#[path = "execution_plan_tests_ext.rs"]
+mod execution_plan_tests_ext;

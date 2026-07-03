@@ -348,6 +348,10 @@ mod tests {
         std::env::temp_dir().join(format!("knots-events-{}", nanos))
     }
 
+    fn slash_path(path: &std::path::Path) -> String {
+        path.to_string_lossy().replace('\\', "/")
+    }
+
     #[test]
     fn builds_deterministic_full_event_path() {
         let path = relative_path_for_event(
@@ -358,7 +362,7 @@ mod tests {
         )
         .expect("path should build");
         assert_eq!(
-            path.to_string_lossy(),
+            slash_path(&path),
             "events/2026/02/22/018f4f7f-7dc7-7f4e-954b-64f8a2273ec8-knot.state_set.json"
         );
     }
@@ -373,7 +377,7 @@ mod tests {
         )
         .expect("path should build");
         assert_eq!(
-            path.to_string_lossy(),
+            slash_path(&path),
             "index/2026/02/22/018f4f7f-7dc7-7f4e-954b-64f8a2273ec8-idx.knot_head.json"
         );
     }
@@ -408,7 +412,7 @@ mod tests {
 
         let relative = writer.write(&event).expect("first write should succeed");
         assert_eq!(
-            relative.to_string_lossy(),
+            slash_path(&relative),
             "events/2026/02/22/018f4f7f-7dc7-7f4e-954b-64f8a2273ec8-knot.created.json"
         );
 
@@ -463,7 +467,7 @@ mod tests {
 
         let relative = writer.write(&event).expect("index write should succeed");
         assert_eq!(
-            relative.to_string_lossy(),
+            slash_path(&relative),
             "index/2026/02/22/018f4f7f-7dc7-7f4e-954b-64f8a2273ec8-idx.knot_head.json"
         );
 

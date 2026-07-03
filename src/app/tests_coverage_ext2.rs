@@ -148,7 +148,7 @@ fn default_profile_resolution_covers_config_and_fallback_paths() {
         .expect("fallback default profile should resolve");
     assert_eq!(fallback, "autopilot");
 
-    let config_path = root.join(".config/knots/config.toml");
+    let config_path = crate::project::config_path(Some(&root)).expect("config path should resolve");
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent).expect("config parent should be creatable");
     }
@@ -195,6 +195,10 @@ fn workflow_specific_defaults_and_create_knot_resolve_custom_workflows() {
             .expect("workflow profile should resolve"),
         "custom_flow/autopilot"
     );
+    let missing = app
+        .default_profile_id_for_workflow("missing_flow")
+        .expect_err("missing workflow should report no profiles");
+    assert!(missing.to_string().contains("has no available profiles"));
 
     let created = app
         .create_knot_in_workflow("Custom work", None, None, None, Some("custom_flow"))
@@ -282,6 +286,11 @@ fn resolve_profile_id_and_default_quick_profile_cover_custom_workflow_paths() {
     let (app, _) = open_app(&root);
     let app = app.with_home_override(Some(root.clone()));
     assert_eq!(
+        app.default_quick_profile_id()
+            .expect("custom workflow quick profile should fall back"),
+        "custom_flow/autopilot"
+    );
+    assert_eq!(
         app.resolve_profile_id("autopilot", Some("custom_flow"))
             .expect("workflow-scoped profile should resolve"),
         "custom_flow/autopilot"
@@ -296,6 +305,11 @@ fn resolve_profile_id_and_default_quick_profile_cover_custom_workflow_paths() {
         Err(AppError::InvalidArgument(message))
             if message.contains("does not belong to workflow 'work_sdlc'")
     ));
+    assert_eq!(
+        app.resolve_profile_id("legacy/autopilot", None)
+            .expect("slash-prefixed builtin suffix should resolve"),
+        "autopilot"
+    );
     assert_eq!(
         app.set_default_quick_profile_id("custom_flow/autopilot")
             .expect("custom quick profile should persist"),

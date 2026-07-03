@@ -14,6 +14,7 @@ fn rollback_parses() {
             assert_eq!(args.id, "abc123");
             assert!(!args.dry_run);
             assert!(args.actor_kind.is_none());
+            assert!(args.lease.is_none());
         }
         other => panic!("expected Rollback, got {:?}", other),
     }
@@ -45,6 +46,8 @@ fn rollback_parses_actor_metadata_flags() {
         "gpt-5",
         "--agent-version",
         "1.0",
+        "--lease",
+        "L1",
     ]);
     match cli.command {
         Commands::Rollback(args) => {
@@ -52,6 +55,7 @@ fn rollback_parses_actor_metadata_flags() {
             assert_eq!(args.agent_name.as_deref(), Some("codex"));
             assert_eq!(args.agent_model.as_deref(), Some("gpt-5"));
             assert_eq!(args.agent_version.as_deref(), Some("1.0"));
+            assert_eq!(args.lease.as_deref(), Some("L1"));
         }
         other => panic!("expected Rollback, got {:?}", other),
     }

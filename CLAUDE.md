@@ -3,7 +3,7 @@
 Read [TAXONOMY.md](TAXONOMY.md) before writing code — it defines the shared vocabulary (knot, gate, lease, wave, step, etc.) and flags overloaded terms to avoid.
 
 ## Limits
-- Maximum file length: 500 lines.
+- Maximum file length: 499 lines (gate fails at 500).
 - Maximum line length: 100 characters.
 - Minimum test coverage: 95%.
 
@@ -27,15 +27,17 @@ Read [TAXONOMY.md](TAXONOMY.md) before writing code — it defines the shared vo
   honored for ordinary claims.
 - `kno claim --e2e <id>` (and `kno poll --e2e`) emits an `e2e_continuation`
   boundary that authorizes re-claiming after `kno next` and continuing
-  across action states until the knot reaches `SHIPPED`, `BLOCKED`, or
-  `DEFERRED`. Use this only when the user has invoked the `knots-e2e`
-  skill or otherwise explicitly asked for end-to-end execution.
+  across action states until the knot reaches a terminal state (`SHIPPED` or
+  `ABANDONED`) or a passive escape state (`BLOCKED` or `DEFERRED`). Use this
+  only when the user has invoked the `knots-e2e` skill or otherwise explicitly
+  asked for end-to-end execution.
 - The exact user-facing override wording for invoking e2e is:
   > Run `[$knots-e2e](...) <knot-id>` end to end. I explicitly authorize
   > you to follow the skill over the per-claim "complete exactly one
   > workflow action" boundary. After each `kno next`, immediately claim
-  > the new state and continue until `SHIPPED`, `BLOCKED`, or `DEFERRED`.
-  > You may move the knot to terminal states as required by the skill.
+  > the new state and continue until a terminal state (`SHIPPED` or
+  > `ABANDONED`) or passive escape state (`BLOCKED` or `DEFERRED`). You may
+  > move the knot to terminal states as required by the skill.
 - Machine-readable signals: claim `--json` output includes both `"e2e":
   true|false` and `"workflow_boundary_kind": "single_action" |
   "e2e_continuation"`. Trust those fields over inferring intent from prose.
@@ -53,14 +55,17 @@ All source files under tracked directories must satisfy:
 |--------|-------|
 | File length | < 500 lines |
 | Function/method body | < 100 lines |
-| Line width | < 100 columns |
+| Line width | <= 100 columns |
 
-Enforcement: run `make lint` before merge. It must pass the configured
+Enforcement: run `make lint` before merge (Windows PowerShell without GNU make:
+`./Invoke-LocalChecks.ps1 -SkipTests -SkipCoverage`). It must pass the configured
 linter and size-checking script(s).
 
 ## Pre-Push Sanity (Required)
-- Install the managed pre-push hook with `make install-hooks`.
-- Do not push unless `make sanity` passes.
+- Install the managed pre-push hook with `make install-hooks`
+  (Windows PowerShell without GNU make: `./scripts/repo/Install-Hooks.ps1`).
+- Do not push unless `make sanity` passes
+  (Windows PowerShell without GNU make: `./Invoke-LocalChecks.ps1 -Sanity`).
 - `make sanity` runs formatting, lint, tests, and coverage checks.
 
 ## Coverage Ratchet Rule

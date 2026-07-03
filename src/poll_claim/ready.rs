@@ -108,7 +108,7 @@ fn ready_owner_matches(
     ready_owner_kind(registry, knot).as_ref() == Some(owner_kind)
 }
 
-fn ready_owner_label(registry: &ProfileRegistry, knot: &KnotView) -> &'static str {
+pub(crate) fn ready_owner_label(registry: &ProfileRegistry, knot: &KnotView) -> &'static str {
     match ready_owner_kind(registry, knot) {
         Some(OwnerKind::Human) => "human",
         Some(OwnerKind::Agent) => "agent",
@@ -137,7 +137,7 @@ fn ready_owner_kind(registry: &ProfileRegistry, knot: &KnotView) -> Option<Owner
         })
 }
 
-fn ready_action_label(registry: &ProfileRegistry, knot: &KnotView) -> String {
+pub(crate) fn ready_action_label(registry: &ProfileRegistry, knot: &KnotView) -> String {
     ready_action_state(registry, knot).unwrap_or_else(|| "unknown".to_string())
 }
 

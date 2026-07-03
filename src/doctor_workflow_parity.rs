@@ -466,7 +466,10 @@ fn event_id_for(path: &Path, event: &Value) -> String {
 
 fn relative_event_path(worktree_knots_root: &Path, path: &Path) -> String {
     let relative = path.strip_prefix(worktree_knots_root).unwrap_or(path);
-    Path::new(".knots").join(relative).display().to_string()
+    Path::new(".knots")
+        .join(relative)
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 #[cfg(test)]

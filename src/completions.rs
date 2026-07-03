@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap_complete::{generate, Shell};
 
@@ -18,12 +18,25 @@ pub fn generate_completions(shell: Shell, buf: &mut dyn Write) {
 }
 
 pub fn detect_current_shell() -> Option<Shell> {
-    let shell_var = std::env::var("SHELL").ok()?;
-    shell_from_path(&shell_var)
+    if let Ok(shell_var) = std::env::var("SHELL") {
+        if let Some(shell) = shell_from_path(&shell_var) {
+            return Some(shell);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Some(Shell::PowerShell)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    None
 }
 
 fn shell_from_path(path: &str) -> Option<Shell> {
-    let basename = path.rsplit('/').next()?;
+    let basename = path.rsplit(['/', '\\']).next()?;
+    let basename = basename.to_ascii_lowercase();
+    let basename = basename.strip_suffix(".exe").unwrap_or(&basename);
     match basename {
         "bash" => Some(Shell::Bash),
         "zsh" => Some(Shell::Zsh),
@@ -48,13 +61,17 @@ fn completions_install_path_for_home(shell: Shell, home: &std::path::Path) -> Op
             let dir = home.join(".config/fish/completions");
             Some(dir.join("kno.fish"))
         }
+        Shell::PowerShell => {
+            let dir = powershell_dir(home).join("Completions");
+            Some(dir.join("kno.ps1"))
+        }
         _ => None,
     }
 }
 
 pub fn install_completions(shell: Shell) -> io::Result<PathBuf> {
-    let home = std::env::var("HOME").map_err(|e| io::Error::new(io::ErrorKind::NotFound, e))?;
-    install_completions_to(shell, &PathBuf::from(home))
+    let home = crate::project::home_dir(None).map_err(io::Error::other)?;
+    install_completions_to(shell, &home)
 }
 
 fn install_completions_to(shell: Shell, home: &std::path::Path) -> io::Result<PathBuf> {
@@ -73,6 +90,9 @@ fn install_completions_to(shell: Shell, home: &std::path::Path) -> io::Result<Pa
 
     if shell == Shell::Zsh {
         patch_zshrc(home, &path)?;
+    }
+    if shell == Shell::PowerShell {
+        patch_powershell_profile(home, &path)?;
     }
 
     Ok(path)
@@ -97,6 +117,203 @@ fn patch_zshrc(home: &std::path::Path, completions_path: &std::path::Path) -> io
     writeln!(file, "# kno shell completions")?;
     writeln!(file, "{source_line}")?;
     Ok(())
+}
+
+fn patch_powershell_profile(home: &Path, completions_path: &Path) -> io::Result<()> {
+    let source_line = format!(". '{}'", escape_powershell_single_quoted(completions_path));
+
+    for profile in powershell_profile_paths(home) {
+        patch_powershell_profile_file(&profile, &source_line)?;
+    }
+    Ok(())
+}
+
+fn patch_powershell_profile_file(profile: &Path, source_line: &str) -> io::Result<()> {
+    let (mut content, encoding) = if profile.exists() {
+        let (content, encoding) = read_profile_text(profile)?;
+        if content.contains(source_line) {
+            return Ok(());
+        }
+        (content, encoding)
+    } else {
+        (String::new(), ProfileEncoding::Utf8)
+    };
+
+    if let Some(parent) = profile.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    append_profile_source(&mut content, source_line);
+    write_profile_text(profile, &content, encoding)
+}
+
+fn append_profile_source(content: &mut String, source_line: &str) {
+    if !content.is_empty() && !content.ends_with('\n') {
+        content.push('\n');
+    }
+    content.push('\n');
+    content.push_str("# kno shell completions\n");
+    content.push_str(source_line);
+    content.push('\n');
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProfileEncoding {
+    Utf8,
+    Utf8Bom,
+    Utf16Le,
+    Utf16Be,
+}
+
+fn read_profile_text(path: &Path) -> io::Result<(String, ProfileEncoding)> {
+    let bytes = std::fs::read(path)?;
+    if bytes.starts_with(&[0xFF, 0xFE]) {
+        return Ok((decode_utf16(&bytes[2..], true)?, ProfileEncoding::Utf16Le));
+    }
+    if bytes.starts_with(&[0xFE, 0xFF]) {
+        return Ok((decode_utf16(&bytes[2..], false)?, ProfileEncoding::Utf16Be));
+    }
+    if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        let text = String::from_utf8(bytes[3..].to_vec()).map_err(invalid_data)?;
+        return Ok((text, ProfileEncoding::Utf8Bom));
+    }
+    String::from_utf8(bytes)
+        .map(|text| (text, ProfileEncoding::Utf8))
+        .map_err(invalid_data)
+}
+
+fn decode_utf16(bytes: &[u8], little_endian: bool) -> io::Result<String> {
+    let chunks = bytes.chunks_exact(2);
+    if !chunks.remainder().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "UTF-16 profile has an odd byte count",
+        ));
+    }
+    let words = chunks
+        .map(|chunk| {
+            let pair = [chunk[0], chunk[1]];
+            if little_endian {
+                u16::from_le_bytes(pair)
+            } else {
+                u16::from_be_bytes(pair)
+            }
+        })
+        .collect::<Vec<_>>();
+    String::from_utf16(&words).map_err(invalid_data)
+}
+
+fn write_profile_text(path: &Path, content: &str, encoding: ProfileEncoding) -> io::Result<()> {
+    let bytes = match encoding {
+        ProfileEncoding::Utf8 => content.as_bytes().to_vec(),
+        ProfileEncoding::Utf8Bom => {
+            let mut bytes = vec![0xEF, 0xBB, 0xBF];
+            bytes.extend_from_slice(content.as_bytes());
+            bytes
+        }
+        ProfileEncoding::Utf16Le => encode_utf16(content, true),
+        ProfileEncoding::Utf16Be => encode_utf16(content, false),
+    };
+    std::fs::write(path, bytes)
+}
+
+fn encode_utf16(content: &str, little_endian: bool) -> Vec<u8> {
+    let mut bytes = if little_endian {
+        vec![0xFF, 0xFE]
+    } else {
+        vec![0xFE, 0xFF]
+    };
+    for word in content.encode_utf16() {
+        let pair = if little_endian {
+            word.to_le_bytes()
+        } else {
+            word.to_be_bytes()
+        };
+        bytes.extend_from_slice(&pair);
+    }
+    bytes
+}
+
+fn invalid_data(err: impl std::error::Error + Send + Sync + 'static) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, err)
+}
+
+#[cfg(target_os = "windows")]
+fn powershell_dir(home: &std::path::Path) -> PathBuf {
+    windows_documents_dir(home).join("PowerShell")
+}
+
+/// Documents may be redirected away from `home\Documents` (OneDrive or
+/// enterprise folder redirection), so ask the shell for the known folder.
+/// The redirected path is honored only when it lives under the home being
+/// resolved: synthetic homes (tests, env overrides) must never leak profile
+/// writes into the real user's Documents.
+#[cfg(target_os = "windows")]
+fn windows_documents_dir(home: &std::path::Path) -> PathBuf {
+    documents_dir_for(home, known_folder_documents().as_deref())
+}
+
+#[cfg(target_os = "windows")]
+fn documents_dir_for(home: &std::path::Path, known: Option<&std::path::Path>) -> PathBuf {
+    match known {
+        Some(known) if known.starts_with(home) => known.to_path_buf(),
+        _ => home.join("Documents"),
+    }
+}
+
+/// Only successful resolutions are cached: a transient spawn failure (e.g.
+/// process pressure or a hostile PATH) must not permanently degrade the
+/// process to the unredirected layout.
+#[cfg(target_os = "windows")]
+fn known_folder_documents() -> Option<PathBuf> {
+    static DOCUMENTS: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    if let Some(cached) = DOCUMENTS.get() {
+        return Some(cached.clone());
+    }
+    let resolved = query_known_folder_documents()?;
+    Some(DOCUMENTS.get_or_init(|| resolved).clone())
+}
+
+#[cfg(target_os = "windows")]
+fn query_known_folder_documents() -> Option<PathBuf> {
+    let output = std::process::Command::new(crate::native_command::windows_powershell_exe())
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "[Environment]::GetFolderPath('MyDocuments')",
+        ])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    Some(PathBuf::from(trimmed))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn powershell_dir(home: &std::path::Path) -> PathBuf {
+    home.join(".config").join("powershell")
+}
+
+fn powershell_profile_paths(home: &std::path::Path) -> Vec<PathBuf> {
+    #[allow(unused_mut)]
+    let mut profiles = vec![powershell_dir(home).join("Microsoft.PowerShell_profile.ps1")];
+    #[cfg(target_os = "windows")]
+    profiles.push(
+        windows_documents_dir(home)
+            .join("WindowsPowerShell")
+            .join("Microsoft.PowerShell_profile.ps1"),
+    );
+    profiles
+}
+
+fn escape_powershell_single_quoted(path: &std::path::Path) -> String {
+    path.display().to_string().replace('\'', "''")
 }
 
 fn group_zsh_toplevel_commands(script: &str) -> String {
@@ -208,210 +425,5 @@ pub(crate) fn run_completions_command_inner(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn shell_from_path_parses_known_shells() {
-        assert_eq!(shell_from_path("/bin/zsh"), Some(Shell::Zsh));
-        assert_eq!(shell_from_path("/usr/bin/bash"), Some(Shell::Bash));
-        assert_eq!(shell_from_path("/usr/bin/fish"), Some(Shell::Fish));
-        assert_eq!(shell_from_path("/usr/bin/elvish"), Some(Shell::Elvish));
-        assert_eq!(shell_from_path("/usr/bin/pwsh"), Some(Shell::PowerShell));
-        assert_eq!(shell_from_path("/usr/bin/csh"), None);
-    }
-
-    #[test]
-    fn completions_install_path_for_known_shells() {
-        let home = PathBuf::from("/tmp/test-home");
-        let bash = completions_install_path_for_home(Shell::Bash, &home);
-        assert!(bash.unwrap().to_str().unwrap().contains("bash-completion"));
-        let zsh = completions_install_path_for_home(Shell::Zsh, &home);
-        assert!(zsh.unwrap().to_str().unwrap().contains("kno.zsh"));
-        let fish = completions_install_path_for_home(Shell::Fish, &home);
-        assert!(fish.unwrap().to_str().unwrap().contains("kno.fish"));
-    }
-
-    #[test]
-    fn generate_completions_produces_non_empty_output() {
-        let mut buf = Vec::new();
-        generate_completions(Shell::Bash, &mut buf);
-        assert!(!buf.is_empty(), "bash completions should be non-empty");
-        let text = String::from_utf8_lossy(&buf);
-        assert!(
-            text.contains("kno"),
-            "bash completions should reference kno"
-        );
-    }
-
-    #[test]
-    fn parse_shell_is_case_insensitive() {
-        assert_eq!(parse_shell("BASH"), Some(Shell::Bash));
-        assert_eq!(parse_shell("Zsh"), Some(Shell::Zsh));
-        assert_eq!(parse_shell("Fish"), Some(Shell::Fish));
-        assert_eq!(parse_shell("elvish"), Some(Shell::Elvish));
-        assert_eq!(parse_shell("powershell"), Some(Shell::PowerShell));
-        assert_eq!(parse_shell("pwsh"), Some(Shell::PowerShell));
-        assert_eq!(parse_shell("nonsense"), None);
-    }
-
-    #[test]
-    fn install_completions_with_zshrc_patching() {
-        let dir = std::env::temp_dir().join(format!("knots-comp-all-{}", uuid::Uuid::now_v7()));
-        std::fs::create_dir_all(&dir).expect("dir should be creatable");
-
-        // Bash install writes file
-        let path = install_completions_to(Shell::Bash, &dir).expect("bash install should succeed");
-        assert!(path.exists());
-        let content = std::fs::read_to_string(&path).expect("should read file");
-        assert!(content.contains("kno"));
-
-        // Zsh install writes completions file and patches .zshrc
-        let zsh_path =
-            install_completions_to(Shell::Zsh, &dir).expect("zsh install should succeed");
-        assert!(zsh_path.exists());
-        let zshrc = dir.join(".zshrc");
-        assert!(zshrc.exists(), ".zshrc should be created");
-        let rc_content = std::fs::read_to_string(&zshrc).expect("should read .zshrc");
-        assert!(
-            rc_content.contains("source"),
-            ".zshrc should source completions"
-        );
-        assert!(
-            rc_content.contains("kno.zsh"),
-            ".zshrc should reference kno.zsh"
-        );
-
-        // Second install is idempotent — no duplicate source line
-        install_completions_to(Shell::Zsh, &dir).expect("second zsh install should succeed");
-        let rc_after = std::fs::read_to_string(&zshrc).expect("should read .zshrc again");
-        assert_eq!(
-            rc_content.matches("source").count(),
-            rc_after.matches("source").count(),
-            "source line should not be duplicated"
-        );
-
-        // Fish install
-        let fish_path =
-            install_completions_to(Shell::Fish, &dir).expect("fish install should succeed");
-        assert!(fish_path.exists());
-
-        // Unsupported shell returns error
-        assert!(install_completions_to(Shell::Elvish, &dir).is_err());
-
-        // run_completions_command_with_home install mode
-        assert!(run_completions_command_with_home(Some("bash"), true, Some(&dir)).is_ok());
-        assert!(run_completions_command_with_home(Some("zsh"), true, Some(&dir)).is_ok());
-        assert!(run_completions_command_with_home(Some("fish"), true, Some(&dir)).is_ok());
-
-        let _ = std::fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn run_completions_command_print_and_error_modes() {
-        let mut buf = Vec::new();
-        let result = run_completions_command_inner(Some("bash"), false, None, &mut buf);
-        assert!(result.is_ok());
-        assert!(!buf.is_empty(), "bash completions should be written");
-        let mut buf2 = Vec::new();
-        let result2 = run_completions_command_inner(None, false, None, &mut buf2);
-        assert!(result2.is_ok());
-        let mut buf3 = Vec::new();
-        let result3 = run_completions_command_inner(Some("nonsense"), false, None, &mut buf3);
-        assert!(result3.is_err());
-    }
-
-    #[test]
-    fn completions_install_path_returns_none_for_unsupported_shell() {
-        let home = PathBuf::from("/tmp/test-home");
-        assert!(completions_install_path_for_home(Shell::Elvish, &home).is_none());
-        assert!(completions_install_path_for_home(Shell::PowerShell, &home).is_none());
-    }
-
-    #[test]
-    fn zsh_completions_are_flat_and_unstyled() {
-        let mut buf = Vec::new();
-        generate_completions(Shell::Zsh, &mut buf);
-        let text = String::from_utf8_lossy(&buf);
-        assert!(
-            text.contains("_describe -t commands 'kno commands' commands \"$@\""),
-            "zsh completions should use one flat commands list"
-        );
-        assert!(
-            text.contains("commands=("),
-            "zsh completions should define a single commands array"
-        );
-        assert!(
-            !text.contains("Common Commands"),
-            "zsh completions should not contain section headers"
-        );
-        assert!(
-            !text.contains("Other Commands"),
-            "zsh completions should not contain section headers"
-        );
-        assert!(
-            !text.contains("list-colors"),
-            "zsh completions should not inject list-colors styles"
-        );
-        assert!(
-            !text.contains("common_entries"),
-            "zsh completions should not define grouped arrays"
-        );
-        assert!(
-            !text.contains("other_entries"),
-            "zsh completions should not define grouped arrays"
-        );
-        assert!(
-            !text.contains("compadd -V"),
-            "zsh completions should not use grouped compadd sections"
-        );
-    }
-
-    #[test]
-    fn zsh_commands_are_sorted_alphabetically() {
-        let mut buf = Vec::new();
-        generate_completions(Shell::Zsh, &mut buf);
-        let text = String::from_utf8_lossy(&buf);
-
-        // Find _kno_commands function (guard is stripped) and verify
-        // command entries are sorted alphabetically.
-        let marker = "\n_kno_commands() {";
-        let start = text.find(marker).expect("should find _kno_commands");
-        let rest = &text[start..];
-        let end = rest.find("\n}\n").expect("should find function end");
-        let block = &rest[..end + 2];
-
-        let cmds_start = block
-            .find("commands=(")
-            .expect("commands array should exist");
-        let describe_start = block
-            .find("_describe -t commands")
-            .expect("commands should be passed to _describe");
-        let cmds_section = &block[cmds_start..describe_start];
-        let names: Vec<&str> = cmds_section
-            .lines()
-            .filter_map(|line| {
-                let entry = line.trim().trim_end_matches(" \\");
-                if !entry.starts_with('\'') {
-                    return None;
-                }
-                let colon = entry.find(':')?;
-                Some(&entry[1..colon])
-            })
-            .collect();
-
-        assert!(!names.is_empty(), "commands list should not be empty");
-        let mut sorted = names.clone();
-        sorted.sort();
-        assert_eq!(names, sorted, "commands should be alphabetical");
-        assert!(names.contains(&"init"), "init should exist");
-        assert!(names.contains(&"ls"), "ls should exist");
-        assert!(names.contains(&"sync"), "sync should exist");
-    }
-
-    #[test]
-    fn group_zsh_noop_when_function_not_found() {
-        let input = "some random script content";
-        assert_eq!(group_zsh_command_fn(input, "_kno_commands"), input);
-    }
-}
+#[path = "completions_tests.rs"]
+mod tests;

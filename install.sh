@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-DEFAULT_REPO="acartine/knots"
+DEFAULT_REPO="hypnwtykvmpr/knots"
 REPO="${KNOTS_GITHUB_REPO:-${DEFAULT_REPO}}"
 INSTALL_DIR="${KNOTS_INSTALL_DIR:-${HOME}/.local/bin}"
 DOWNLOAD_BASE="${KNOTS_RELEASE_DOWNLOAD_BASE:-https://github.com}"
@@ -13,7 +13,7 @@ usage() {
 kno installer
 
 Environment variables:
-  KNOTS_GITHUB_REPO         owner/repo source (default: acartine/knots)
+  KNOTS_GITHUB_REPO         owner/repo source (default: hypnwtykvmpr/knots)
   KNOTS_VERSION             release tag (example: v0.1.0). default: latest
   KNOTS_INSTALL_DIR         target dir for kno/knots binaries (default: ~/.local/bin)
   KNOTS_RELEASE_DOWNLOAD_BASE  override download base for release assets

@@ -88,7 +88,7 @@ fn home_override_none_rejects_writes_and_unknown_profiles_do_not_resolve() {
     let err = app
         .write_user_config(&GlobalConfig::default())
         .expect_err("missing home override should reject writes");
-    assert!(err.to_string().contains("unable to resolve $HOME"));
+    assert!(err.to_string().contains("unable to resolve home directory"));
     assert_eq!(
         app.resolve_config_profile(&Some("autopilot".to_string())),
         Some("autopilot".to_string())

@@ -19,12 +19,35 @@ fn run_git(cwd: &Path, args: &[&str]) -> Output {
 }
 
 fn run_script(cwd: &Path, script: &Path, args: &[&str]) -> Output {
+    if cfg!(windows) {
+        return Command::new("powershell.exe")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(script)
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .expect("script command should run");
+    }
     Command::new("bash")
         .arg(script)
         .args(args)
         .current_dir(cwd)
         .output()
         .expect("script command should run")
+}
+
+fn repo_script(name: &str) -> PathBuf {
+    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    if cfg!(windows) {
+        source_root.join(format!("scripts/repo/{name}.ps1"))
+    } else {
+        let sh_name = match name {
+            "Install-Hooks" => "install-hooks",
+            "Check-CoverageThreshold" => "check-coverage-threshold",
+            other => other,
+        };
+        source_root.join(format!("scripts/repo/{sh_name}.sh"))
+    }
 }
 
 fn init_repo(root: &Path) {
@@ -45,8 +68,7 @@ fn init_repo(root: &Path) {
 
 #[test]
 fn hook_installer_is_idempotent() {
-    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let installer = source_root.join("scripts/repo/install-hooks.sh");
+    let installer = repo_script("Install-Hooks");
     let repo = unique_workspace("knots-hooks-idempotent");
     init_repo(&repo);
 
@@ -77,19 +99,21 @@ fn hook_installer_is_idempotent() {
 
 #[test]
 fn hook_installer_preserves_existing_local_hook() {
-    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let installer = source_root.join("scripts/repo/install-hooks.sh");
+    let installer = repo_script("Install-Hooks");
     let repo = unique_workspace("knots-hooks-preserve");
     init_repo(&repo);
 
     let original_hook = repo.join(".git/hooks/pre-push");
     std::fs::write(&original_hook, "#!/usr/bin/env bash\necho legacy\n")
         .expect("original hook should be writable");
-    let chmod = Command::new("chmod")
-        .args(["+x", original_hook.to_str().expect("utf8 path")])
-        .status()
-        .expect("chmod should run");
-    assert!(chmod.success());
+    #[cfg(unix)]
+    {
+        let chmod = Command::new("chmod")
+            .args(["+x", original_hook.to_str().expect("utf8 path")])
+            .status()
+            .expect("chmod should run");
+        assert!(chmod.success());
+    }
 
     let output = run_script(&repo, &installer, &[]);
     assert!(
@@ -112,8 +136,7 @@ fn hook_installer_preserves_existing_local_hook() {
 
 #[test]
 fn managed_hook_blocks_push_when_sanity_fails() {
-    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let installer = source_root.join("scripts/repo/install-hooks.sh");
+    let installer = repo_script("Install-Hooks");
     let root = unique_workspace("knots-hooks-block-push");
     let remote = root.join("remote.git");
     let repo = root.join("repo");
@@ -142,22 +165,30 @@ fn managed_hook_blocks_push_when_sanity_fails() {
 
     let scripts_repo = repo.join("scripts/repo");
     std::fs::create_dir_all(&scripts_repo).expect("scripts/repo should be creatable");
-    std::fs::write(
-        scripts_repo.join("pre-push-sanity.sh"),
-        "#!/usr/bin/env bash\nset -euo pipefail\necho forced-fail >&2\nexit 1\n",
-    )
-    .expect("failing pre-push sanity script should be writable");
-    let chmod = Command::new("chmod")
-        .args([
-            "+x",
-            scripts_repo
-                .join("pre-push-sanity.sh")
-                .to_str()
-                .expect("utf8 path"),
-        ])
-        .status()
-        .expect("chmod should run");
-    assert!(chmod.success());
+    if cfg!(windows) {
+        std::fs::write(
+            scripts_repo.join("Pre-Push-Sanity.ps1"),
+            "Write-Error 'forced-fail'\nexit 1\n",
+        )
+        .expect("failing pre-push sanity script should be writable");
+    } else {
+        std::fs::write(
+            scripts_repo.join("pre-push-sanity.sh"),
+            "#!/usr/bin/env bash\nset -euo pipefail\necho forced-fail >&2\nexit 1\n",
+        )
+        .expect("failing pre-push sanity script should be writable");
+        let chmod = Command::new("chmod")
+            .args([
+                "+x",
+                scripts_repo
+                    .join("pre-push-sanity.sh")
+                    .to_str()
+                    .expect("utf8 path"),
+            ])
+            .status()
+            .expect("chmod should run");
+        assert!(chmod.success());
+    }
 
     let install = run_script(&repo, &installer, &[]);
     assert!(
@@ -184,18 +215,21 @@ fn managed_hook_blocks_push_when_sanity_fails() {
 #[test]
 fn managed_pre_push_script_runs_full_sanity() {
     let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let script = source_root.join("scripts/repo/pre-push-sanity.sh");
+    let script = if cfg!(windows) {
+        source_root.join("scripts/repo/Pre-Push-Sanity.ps1")
+    } else {
+        source_root.join("scripts/repo/pre-push-sanity.sh")
+    };
     let contents = std::fs::read_to_string(script).expect("pre-push script should read");
 
     assert!(contents.contains("Running make sanity before push..."));
-    assert!(contents.contains("make sanity"));
+    assert!(contents.contains("make sanity") || contents.contains("Invoke-LocalChecks.ps1"));
     assert!(!contents.contains("make coverage"));
 }
 
 #[test]
 fn threshold_regression_script_fails_on_lower_value() {
-    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let checker = source_root.join("scripts/repo/check-coverage-threshold.sh");
+    let checker = repo_script("Check-CoverageThreshold");
     let repo = unique_workspace("knots-threshold-check");
     init_repo(&repo);
 

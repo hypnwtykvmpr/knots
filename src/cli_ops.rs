@@ -2,6 +2,19 @@ use std::path::PathBuf;
 
 use clap::{Args, Subcommand};
 
+const DEFAULT_UNIX_INSTALLER_URL: &str =
+    "https://raw.githubusercontent.com/hypnwtykvmpr/knots/main/install.sh";
+const DEFAULT_WINDOWS_INSTALLER_URL: &str =
+    "https://raw.githubusercontent.com/hypnwtykvmpr/knots/main/install.ps1";
+
+fn default_installer_url() -> String {
+    if cfg!(target_os = "windows") {
+        DEFAULT_WINDOWS_INSTALLER_URL.to_string()
+    } else {
+        DEFAULT_UNIX_INSTALLER_URL.to_string()
+    }
+}
+
 #[derive(Debug, Args)]
 #[command(about = "Manage named Knots projects.")]
 pub struct ProjectArgs {
@@ -146,7 +159,7 @@ pub struct SelfUpdateArgs {
     #[arg(
         short = 'u',
         long,
-        default_value = "https://raw.githubusercontent.com/acartine/knots/main/install.sh",
+        default_value_t = default_installer_url(),
         help = "Installer script URL."
     )]
     pub script_url: String,

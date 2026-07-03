@@ -221,7 +221,7 @@ fn add_file(
         if existing != &contents {
             return Err(AppError::InvalidArgument(format!(
                 "Knots migration conflict at {}",
-                path.display()
+                display_git_path(&path)
             )));
         }
         return Ok(());
@@ -239,6 +239,10 @@ fn ensure_git_repo(repo_root: &Path) -> Result<(), AppError> {
             repo_root.display()
         )))
     }
+}
+
+fn display_git_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn ensure_remote_exists(repo_root: &Path, remote: &str) -> Result<(), AppError> {
@@ -288,9 +292,11 @@ fn git_checked_bytes(repo_root: &Path, args: &[&str]) -> Result<Vec<u8>, AppErro
 
 fn git_output(repo_root: &Path, args: &[&str]) -> Result<Output, AppError> {
     record_git_command();
+    // Sync-ref data must stay byte-exact; never let eol conversion touch it.
     Command::new("git")
         .arg("-C")
         .arg(repo_root)
+        .args(["-c", "core.autocrlf=false"])
         .args(args)
         .output()
         .map_err(AppError::Io)

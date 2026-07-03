@@ -19,10 +19,12 @@ Published assets:
 - `knots-v<semver>-darwin-arm64.tar.gz`
 - `knots-v<semver>-linux-x86_64.tar.gz`
 - `knots-v<semver>-linux-aarch64.tar.gz`
+- `knots-v<semver>-windows-x86_64.zip`
 - `knots-v<semver>-checksums.txt`
 
 ### Local release/install smoke test
-Run the installer smoke script before publishing major release process changes:
+Run the installer smoke script (bash-only: macOS/Linux, or Git Bash on Windows) before
+publishing major release process changes:
 
 ```bash
 scripts/release/smoke-install.sh
@@ -37,7 +39,8 @@ Optional smoke test env vars:
 - `KNOTS_SMOKE_KEEP_TMP=1` retains temporary tarball/server artifacts after the run.
 
 ### Toggle between release and local test binaries
-Use channel scripts to keep both binaries installed and switch with a symlink:
+Use channel scripts (bash-only: macOS/Linux, or Git Bash on Windows) to keep both
+binaries installed and switch with a symlink:
 
 ```bash
 # Install GitHub release binary into ~/.local/bin/acartine_knots/release/kno

@@ -4,12 +4,16 @@ Build automation, release tooling, and git hooks.
 
 ## scripts/repo/
 
-- **`pre-push-sanity.sh`** — runs `make coverage` before every push
+- **`pre-push-sanity.sh`** — runs `make sanity` before every push
 - **`install-hooks.sh`** — installs the managed pre-push hook
 - **`check-file-sizes.sh`** — enforces < 500 lines per .rs file
 - **`check-coverage-threshold.sh`** — prevents coverage regressions
 - **`require-changeset.sh`** — ensures changesets are present for releases
 - **`publish-public.sh`** — publish release artifacts to the public channel
+- **`reap-stale-artifacts.sh`** — prunes stale `target/` build trees
+- Windows (PowerShell) counterparts used by `make` when `OS=Windows_NT`:
+  `Install-Hooks.ps1`, `Pre-Push-Sanity.ps1`, `Check-FileSizes.ps1`,
+  `Check-CoverageThreshold.ps1`, `Invoke-Coverage.ps1`, `Reap-StaleArtifacts.ps1`
 
 ## scripts/mcp/
 

@@ -192,7 +192,7 @@ pub struct InitRemoteArgs {
 #[derive(Debug, Args)]
 #[command(about = "Generate or install shell completions.")]
 pub struct CompletionsArgs {
-    #[arg(help = "Shell name (bash, zsh, fish). Auto-detected if omitted.")]
+    #[arg(help = "Shell name (bash, zsh, fish, elvish, powershell). Auto-detected if omitted.")]
     pub shell: Option<String>,
 
     #[arg(

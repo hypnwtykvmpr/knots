@@ -105,15 +105,15 @@ fn install_always_non_fast_forward_hook(origin: &Path) {
     make_executable(&hook);
 }
 
-fn make_executable(path: &Path) {
+fn make_executable(_path: &Path) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(path)
+        let mut perms = std::fs::metadata(_path)
             .expect("hook metadata should be readable")
             .permissions();
         perms.set_mode(0o755);
-        std::fs::set_permissions(path, perms).expect("hook permissions should be set");
+        std::fs::set_permissions(_path, perms).expect("hook permissions should be set");
     }
 }
 

@@ -160,7 +160,7 @@ fn run_profile_command_handles_list_show_and_set_default() {
     )
     .expect("profile set-default-quick should succeed");
 
-    let config_path = root.join(".config/knots/config.toml");
+    let config_path = crate::project::config_path(Some(&root)).expect("config path should resolve");
     let config2 = std::fs::read_to_string(&config_path).expect("config should be readable");
     assert!(
         config2.contains("default_quick_profile"),

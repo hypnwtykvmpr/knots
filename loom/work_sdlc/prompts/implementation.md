@@ -58,7 +58,8 @@ params:
    `{{ output }}` = `pr` means open a pull request from the feature
    branch. The PR is the review artifact.
 7. Tag the knot with each commit hash using the `commit:` prefix:
-   `short_hash=$(git rev-parse --short=12 <commit>)`
+   PowerShell: `$short_hash = git rev-parse --short=12 <commit>`
+   Bash: `short_hash=$(git rev-parse --short=12 <commit>)`
    `kno update <id> --add-tag "commit:${short_hash}"`
    Run this for every commit created during implementation.
    Use short hashes only; do not use the full 40-character hash.

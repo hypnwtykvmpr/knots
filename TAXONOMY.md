@@ -224,7 +224,9 @@ A `LocalOnly` project identified by a name (no git backing). Resolved by `resolv
 - `src/project.rs:200` — `create_named_project`
 
 ### passive escape state <!-- auto -->
-A non-terminal state where a knot is paused and not claimable. Today: `deferred` (and the edge concept `blocked_by`, not a state).
+A non-terminal state where a knot is paused and not claimable. Built-in work
+and execution-plan workflows use `blocked` and `deferred`; gate and explore
+workflows use `deferred`. The edge concept `blocked_by` is not a state.
 - `README.md:36`
 
 ### portfolio <!-- auto -->
@@ -394,11 +396,13 @@ All values come from `src/domain/state.rs:6` (`KnotState`). Workflow column name
 - `lease_ready` (queue), `lease_active` (action), `lease_terminated` (terminal)
 
 ### Cross-cutting
+- `blocked` — passive escape in work and execution-plan workflows (not terminal)
 - `deferred` — passive escape (not terminal)
 - `abandoned` — terminal
 
-### ⚠ not a state
-- `blocked` — only an edge kind (`blocked_by` / `blocks`), not a `KnotState`. The architecture doc's mention of a "blocked state" is legacy wording.
+### ⚠ edge kinds, not states
+- `blocked_by` / `blocks` are edge kinds. `blocked` is a passive escape state
+  in workflows that define it.
 
 ---
 
@@ -644,4 +648,6 @@ Terms needing human attention. Resolve and remove once decided.
 - `resolve` — six distinct subjects (context, profile id, state, rollback target, hooks dir, step metadata). Accepted; each reads clearly in context.
 - `push_unique` in `installed_workflows` — unrelated to git push but accepted; rename not prioritized.
 - `Agent` across `GateOwnerKind::Agent`, `LeaseType::Agent`, and the generic actor concept — currently consistent; revisit only if drift appears.
-- `blocked` — only an edge kind (`blocked_by` / `blocks`), not a state. The architecture-v5 knot will clarify prose wording.
+- `blocked` exists as a passive escape state in workflows that define it;
+  `blocked_by` / `blocks` are edge kinds. The architecture-v5 knot will
+  clarify legacy prose wording.

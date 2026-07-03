@@ -4,6 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::locks::{FileLock, LockError};
+use crate::project::{DistributionMode, StorePaths};
 
 use super::*;
 
@@ -149,6 +150,64 @@ fn drain_pending_requests_removes_invalid_request_files() {
 }
 
 #[test]
+fn drain_pending_requests_recovers_claimed_processing_files() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    paths.create_dirs().expect("queue dirs should exist");
+    let request = state_request(&root, &paths, "stale-processing", "K-stale");
+    let stale = paths.requests_dir.join("stale.json.processing");
+    let bytes = serde_json::to_vec(&request).expect("request should serialize");
+    fs::write(&stale, bytes).expect("stale processing request should write");
+
+    let processed = drain_pending_requests(&paths, &mut |request| {
+        QueuedWriteResponse::success(request.request_id.clone())
+    })
+    .expect("stale processing request should drain");
+
+    assert_eq!(processed, 1);
+    assert!(!stale.exists());
+    let response = read_response_file(&paths.responses_dir.join("stale-processing.json"))
+        .expect("response should read")
+        .expect("response should exist");
+    assert_eq!(response.output, "stale-processing");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn drain_pending_requests_discards_claimed_file_when_response_already_exists() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    paths.create_dirs().expect("queue dirs should exist");
+    let request = state_request(&root, &paths, "already-responded", "K-stale");
+    let stale = paths.requests_dir.join("already-responded.json.processing");
+    let bytes = serde_json::to_vec(&request).expect("request should serialize");
+    fs::write(&stale, bytes).expect("stale processing request should write");
+    write_response_file(
+        Path::new(&request.response_path),
+        &QueuedWriteResponse::success("persisted-response".to_string()),
+    )
+    .expect("response should write");
+
+    let mut executor_called = false;
+    let processed = drain_pending_requests(&paths, &mut |_request| {
+        executor_called = true;
+        QueuedWriteResponse::success("duplicate".to_string())
+    })
+    .expect("already responded processing request should drain");
+
+    assert_eq!(processed, 0);
+    assert!(!executor_called);
+    assert!(!stale.exists());
+    let response = read_response_file(Path::new(&request.response_path))
+        .expect("response should read")
+        .expect("response should exist");
+    assert_eq!(response.output, "persisted-response");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn enqueue_and_wait_spins_until_worker_lock_is_released() {
     let root = unique_root();
     let paths = QueuePaths::for_repo(&root);
@@ -218,59 +277,203 @@ fn list_request_files_and_read_response_file_handle_missing_paths() {
 }
 
 #[test]
-fn lease_create_operation_serializes_round_trip() {
-    let op = WriteOperation::LeaseCreate(LeaseCreateOperation {
-        nickname: "test-session".to_string(),
-        lease_type: "agent".to_string(),
-        agent_type: Some("cli".to_string()),
-        provider: Some("Anthropic".to_string()),
-        agent_name: Some("claude".to_string()),
-        model: Some("opus".to_string()),
-        model_version: Some("4.6".to_string()),
-        json: false,
-        timeout_seconds: None,
-    });
-    let json = serde_json::to_string(&op).expect("should serialize");
-    let parsed: WriteOperation = serde_json::from_str(&json).expect("should deserialize");
-    assert_eq!(parsed, op);
+fn enqueue_and_wait_with_context_builds_local_only_absolute_request() {
+    let root = unique_root();
+    let store_paths = StorePaths {
+        root: root.join("custom-store"),
+    };
+    fs::create_dir_all(&store_paths.root).expect("custom store should exist");
+    let canonical_root = fs::canonicalize(&root).expect("root should canonicalize");
+    let canonical_store = fs::canonicalize(&store_paths.root).expect("store should canonicalize");
+    let expected_response_dir = canonical_store.join("queue").join("responses");
+
+    let response = enqueue_and_wait_with_context(
+        &root,
+        &store_paths,
+        DistributionMode::LocalOnly,
+        Some("project-a".to_string()),
+        "cache/state.sqlite",
+        WriteOperation::QuickNew(QuickNewOperation {
+            title: "Queued".to_string(),
+            description: None,
+            state: None,
+            json: false,
+        }),
+        |request| {
+            assert_eq!(request.repo_root, canonical_root.display().to_string());
+            assert_eq!(request.store_root, canonical_store.display().to_string());
+            assert_eq!(request.distribution, "local_only");
+            assert_eq!(request.project_id.as_deref(), Some("project-a"));
+            assert_eq!(
+                request.db_path,
+                canonical_store
+                    .join("cache/state.sqlite")
+                    .display()
+                    .to_string()
+            );
+            assert!(Path::new(&request.response_path).starts_with(&expected_response_dir));
+            QueuedWriteResponse::success("ok".to_string())
+        },
+    )
+    .expect("local-only queued write should succeed");
+
+    assert_eq!(response.output, "ok");
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn lease_terminate_operation_serializes_round_trip() {
-    let op = WriteOperation::LeaseTerminate(LeaseTerminateOperation {
-        id: "knot-abc123".to_string(),
-    });
-    let json = serde_json::to_string(&op).expect("should serialize");
-    let parsed: WriteOperation = serde_json::from_str(&json).expect("should deserialize");
-    assert_eq!(parsed, op);
+fn enqueue_and_wait_with_context_preserves_absolute_git_db_path() {
+    let root = unique_root();
+    let store_paths = StorePaths {
+        root: root.join(".knots"),
+    };
+    fs::create_dir_all(&store_paths.root).expect("store should exist");
+    let absolute_db = root.join("absolute-cache/state.sqlite");
+
+    let response = enqueue_and_wait_with_context(
+        &root,
+        &store_paths,
+        DistributionMode::Git,
+        None,
+        absolute_db.to_str().expect("absolute db should be utf8"),
+        WriteOperation::QuickNew(QuickNewOperation {
+            title: "Queued".to_string(),
+            description: None,
+            state: None,
+            json: false,
+        }),
+        |request| {
+            assert_eq!(request.distribution, "git");
+            assert_eq!(request.db_path, absolute_db.display().to_string());
+            QueuedWriteResponse::success("ok".to_string())
+        },
+    )
+    .expect("git queued write should succeed");
+
+    assert_eq!(response.output, "ok");
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn lease_create_operation_with_no_optional_fields() {
-    let op = WriteOperation::LeaseCreate(LeaseCreateOperation {
-        nickname: "manual-session".to_string(),
-        lease_type: "manual".to_string(),
-        agent_type: None,
-        provider: None,
-        agent_name: None,
-        model: None,
-        model_version: None,
-        json: false,
-        timeout_seconds: None,
-    });
-    let json = serde_json::to_string(&op).expect("should serialize");
-    let parsed: WriteOperation = serde_json::from_str(&json).expect("should deserialize");
-    assert_eq!(parsed, op);
+fn enqueue_request_persists_json_file_and_response_writer_creates_parent() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    paths.create_dirs().expect("queue dirs should exist");
+    let request = state_request(&root, &paths, "persisted", "K-persist");
+
+    enqueue_request(&paths, &request).expect("request should enqueue");
+    let files = list_request_files(&paths.requests_dir).expect("request files should list");
+    assert_eq!(files.len(), 1);
+    let raw = fs::read_to_string(&files[0]).expect("request json should read");
+    assert!(raw.contains("\"request_id\":\"persisted\""));
+    assert!(!files[0].with_extension("json.tmp").exists());
+
+    let response_path = root.join("nested/responses/persisted.json");
+    write_response_file(
+        &response_path,
+        &QueuedWriteResponse::failure("bad".to_string()),
+    )
+    .expect("response should write");
+    let response = read_response_file(&response_path)
+        .expect("response should read")
+        .expect("response should exist");
+    assert!(!response.success);
+    assert_eq!(response.error.as_deref(), Some("bad"));
+    assert!(!response_path.with_extension("json.tmp").exists());
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn lease_extend_operation_serializes_round_trip() {
-    let op = WriteOperation::LeaseExtend(LeaseExtendOperation {
-        lease_id: "knot-lease-1".to_string(),
-        timeout_seconds: Some(1200),
-        json: true,
-    });
-    let json = serde_json::to_string(&op).expect("should serialize");
-    let parsed: WriteOperation = serde_json::from_str(&json).expect("should deserialize");
-    assert_eq!(parsed, op);
+fn list_request_files_filters_json_and_bad_response_errors() {
+    let root = unique_root();
+    let requests = root.join("requests");
+    fs::create_dir_all(&requests).expect("request dir should exist");
+    fs::write(requests.join("b.json"), "{}").expect("b request should write");
+    fs::write(requests.join("a.json"), "{}").expect("a request should write");
+    fs::write(requests.join("ignore.txt"), "{}").expect("ignored file should write");
+
+    let files = list_request_files(&requests).expect("requests should list");
+    let names: Vec<_> = files
+        .iter()
+        .map(|path| path.file_name().unwrap().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, vec!["a.json".to_string(), "b.json".to_string()]);
+
+    let bad_response = root.join("bad-response.json");
+    fs::write(&bad_response, "{not valid").expect("bad response should write");
+    let err = read_response_file(&bad_response).expect_err("bad response should fail");
+    assert!(matches!(err, QueueError::Serde(_)));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn enqueue_request_errors_when_queue_dirs_are_missing() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    let request = state_request(&root, &paths, "missing-dirs", "K-missing-dirs");
+
+    let err = enqueue_request(&paths, &request).expect_err("missing queue dirs should fail");
+    assert!(matches!(err, QueueError::Io(_)));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn drain_pending_requests_propagates_response_write_errors() {
+    let root = unique_root();
+    let paths = QueuePaths::for_repo(&root);
+    paths.create_dirs().expect("queue dirs should exist");
+    let mut request = state_request(&root, &paths, "bad-response-path", "K-bad-response-path");
+    let response_parent = root.join("response-parent-is-file");
+    fs::write(&response_parent, "not a directory").expect("file parent should write");
+    request.response_path = response_parent.join("response.json").display().to_string();
+    enqueue_request(&paths, &request).expect("request should enqueue");
+
+    let err = drain_pending_requests(&paths, &mut |request| {
+        QueuedWriteResponse::success(request.request_id.clone())
+    })
+    .expect_err("response write should fail when parent path is a file");
+    assert!(matches!(err, QueueError::Io(_)));
+    let files = list_request_files(&paths.requests_dir)
+        .expect("claimed request files should remain recoverable");
+    assert_eq!(files.len(), 1);
+    assert!(files[0]
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|name| name.ends_with(".json.processing")));
+    let processing_files = fs::read_dir(&paths.requests_dir)
+        .expect("request dir should list")
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".json.processing")
+        })
+        .count();
+    assert_eq!(processing_files, 1);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn response_file_helpers_report_filesystem_errors() {
+    let root = unique_root();
+    let file_parent = root.join("file-parent");
+    fs::write(&file_parent, "not a directory").expect("file parent should write");
+    let response_path = file_parent.join("nested.json");
+
+    let write_err = write_response_file(
+        &response_path,
+        &QueuedWriteResponse::success("ignored".to_string()),
+    )
+    .expect_err("file parent should block response write");
+    assert!(matches!(write_err, QueueError::Io(_)));
+
+    let read_err = read_response_file(&root).expect_err("directory response should not read");
+    assert!(matches!(read_err, QueueError::Io(_)));
+
+    let _ = fs::remove_dir_all(root);
 }

@@ -24,8 +24,10 @@ Ship a new Knots release.
    pull the latest remote state first. Check the current version in
    `Cargo.toml` and `package.json`, then compare it with the latest semver
    tag and the GitHub release for `v<version>`.
-   Preview commits since the latest semver tag with:
-   `git log "$(git tag --sort=-version:refname | head -n 1)"..HEAD --oneline`
+   Preview commits since the latest semver tag. PowerShell:
+   `$tag = git tag --sort=-version:refname | Select-Object -First 1`
+   `git log "$tag..HEAD" --oneline`
+   Bash: `git log "$(git tag --sort=-version:refname | head -n 1)"..HEAD --oneline`
 
 2. **Inspect pending release inputs** — Check whether there are unreleased
    changesets in `.changeset/` and whether a `Version Packages` PR already
@@ -33,7 +35,7 @@ Ship a new Knots release.
    `npm run check-cargo-version`
 
 3. **Audit changeset coverage** — Walk every commit since the last tag
-   (`git log "$(git tag --sort=-version:refname | head -n 1)"..HEAD --oneline`)
+   (the same latest-tag log preview command from step 1)
    and classify each one:
    - **User-facing** (CLI flags, commands, output format, defaults, errors,
      config, deprecations, bug fixes users would notice) → must be covered by
@@ -75,11 +77,11 @@ Ship a new Knots release.
 
 5. **Run required quality gates** — Before merging a version PR or retrying a
    release, run:
-   - `make sanity`
+   - `make sanity` (Windows without GNU make: `./Invoke-LocalChecks.ps1 -Sanity`)
    - `npm run check-cargo-version`
 
    If release tooling changed, also run:
-   - `scripts/release/smoke-install.sh`
+   - `bash scripts/release/smoke-install.sh` (unix-only installer test; run from Git Bash on Windows)
 
    Stop on any failure. Do not ship a release with failing sanity checks.
 
@@ -97,10 +99,11 @@ Ship a new Knots release.
    - `knots-v<semver>-darwin-arm64.tar.gz`
    - `knots-v<semver>-linux-x86_64.tar.gz`
    - `knots-v<semver>-linux-aarch64.tar.gz`
+   - `knots-v<semver>-windows-x86_64.zip`
    - `knots-v<semver>-checksums.txt`
 
    To preview the release body locally, run:
-   `scripts/release/notes-from-changelog.sh <version> CHANGELOG.md`
+   `bash scripts/release/notes-from-changelog.sh <version> CHANGELOG.md` (Git Bash on Windows)
 
 8. **Report** — Tell the user the released version, whether the release was
    newly published or recovered, link the GitHub Release, and call out any

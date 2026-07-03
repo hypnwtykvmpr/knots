@@ -320,6 +320,7 @@ pub(super) fn execute_rollback(
         ),
         lease_bound,
     );
+    validate_next_bound_lease(app, &resolution.knot, args.lease_id.as_deref())?;
     if args.dry_run {
         if args.json {
             return Ok(super::format_json(&serde_json::json!({

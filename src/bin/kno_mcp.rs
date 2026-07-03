@@ -2,6 +2,8 @@
 mod args;
 #[path = "kno_mcp/auth.rs"]
 mod auth;
+#[path = "../native_command.rs"]
+mod native_command;
 #[path = "kno_mcp/runner.rs"]
 mod runner;
 #[path = "kno_mcp/server.rs"]
@@ -31,8 +33,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         CommandMode::Stdio => {
             let server = server::KnoMcp::new(config.server);
+            let shutdown_handle = server.clone();
             let running = server.serve(rmcp::transport::stdio()).await?;
             running.waiting().await?;
+            // The stdio transport is gone; release the session lease so
+            // sync is not deferred for the rest of the lease timeout.
+            tokio::task::spawn_blocking(move || shutdown_handle.terminate_session_leases()).await?;
             Ok(())
         }
         CommandMode::Serve(http) => server::serve_http(config.server, http).await,

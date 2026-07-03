@@ -275,12 +275,16 @@ fn install_custom_workflow(root: &std::path::Path, db: &std::path::Path) {
     let home = unique_workspace("knots-e2e-loom-multi-home");
     let bundle_path = root.join("loom-alt.toml");
     std::fs::write(&bundle_path, CUSTOM_LOOM_BUNDLE).expect("bundle should write");
-    let install = std::process::Command::new(knots_binary())
+    let mut command = std::process::Command::new(knots_binary());
+    command
         .arg("--repo-root")
         .arg(root)
         .arg("--db")
         .arg(db)
         .env("HOME", &home)
+        .env("USERPROFILE", &home)
+        .env("APPDATA", home.join("AppData").join("Roaming"))
+        .env("LOCALAPPDATA", home.join("AppData").join("Local"))
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
         .args([
             "workflow",
@@ -289,9 +293,9 @@ fn install_custom_workflow(root: &std::path::Path, db: &std::path::Path) {
             "work",
             "--set-default=false",
             bundle_path.to_str().expect("utf8 path"),
-        ])
-        .output()
-        .expect("install should run");
+        ]);
+    configure_coverage_env(&mut command);
+    let install = command.output().expect("install should run");
     assert_success(&install);
 }
 

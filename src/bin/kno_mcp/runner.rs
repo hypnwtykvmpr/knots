@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use rmcp::model::{CallToolResult, Content};
 use serde_json::{json, Value};
@@ -39,7 +38,7 @@ impl KnoRunner {
         args: &[String],
         allow_active_leases: bool,
     ) -> Result<Value, KnoFailure> {
-        let mut command = Command::new(&self.kno_bin);
+        let mut command = crate::native_command::command_for_program(&self.kno_bin);
         command.args(build_argv(&self.repo, subcommand, args));
         if allow_active_leases {
             command.env("KNOTS_ALLOW_ACTIVE_LEASE_REPLICATION", "1");
@@ -66,16 +65,39 @@ impl KnoRunner {
             Err(err) => failure_result(&err),
         }
     }
+
+    /// Run a subcommand that has no `--json` mode (e.g. `lease terminate`),
+    /// checking only the exit status.
+    pub fn run_raw(&self, subcommand: &str, args: &[String]) -> Result<(), KnoFailure> {
+        let mut command = crate::native_command::command_for_program(&self.kno_bin);
+        command.args(build_argv_without_json(&self.repo, subcommand, args));
+        let output = command.output().map_err(|err| KnoFailure {
+            exit_code: None,
+            stderr: err.to_string(),
+        })?;
+        if !output.status.success() {
+            return Err(KnoFailure {
+                exit_code: output.status.code(),
+                stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            });
+        }
+        Ok(())
+    }
 }
 
 pub fn build_argv(repo: &Path, subcommand: &str, args: &[String]) -> Vec<String> {
+    let mut argv = build_argv_without_json(repo, subcommand, args);
+    argv.push("--json".to_string());
+    argv
+}
+
+fn build_argv_without_json(repo: &Path, subcommand: &str, args: &[String]) -> Vec<String> {
     let mut argv = vec![
         "-C".to_string(),
         repo.display().to_string(),
         subcommand.to_string(),
     ];
     argv.extend(args.iter().cloned());
-    argv.push("--json".to_string());
     argv
 }
 
@@ -87,15 +109,21 @@ pub fn resolve_default_kno_bin() -> PathBuf {
 }
 
 fn resolve_sibling_kno_bin(parent: &Path) -> PathBuf {
-    let kno = parent.join("kno");
-    if kno.exists() {
-        return kno;
-    }
-    let knots = parent.join("knots");
-    if knots.exists() {
-        return knots;
+    for candidate in sibling_kno_names() {
+        let path = parent.join(candidate);
+        if path.exists() {
+            return path;
+        }
     }
     PathBuf::from("kno")
+}
+
+fn sibling_kno_names() -> &'static [&'static str] {
+    if cfg!(windows) {
+        &["kno.exe", "kno", "knots.exe", "knots"]
+    } else {
+        &["kno", "knots"]
+    }
 }
 
 pub fn failure_result(err: &KnoFailure) -> CallToolResult {
@@ -186,7 +214,7 @@ mod tests {
         assert_eq!(err.exit_code, Some(1));
         assert!(err.stderr.contains("not found"));
 
-        let script = temp_script("bad-json", "printf 'not-json\\n'\n");
+        let script = temp_script("bad-json", bad_json_body());
         let runner = KnoRunner::new(script.clone(), PathBuf::from("/tmp/repo"));
         let err = runner
             .run("show", &[])
@@ -214,7 +242,7 @@ mod tests {
         let path = resolve_default_kno_bin();
         assert!(matches!(
             path.file_name().and_then(|name| name.to_str()),
-            Some("kno" | "knots")
+            Some("kno" | "knots" | "kno.exe" | "knots.exe")
         ));
     }
 
@@ -224,29 +252,26 @@ mod tests {
         fs::create_dir_all(&dir).expect("temp dir");
         assert_eq!(resolve_sibling_kno_bin(&dir), PathBuf::from("kno"));
 
-        fs::write(dir.join("knots"), "").expect("write knots");
-        assert_eq!(resolve_sibling_kno_bin(&dir), dir.join("knots"));
+        fs::write(dir.join(knots_file_name()), "").expect("write knots");
+        assert_eq!(resolve_sibling_kno_bin(&dir), dir.join(knots_file_name()));
 
-        fs::write(dir.join("kno"), "").expect("write kno");
-        assert_eq!(resolve_sibling_kno_bin(&dir), dir.join("kno"));
+        fs::write(dir.join(kno_file_name()), "").expect("write kno");
+        assert_eq!(resolve_sibling_kno_bin(&dir), dir.join(kno_file_name()));
         let _ = fs::remove_dir_all(dir);
     }
 
     fn fixture_kno() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/kno-stub.sh")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(fixture_kno_name())
     }
 
     fn temp_script(name: &str, body: &str) -> PathBuf {
         let path = std::env::temp_dir().join(format!(
-            "kno-mcp-{name}-{}-{}",
+            "kno-mcp-{name}-{}-{}{}",
             std::process::id(),
-            "runner"
+            "runner",
+            script_extension()
         ));
-        fs::write(
-            &path,
-            format!("#!/usr/bin/env bash\nset -euo pipefail\n{body}"),
-        )
-        .expect("write script");
+        fs::write(&path, script_with_body(body)).expect("write script");
         #[cfg(unix)]
         {
             let mut permissions = fs::metadata(&path).expect("metadata").permissions();
@@ -254,5 +279,53 @@ mod tests {
             fs::set_permissions(&path, permissions).expect("chmod");
         }
         path
+    }
+
+    fn fixture_kno_name() -> &'static str {
+        if cfg!(windows) {
+            "tests/fixtures/kno-stub.ps1"
+        } else {
+            "tests/fixtures/kno-stub.sh"
+        }
+    }
+
+    fn kno_file_name() -> &'static str {
+        if cfg!(windows) {
+            "kno.exe"
+        } else {
+            "kno"
+        }
+    }
+
+    fn knots_file_name() -> &'static str {
+        if cfg!(windows) {
+            "knots.exe"
+        } else {
+            "knots"
+        }
+    }
+
+    fn script_extension() -> &'static str {
+        if cfg!(windows) {
+            ".ps1"
+        } else {
+            ""
+        }
+    }
+
+    fn script_with_body(body: &str) -> String {
+        if cfg!(windows) {
+            format!("$ErrorActionPreference = 'Stop'\n{body}")
+        } else {
+            format!("#!/usr/bin/env bash\nset -euo pipefail\n{body}")
+        }
+    }
+
+    fn bad_json_body() -> &'static str {
+        if cfg!(windows) {
+            "'not-json'\n"
+        } else {
+            "printf 'not-json\\n'\n"
+        }
     }
 }

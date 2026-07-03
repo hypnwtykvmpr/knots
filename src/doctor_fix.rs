@@ -244,10 +244,21 @@ pub(crate) fn sync_after_fixes(repo_root: &Path) {
 }
 
 fn fix_lock_health(repo_root: &Path) {
-    let repo_lock = repo_root.join(".knots").join("locks").join("repo.lock");
-    let cache_lock = repo_root.join(".knots").join("cache").join("cache.lock");
-    let _ = std::fs::remove_file(repo_lock);
-    let _ = std::fs::remove_file(cache_lock);
+    let locks = [
+        repo_root.join(".knots").join("locks").join("repo.lock"),
+        repo_root.join(".knots").join("cache").join("cache.lock"),
+        repo_root
+            .join(".knots")
+            .join("locks")
+            .join("write_queue_worker.lock"),
+    ];
+    for lock in locks {
+        let _ = std::fs::remove_file(&lock);
+        // Also clear any abandoned reclaim guard for this lock.
+        let mut guard = lock.into_os_string();
+        guard.push(".reclaim");
+        let _ = std::fs::remove_file(std::path::PathBuf::from(guard));
+    }
 }
 
 fn fix_worktree(repo_root: &Path) {
@@ -379,9 +390,15 @@ fn fix_terminal_parents(repo_root: &Path) {
 }
 
 fn run_git(cwd: &Path, args: &[&str]) -> bool {
+    // The worktree fix runs `reset --hard HEAD` / `clean -fd`, which check out
+    // the tracked .knots event blobs. Guard byte-exactness here too: without
+    // it, Git-for-Windows' default core.autocrlf=true smudges LF to CRLF and
+    // the next GitAdapter sync (autocrlf=false) sees a dirty/conflicting
+    // worktree — the exact FileConflict this fork exists to prevent.
     Command::new("git")
         .arg("-C")
         .arg(cwd)
+        .args(["-c", "core.autocrlf=false"])
         .args(args)
         .status()
         .map(|status| status.success())

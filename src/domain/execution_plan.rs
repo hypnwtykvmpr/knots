@@ -367,6 +367,37 @@ mod tests {
         assert!(parsed.waves[0].steps[0].knot_ids.is_empty());
     }
 
+    #[test]
+    fn direct_deserializers_cover_current_fields_and_default_agent_count() {
+        let parsed: ExecutionPlanData = serde_json::from_value(json!({
+            "objective": "Ship",
+            "summary": "Plan",
+            "mode": "autopilot",
+            "model": "gpt-5",
+            "assumptions": ["repo is clean"],
+            "unassigned_knot_ids": ["current"],
+            legacy_unassigned_ids_key(): ["legacy"],
+            "waves": [{
+                "wave_index": 2,
+                "name": "Build",
+                "objective": "Implement",
+                "agents": [{"role": "engineer"}],
+                "steps": [{
+                    "step_index": 1,
+                    "knot_ids": ["step-current"],
+                    legacy_ids_key(): ["step-legacy"],
+                    "notes": "do it"
+                }]
+            }]
+        }))
+        .expect("current fields should deserialize");
+
+        assert_eq!(parsed.unassigned_knot_ids, vec!["current"]);
+        assert_eq!(parsed.waves[0].agents[0].count, 1);
+        assert_eq!(parsed.waves[0].steps[0].knot_ids, vec!["step-current"]);
+        assert_eq!(parsed.waves[0].steps[0].notes.as_deref(), Some("do it"));
+    }
+
     fn mock_resolver(token: &str) -> Result<String, String> {
         match token {
             "a1b2" => Ok("proj-a1b2".to_string()),
