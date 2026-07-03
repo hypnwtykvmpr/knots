@@ -151,14 +151,19 @@ JSON
 JSON
     ;;
   rollback)
-    cat <<'JSON'
+    lease_present=false
+    if [[ " ${args[*]} " == *" --lease L1 "* ]]; then
+      lease_present=true
+    fi
+    cat <<JSON
 {
   "id": "k1",
   "state": "implementation",
   "target_state": "ready_for_implementation",
   "owner_kind": "agent",
   "reason": "rolled back",
-  "dry_run": false
+  "dry_run": false,
+  "lease_present": $lease_present
 }
 JSON
     ;;
@@ -173,7 +178,15 @@ JSON
     echo '{"status":"deferred","active_leases":1}'
     ;;
   lease)
-    if [[ " ${args[*]} " == *" --agent-name other-client "* ]]; then
+    if [[ " ${args[*]} " == *" extend "* ]]; then
+      if [[ " ${args[*]} " == *" --lease-id L-expired "* ]]; then
+        echo "error: lease 'L-expired' is not active" >&2
+        exit 1
+      fi
+      echo '{"id":"L1","title":"mcp-session","state":"active"}'
+    elif [[ " ${args[*]} " == *" terminate "* ]]; then
+      echo 'terminated'
+    elif [[ " ${args[*]} " == *" --agent-name other-client "* ]]; then
       echo '{"id":"L2","title":"mcp-session","state":"active","agent_info":{"model":"other"}}'
     else
       echo '{"id":"L1","title":"mcp-session","state":"active","agent_info":{"model":"test-model"}}'

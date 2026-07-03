@@ -1,16 +1,12 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::Mutex;
 
+use super::test_support::{restore_test_home_env, set_test_home_env};
 use super::{
     doctor_check, fix_doctor_check, install_missing, managed_skills, render_skill, update_managed,
     DoctorStatus, SkillTool,
 };
-
-fn env_lock() -> &'static Mutex<()> {
-    super::tests::env_lock()
-}
 
 fn unique_root(label: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("{label}-{}", uuid::Uuid::now_v7()));
@@ -432,11 +428,9 @@ fn doctor_fix_updates_drifted_skills_without_rewriting_effective_gitignore() {
 
 #[test]
 fn doctor_skips_codex_and_opencode_when_agents_root_is_absent() {
-    let _guard = env_lock().lock().expect("env lock");
     let repo = unique_root("managed-skills-doctor-skip");
     let home = unique_root("managed-skills-home");
-    let prior_home = std::env::var_os("HOME");
-    std::env::set_var("HOME", &home);
+    let prior_home = set_test_home_env(&home);
     fs::create_dir_all(home.join(".config/opencode/skills/knots")).expect("legacy user root");
     fs::write(
         home.join(".config/opencode/skills/knots/SKILL.md"),
@@ -453,8 +447,5 @@ fn doctor_skips_codex_and_opencode_when_agents_root_is_absent() {
     assert!(!home.join(".config/opencode/skills/knots/SKILL.md").exists());
     assert!(!repo.join(".agents/skills/knots/SKILL.md").exists());
 
-    match prior_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
-    }
+    restore_test_home_env(prior_home);
 }

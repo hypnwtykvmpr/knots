@@ -10,8 +10,8 @@ The algorithm is implemented for the `kno push` and `kno sync` paths.
 - `kno sync` runs `push` first, then `pull`.
 
 Code:
-- [`ReplicationService::push`](src/replication.rs#L43)
-- [`ReplicationService::sync`](src/replication.rs#L105)
+- [`ReplicationService::push`](src/replication.rs#L84)
+- [`ReplicationService::sync`](src/replication.rs#L203)
 
 ## High-level strategy
 

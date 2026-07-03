@@ -62,6 +62,10 @@ Common fits:
 
 This walkthrough builds the plan incrementally from the CLI.
 
+The examples use POSIX `\` line continuations. In PowerShell, replace each
+trailing `\` with a backtick (`` ` ``) or join the command onto one line;
+in `cmd.exe`, join each command onto one line.
+
 ### 1. Create the execution-plan knot
 
 ```bash

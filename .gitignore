@@ -14,3 +14,6 @@
 /.agents/*
 !/.agents/skills/
 !/.agents/skills/**
+# Opt-in local telemetry (KNOTS_TELEMETRY_LOG). Default sink is under
+# %LOCALAPPDATA%; this covers a repo-relative override so it is never tracked.
+/telemetry/

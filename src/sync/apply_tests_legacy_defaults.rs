@@ -246,3 +246,45 @@ fn apply_index_event_accepts_foolery_style_event_with_both_legacy_markers() {
 
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn apply_index_event_infers_builtin_workflow_from_knot_type() {
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    db::set_meta(&conn, "hot_window_days", "365").expect("hot window should be configurable");
+    let mut applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+
+    let ts = recent_ts();
+    let body = format!(
+        concat!(
+            "{{\n",
+            "  \"event_id\": \"019c942e-bbbb-7883-bb13-27197273b8f5\",\n",
+            "  \"occurred_at\": \"{ts}\",\n",
+            "  \"type\": \"idx.knot_head\",\n",
+            "  \"data\": {{\n",
+            "    \"knot_id\": \"K-inferred-gate\",\n",
+            "    \"title\": \"Inferred gate\",\n",
+            "    \"state\": \"ready_for_evaluation\",\n",
+            "    \"terminal\": false,\n",
+            "    \"type\": \"gate\",\n",
+            "    \"profile_id\": \"evaluate\",\n",
+            "    \"updated_at\": \"{ts}\"\n",
+            "  }}\n",
+            "}}\n"
+        ),
+        ts = ts,
+    );
+    let rel = write_legacy_head_event(&root, "inferred-gate-idx.knot_head.json", &body);
+
+    applier
+        .apply_index_event(&rel)
+        .expect("missing workflow_id should infer from knot type");
+
+    let record = db::get_knot_hot(&conn, "K-inferred-gate")
+        .expect("hot lookup should succeed")
+        .expect("gate knot should be cached");
+    assert_eq!(record.workflow_id, "gate_sdlc");
+    assert_eq!(record.knot_type.as_deref(), Some("gate"));
+
+    let _ = std::fs::remove_dir_all(root);
+}

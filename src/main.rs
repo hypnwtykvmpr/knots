@@ -58,8 +58,11 @@ mod loom_gate_bundle;
 mod loom_lease_bundle;
 mod loom_work_bundle;
 #[cfg(test)]
+mod main_dispatch_tests;
+#[cfg(test)]
 mod main_tests;
 mod managed_skills;
+mod native_command;
 mod pagination;
 mod perf;
 mod poll_claim;
@@ -90,6 +93,9 @@ mod stream_output;
 mod sync;
 mod sync_ref;
 mod sync_ref_migrate;
+mod telemetry;
+#[cfg(test)]
+mod test_env;
 mod tiering;
 mod trace;
 mod ui;

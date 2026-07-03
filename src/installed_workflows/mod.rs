@@ -11,7 +11,11 @@ pub(crate) mod profile_toml;
 mod registry;
 
 #[cfg(test)]
+mod tests_bundle_toml_ext;
+#[cfg(test)]
 mod tests_helpers;
+#[cfg(test)]
+mod tests_operations_ext;
 #[cfg(test)]
 mod tests_output_sections;
 #[cfg(test)]
@@ -22,6 +26,8 @@ mod tests_parsing;
 mod tests_parsing_outputs;
 #[cfg(test)]
 mod tests_registry;
+#[cfg(test)]
+mod tests_registry_builtins;
 #[cfg(test)]
 mod tests_registry_ext;
 #[cfg(test)]

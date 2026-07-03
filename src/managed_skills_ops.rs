@@ -7,7 +7,7 @@ use crate::app::AppError;
 use super::git::changed_tracked_paths;
 use super::gitignore::{ensure_agents_skills_gitignore, ensure_claude_skills_gitignore};
 use super::output::{
-    format_changed_paths, format_commit_notice, format_existing_skills, skill_paths,
+    display_path, format_changed_paths, format_commit_notice, format_existing_skills, skill_paths,
 };
 use super::state::inspect_location;
 use super::{managed_skills, ManagedSkill, SkillLocation, SkillTool};
@@ -65,7 +65,7 @@ pub(super) fn update_managed(
                 "{} missing managed skills at {}; run `kno skills install {}` or rerun \
                  interactively",
                 tool.display_name(),
-                destination.skills_root.display(),
+                display_path(&destination.skills_root),
                 tool.slug()
             )));
         }
@@ -102,10 +102,10 @@ pub(super) fn prompt_install_missing<W: Write, R: BufRead>(
         writer,
         "{} is missing managed skills at {}:",
         tool.display_name(),
-        destination.skills_root.display()
+        display_path(&destination.skills_root)
     )?;
     for path in skill_paths(destination, missing) {
-        writeln!(writer, "  {}", path.display())?;
+        writeln!(writer, "  {}", display_path(&path))?;
     }
     write!(writer, "install missing skills before update? [y/N]: ")?;
     writer.flush()?;

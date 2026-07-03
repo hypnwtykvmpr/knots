@@ -67,7 +67,8 @@ verify CI is green and advance. Do not roll back.
    performing a branch-only review flow.
 3. Tag the knot with any new commit hashes created during merge using
    the `commit:` prefix:
-   `short_hash=$(git rev-parse --short=12 <commit>)`
+   PowerShell: `$short_hash = git rev-parse --short=12 <commit>`
+   Bash: `short_hash=$(git rev-parse --short=12 <commit>)`
    `kno update <id> --add-tag "commit:${short_hash}"`
    Run this for each new commit created during shipment.
    Use short hashes only; do not use the full 40-character hash.

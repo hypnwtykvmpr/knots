@@ -7,6 +7,14 @@ use serde::{Deserialize, Serialize};
 const CONFIG_DIR_NAME: &str = "knots";
 const PROJECTS_DIR_NAME: &str = "projects";
 
+#[path = "project/paths.rs"]
+mod paths;
+#[cfg(test)]
+pub use paths::config_dir;
+pub(crate) use paths::home_dir;
+use paths::project_file;
+pub use paths::{config_path, data_dir, projects_dir};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DistributionMode {
     Git,
@@ -86,47 +94,6 @@ impl NamedProjectRecord {
     }
 }
 
-pub fn config_path(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    Ok(config_dir(home_override)?.join("config.toml"))
-}
-
-pub fn config_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    let home = home_dir(home_override)?;
-    Ok(home.join(".config").join(CONFIG_DIR_NAME))
-}
-
-pub fn data_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    #[cfg(target_os = "macos")]
-    {
-        let home = home_dir(home_override)?;
-        Ok(home
-            .join("Library")
-            .join("Application Support")
-            .join(CONFIG_DIR_NAME))
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Some(appdata) = std::env::var_os("APPDATA") {
-            return Ok(PathBuf::from(appdata).join(CONFIG_DIR_NAME));
-        }
-        if let Some(xdg) = std::env::var_os("XDG_DATA_HOME") {
-            return Ok(PathBuf::from(xdg).join(CONFIG_DIR_NAME));
-        }
-        let home = home_dir(home_override)?;
-        Ok(home.join(".local").join("share").join(CONFIG_DIR_NAME))
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        if let Some(xdg) = std::env::var_os("XDG_DATA_HOME") {
-            return Ok(PathBuf::from(xdg).join(CONFIG_DIR_NAME));
-        }
-        let home = home_dir(home_override)?;
-        Ok(home.join(".local").join("share").join(CONFIG_DIR_NAME))
-    }
-}
-
 pub fn read_global_config(home_override: Option<&Path>) -> Result<GlobalConfig, String> {
     let path = config_path(home_override)?;
     if !path.exists() {
@@ -146,10 +113,6 @@ pub fn write_global_config(
     }
     let rendered = toml::to_string_pretty(config).map_err(|err| err.to_string())?;
     fs::write(path, rendered).map_err(|err| err.to_string())
-}
-
-pub fn projects_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    Ok(config_dir(home_override)?.join(PROJECTS_DIR_NAME))
 }
 
 pub fn list_named_projects(
@@ -212,7 +175,7 @@ pub fn create_named_project(
     }
     let record = NamedProjectRecord {
         id: id.to_string(),
-        repo_root: repo_root.map(canonical_or_original),
+        repo_root: repo_root.map(canonical_repo_root).transpose()?,
     };
     let rendered = toml::to_string_pretty(&record).map_err(|err| err.to_string())?;
     fs::write(path, rendered).map_err(|err| err.to_string())?;
@@ -355,6 +318,9 @@ pub fn validate_project_id(id: &str) -> Result<(), String> {
         .chars()
         .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '-' | '_'))
     {
+        if is_platform_reserved_project_id(id) {
+            return Err("project id cannot be a Windows reserved device name".to_string());
+        }
         return Ok(());
     }
     Err("project id must use lowercase letters, digits, '-' or '_'".to_string())
@@ -362,6 +328,20 @@ pub fn validate_project_id(id: &str) -> Result<(), String> {
 
 pub fn canonical_or_original(path: &Path) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+fn canonical_repo_root(path: &Path) -> Result<PathBuf, String> {
+    let canonical = fs::canonicalize(path).map_err(|err| {
+        format!(
+            "repo root '{}' must exist and be readable: {err}",
+            path.display()
+        )
+    })?;
+    if canonical.is_absolute() {
+        Ok(canonical)
+    } else {
+        Err(format!("repo root '{}' is not absolute", path.display()))
+    }
 }
 
 pub fn find_git_root(start: &Path) -> Option<PathBuf> {
@@ -374,6 +354,33 @@ pub fn find_git_root(start: &Path) -> Option<PathBuf> {
             return None;
         }
     }
+}
+
+fn is_platform_reserved_project_id(id: &str) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        is_windows_reserved_project_id(id)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = id;
+        false
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn is_windows_reserved_project_id(id: &str) -> bool {
+    matches!(id, "con" | "prn" | "aux" | "nul")
+        || reserved_device_number(id, "com")
+        || reserved_device_number(id, "lpt")
+}
+
+#[cfg(target_os = "windows")]
+fn reserved_device_number(id: &str, prefix: &str) -> bool {
+    let Some(suffix) = id.strip_prefix(prefix) else {
+        return false;
+    };
+    matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
 }
 
 fn has_git_marker(path: &Path) -> bool {
@@ -411,79 +418,6 @@ fn git_context(repo_root: &Path) -> ProjectContext {
     }
 }
 
-fn home_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
-    if let Some(home) = home_override {
-        return Ok(home.to_path_buf());
-    }
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| "unable to resolve home directory".to_string())
-}
-
-fn project_file(home_override: Option<&Path>, id: &str) -> Result<PathBuf, String> {
-    Ok(projects_dir(home_override)?.join(format!("{id}.toml")))
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn temp_home() -> PathBuf {
-        let path =
-            std::env::temp_dir().join(format!("knots-project-test-{}", uuid::Uuid::now_v7()));
-        fs::create_dir_all(&path).expect("temp home should be creatable");
-        path
-    }
-
-    #[test]
-    fn create_list_and_resolve_named_projects() {
-        let home = temp_home();
-        let project = create_named_project(Some(&home), "demo", None).expect("create project");
-        assert_eq!(project.id, "demo");
-        let listed = list_named_projects(Some(&home)).expect("list projects");
-        assert_eq!(listed.len(), 1);
-        set_active_project(Some(&home), "demo").expect("set active project");
-        let context = resolve_context(None, None, &home, Some(&home)).expect("resolve context");
-        assert_eq!(context.project_id.as_deref(), Some("demo"));
-        assert_eq!(context.distribution, DistributionMode::LocalOnly);
-        let _ = fs::remove_dir_all(home);
-    }
-
-    #[test]
-    fn explicit_repo_root_beats_active_project() {
-        let home = temp_home();
-        create_named_project(Some(&home), "demo", None).expect("create project");
-        set_active_project(Some(&home), "demo").expect("set active project");
-        let repo_root = home.join("repo");
-        fs::create_dir_all(repo_root.join(".git")).expect("git dir should exist");
-        fs::write(repo_root.join(".git/HEAD"), "ref: refs/heads/main\n")
-            .expect("git HEAD should exist");
-        let context =
-            resolve_context(None, Some(&repo_root), &home, Some(&home)).expect("resolve git");
-        assert_eq!(context.project_id, None);
-        assert_eq!(context.distribution, DistributionMode::Git);
-        let _ = fs::remove_dir_all(home);
-    }
-
-    #[test]
-    fn delete_project_removes_store_and_clears_active_project() {
-        let home = temp_home();
-        let project = create_named_project(Some(&home), "demo", None).expect("create project");
-        set_active_project(Some(&home), "demo").expect("set active project");
-
-        let store = project
-            .store_paths(Some(&home))
-            .expect("store paths should resolve");
-        fs::write(store.root.join("marker.txt"), "x").expect("marker should be writable");
-        delete_named_project(Some(&home), "demo").expect("delete project");
-
-        assert!(!store.root.exists());
-        assert!(!projects_dir(Some(&home))
-            .expect("projects dir should resolve")
-            .join("demo.toml")
-            .exists());
-        let config = read_global_config(Some(&home)).expect("config should load");
-        assert_eq!(config.active_project, None);
-        let _ = fs::remove_dir_all(home);
-    }
-}
+#[path = "project/tests.rs"]
+mod tests;

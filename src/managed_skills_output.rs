@@ -27,7 +27,7 @@ pub(super) fn format_changed_paths(tool: SkillTool, verb: &str, paths: &[PathBuf
     for path in paths {
         output.push('\n');
         output.push_str("- ");
-        output.push_str(&path.display().to_string());
+        output.push_str(&display_path(path));
     }
     output
 }
@@ -35,7 +35,7 @@ pub(super) fn format_changed_paths(tool: SkillTool, verb: &str, paths: &[PathBuf
 pub(super) fn format_commit_notice(repo_root: &Path, paths: &[PathBuf]) -> String {
     let mut output = format!(
         "Note: managed skill updates changed files in {}; commit them:",
-        repo_root.display()
+        display_path(repo_root)
     );
     for path in paths {
         output.push('\n');
@@ -57,7 +57,7 @@ pub(super) fn format_skill_detail(
             format!(
                 "{} missing managed skills at {}: {}; run `kno skills install {}`",
                 tool.display_name(),
-                location.skills_root.display(),
+                display_path(&location.skills_root),
                 display_paths(&paths),
                 tool.slug()
             )
@@ -67,7 +67,7 @@ pub(super) fn format_skill_detail(
             format!(
                 "{} managed skill drift detected at {}: {}; run `kno skills update {}`",
                 tool.display_name(),
-                location.skills_root.display(),
+                display_path(&location.skills_root),
                 display_paths(&paths),
                 tool.slug()
             )
@@ -76,7 +76,7 @@ pub(super) fn format_skill_detail(
             "{} managed skills at {} are missing {} and drifted {}; run `kno skills \
              install {}` then `kno skills update {}`",
             tool.display_name(),
-            location.skills_root.display(),
+            display_path(&location.skills_root),
             display_paths(&skill_paths(location, missing)),
             display_paths(&skill_paths(location, drifted)),
             tool.slug(),
@@ -85,22 +85,23 @@ pub(super) fn format_skill_detail(
         (true, true) => format!(
             "{} managed skills installed at {}",
             tool.display_name(),
-            location.skills_root.display()
+            display_path(&location.skills_root)
         ),
     }
+}
+
+pub(super) fn display_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn display_paths(paths: &[PathBuf]) -> String {
     paths
         .iter()
-        .map(|path| path.display().to_string())
+        .map(|path| display_path(path))
         .collect::<Vec<_>>()
         .join(", ")
 }
 
 fn display_repo_path(repo_root: &Path, path: &Path) -> String {
-    path.strip_prefix(repo_root)
-        .unwrap_or(path)
-        .display()
-        .to_string()
+    display_path(path.strip_prefix(repo_root).unwrap_or(path))
 }

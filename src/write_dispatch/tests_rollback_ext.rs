@@ -57,6 +57,7 @@ fn execute_operation_rollback_covers_rejection_path() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            lease_id: None,
             json: false,
         }),
     )
@@ -106,6 +107,7 @@ fn execute_operation_rollback_covers_dry_run_and_real_paths() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            lease_id: None,
             json: false,
         }),
     )
@@ -165,6 +167,7 @@ fn rollback_releases_bound_lease() {
             agent_name: None,
             agent_model: None,
             agent_version: None,
+            lease_id: Some(lease_id.clone()),
             json: false,
         }),
     )
@@ -224,6 +227,7 @@ fn advance_and_rollback(app: &App, implementation: &crate::app::KnotView) {
             agent_name: Some("rollbacker".to_string()),
             agent_model: Some("model".to_string()),
             agent_version: Some("3.0".to_string()),
+            lease_id: None,
             json: false,
         }),
     )

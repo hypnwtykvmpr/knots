@@ -26,4 +26,10 @@ Every bundle has the same structure:
 make loom-bundle   # compiles loom/work_sdlc to dist/bundle.json
 ```
 
+Without GNU make (e.g. Windows PowerShell), run the underlying command directly:
+
+```sh
+loom build loom/work_sdlc --emit knots-bundle > loom/work_sdlc/dist/bundle.json
+```
+
 `src/installed_workflows/loom.rs` loads compiled bundles at runtime. All workflow step prompts must live here — the managed skills in `skills/` only describe the `kno` CLI.

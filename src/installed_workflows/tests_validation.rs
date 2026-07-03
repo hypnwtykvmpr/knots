@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use super::bundle_json::parse_bundle_json;
 use super::bundle_toml::{
-    render_json_bundle_from_toml, BundleOutputEntry, BundlePhaseSection, BundleProfileSection,
-    BundlePromptSection, BundleStateSection, BundleStepSection,
+    parse_bundle_toml, render_json_bundle_from_toml, BundleOutputEntry, BundlePhaseSection,
+    BundleProfileSection, BundlePromptSection, BundleStateSection, BundleStepSection,
 };
 use super::profile_toml::build_profile_definition;
 use super::tests_helpers::SAMPLE_BUNDLE;
@@ -85,6 +85,48 @@ fn json_validates_profile_references_and_shape() {
     let err = parse_bundle_json(&serde_json::to_string(&json).expect("ser"))
         .expect_err("blank profile id should fail");
     assert!(err.to_string().contains("profile id is required"));
+}
+
+#[test]
+fn toml_bundle_render_and_parse_preserve_prompt_metadata() {
+    let rendered = render_json_bundle_from_toml(SAMPLE_BUNDLE).expect("json render");
+    let json: serde_json::Value =
+        serde_json::from_str(&rendered).expect("rendered bundle should parse");
+    let prompts = json["prompts"]
+        .as_array()
+        .expect("prompts should be an array");
+    let work = prompts
+        .iter()
+        .find(|prompt| prompt["name"] == "work")
+        .expect("work prompt should render");
+    assert_eq!(work["accept"][0], "Built output");
+    assert_eq!(work["outcomes"][0]["is_success"], true);
+    assert_eq!(work["outcomes"][1]["is_success"], false);
+
+    let with_param = SAMPLE_BUNDLE.replace(
+        "[prompts.work.success]",
+        "[prompts.work.params.output]\ntype = \"string\"\nrequired = true\n\
+         default = \"branch\"\ndescription = \"Output channel\"\n\n[prompts.work.success]",
+    );
+    let workflow = parse_bundle_toml(&with_param).expect("bundle with params should parse");
+    let prompt = workflow
+        .prompts
+        .get("work")
+        .expect("work prompt should exist");
+    assert_eq!(prompt.params[0].name, "output");
+    assert!(prompt.params[0].required);
+    assert_eq!(prompt.params[0].default.as_deref(), Some("branch"));
+    assert_eq!(prompt.action_state, "work");
+}
+
+#[test]
+fn toml_bundle_parse_rejects_multiple_success_targets() {
+    let invalid = SAMPLE_BUNDLE.replace(
+        "complete = \"ready_for_review\"",
+        "complete = \"ready_for_review\"\nextra = \"done\"",
+    );
+    let err = parse_bundle_toml(&invalid).expect_err("multiple success outcomes should fail");
+    assert!(err.to_string().contains("multiple success"));
 }
 
 #[test]

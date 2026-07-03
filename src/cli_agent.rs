@@ -79,6 +79,8 @@ pub struct RollbackArgs {
                 create one with `kno lease create` and pass `--lease <id>` on `kno claim`."
     )]
     pub agent_version: Option<String>,
+    #[arg(long, help = "Validate lease ownership before rolling back.")]
+    pub lease: Option<String>,
 }
 
 #[derive(Debug, Args)]

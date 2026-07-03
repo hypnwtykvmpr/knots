@@ -43,9 +43,10 @@ Events are the source of truth; SQLite is a materialized cache.
 
 ## Build System
 
-Makefile targets (`make sanity` runs all before push):
+Makefile targets (`make sanity` runs all before push; on Windows without GNU make run
+`./Invoke-LocalChecks.ps1 -Sanity`):
 - `fmt`: `cargo fmt --all -- --check`
-- `lint`: `cargo clippy` + `scripts/repo/check-file-sizes.sh`
+- `lint`: `cargo clippy` + file-size gate (`check-file-sizes.sh`; `Check-FileSizes.ps1` on Windows)
 - `test`: `cargo test --all-targets --all-features`
 - `coverage`: `cargo tarpaulin` (threshold in `.ci/coverage-threshold.txt`)
 

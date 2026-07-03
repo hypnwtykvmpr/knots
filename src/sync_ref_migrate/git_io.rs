@@ -76,7 +76,7 @@ pub(super) fn cat_file_blobs(
     let mut child = Command::new("git")
         .arg("-C")
         .arg(repo_root)
-        .args(["cat-file", "--batch"])
+        .args(["-c", "core.autocrlf=false", "cat-file", "--batch"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

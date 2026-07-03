@@ -1,6 +1,5 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use serde::Serialize;
 use uuid::Uuid;
@@ -373,7 +372,10 @@ fn run_loom(loom_bin: Option<&Path>, cwd: &Path, args: &[&str]) -> Result<String
         .map(|path| path.as_os_str().to_owned())
         .or_else(|| std::env::var_os("KNOTS_LOOM_BIN"))
         .unwrap_or_else(|| "loom".into());
-    let output = Command::new(binary).current_dir(cwd).args(args).output();
+    let output = crate::native_command::command_for_program(binary)
+        .current_dir(cwd)
+        .args(args)
+        .output();
     let output = match output {
         Ok(output) => output,
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {

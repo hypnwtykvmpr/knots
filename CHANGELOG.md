@@ -4,6 +4,10 @@
 
 ### Patch Changes
 
+- Native Windows (x86_64) support: this fork adds a Windows build, PowerShell
+  installer/completions, native path handling, and a `knots-vX-windows-x86_64.zip`
+  release asset. macOS and Linux artifacts continue to come from upstream
+  (acartine/knots).
 - d4e4a31: Clarify managed Knots skills so agents understand that claim leases are
   single-action tokens: `kno next` and rollback release the current lease, and
   follow-on work must claim with a fresh lease.

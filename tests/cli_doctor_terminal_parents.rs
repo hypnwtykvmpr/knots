@@ -84,16 +84,29 @@ fn knots_binary() -> PathBuf {
     configured
 }
 
+fn configure_coverage_env(command: &mut Command) {
+    if let Some(profile_file) = std::env::var_os("LLVM_PROFILE_FILE") {
+        let profile_file = PathBuf::from(profile_file);
+        if let Some(parent) = profile_file.parent() {
+            command.env(
+                "LLVM_PROFILE_FILE",
+                parent.join("knots-child-%p-%m.profraw"),
+            );
+        }
+    }
+}
+
 fn run_knots(repo_root: &Path, db_path: &Path, args: &[&str]) -> Output {
-    Command::new(knots_binary())
+    let mut command = Command::new(knots_binary());
+    command
         .arg("--repo-root")
         .arg(repo_root)
         .arg("--db")
         .arg(db_path)
         .env("KNOTS_SKIP_DOCTOR_UPGRADE", "1")
-        .args(args)
-        .output()
-        .expect("knots command should run")
+        .args(args);
+    configure_coverage_env(&mut command);
+    command.output().expect("knots command should run")
 }
 
 fn bootstrap_builtin_workflows(repo_root: &Path, db_path: &Path) {

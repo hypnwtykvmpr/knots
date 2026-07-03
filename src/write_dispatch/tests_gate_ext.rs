@@ -314,6 +314,7 @@ fn execute_operation_rollback_rewinds_gate_evaluating_state() {
             agent_name: Some("rollbacker".to_string()),
             agent_model: Some("model".to_string()),
             agent_version: Some("1.0".to_string()),
+            lease_id: None,
             json: false,
         }),
     )

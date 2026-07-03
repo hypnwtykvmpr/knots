@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::db;
+use crate::progress::{ProgressKind, ProgressReporter};
 
 use super::SyncService;
 
@@ -36,6 +37,28 @@ fn init_repo(root: &Path) {
     run_git(root, &["branch", "-M", "main"]);
 }
 
+fn add_origin(root: &Path) {
+    let remote = root.join("origin.git");
+    run_git(
+        root,
+        &[
+            "init",
+            "--bare",
+            remote.to_str().expect("remote should be utf8"),
+        ],
+    );
+    run_git(
+        root,
+        &[
+            "remote",
+            "add",
+            "origin",
+            remote.to_str().expect("remote should be utf8"),
+        ],
+    );
+    run_git(root, &["push", "-u", "origin", "main"]);
+}
+
 fn open_sync_db(root: &Path) -> rusqlite::Connection {
     let db_path = root.join(".knots/cache/state.sqlite");
     std::fs::create_dir_all(
@@ -48,6 +71,18 @@ fn open_sync_db(root: &Path) -> rusqlite::Connection {
         .expect("sync test database should open");
     db::set_meta(&conn, "hot_window_days", "365").expect("hot_window_days should be settable");
     conn
+}
+
+#[derive(Default)]
+struct CapturingReporter {
+    events: Vec<(ProgressKind, String)>,
+}
+
+impl ProgressReporter for CapturingReporter {
+    fn emit(&mut self, kind: ProgressKind, message: &str) -> std::io::Result<()> {
+        self.events.push((kind, message.to_string()));
+        Ok(())
+    }
 }
 
 fn write_stale_index_event(root: &Path) {
@@ -222,6 +257,63 @@ fn sync_bootstrap_loads_latest_snapshots_when_no_events() {
         .expect("knot query should succeed")
         .expect("snapshot knot should be loaded");
     assert_eq!(knot.title, "Snapshot knot");
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn known_workflow_ids_falls_back_when_repo_workflow_config_is_invalid() {
+    let root = unique_workspace();
+    let workflows_root = crate::installed_workflows::workflows_root(&root);
+    std::fs::create_dir_all(&workflows_root).expect("workflow root should exist");
+    std::fs::write(workflows_root.join("current"), "not = [valid")
+        .expect("invalid workflow config should write");
+
+    let conn = rusqlite::Connection::open_in_memory().expect("in-memory db should open");
+    let service = SyncService::new(&conn, root.clone());
+    let known = service.known_workflow_ids();
+
+    assert!(known.contains(
+        &crate::installed_workflows::builtin_workflow_id_for_knot_type(
+            crate::domain::knot_type::KnotType::Work
+        )
+    ));
+    assert!(known.contains(
+        &crate::installed_workflows::builtin_workflow_id_for_knot_type(
+            crate::domain::knot_type::KnotType::Lease
+        )
+    ));
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn sync_with_remote_origin_fetches_and_resets_tracking_ref() {
+    let root = unique_workspace();
+    init_repo(&root);
+    add_origin(&root);
+    crate::remote_init::init_remote_knots_branch(&root)
+        .expect("remote knots branch should initialize");
+
+    let conn = open_sync_db(&root);
+    let service = SyncService::new(&conn, root.clone());
+    let mut reporter = CapturingReporter::default();
+    let mut dyn_reporter: Option<&mut dyn ProgressReporter> = Some(&mut reporter);
+    let summary = service
+        .sync_with_progress(&mut dyn_reporter)
+        .expect("sync should fetch remote knots ref");
+
+    assert_eq!(summary.index_files, 0);
+    assert_eq!(summary.full_files, 0);
+    assert_eq!(summary.knot_updates, 0);
+    assert!(reporter
+        .events
+        .iter()
+        .any(|(_, message)| message.contains("preparing knots worktree")));
+    assert!(reporter
+        .events
+        .iter()
+        .any(|(_, message)| message.contains("pull complete")));
 
     let _ = std::fs::remove_dir_all(root);
 }

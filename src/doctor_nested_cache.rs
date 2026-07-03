@@ -2,7 +2,7 @@
 //!
 //! Detects `.knots` cache directories nested inside the canonical store. Nested
 //! caches cause silent state drift, so the check is detection-only and emits
-//! `rm -rf <path>` guidance for each offender rather than auto-deleting.
+//! manual removal guidance for each offender rather than auto-deleting.
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -28,7 +28,9 @@ pub fn check_nested_caches_at(store_paths: &StorePaths) -> Result<DoctorCheck, D
         nested.len()
     );
     for path in &nested {
-        detail.push_str(&format!("  rm -rf {}\n", path.display()));
+        detail.push_str("  ");
+        detail.push_str(&removal_hint(path));
+        detail.push('\n');
     }
     let data = serde_json::json!({
         "nested": nested
@@ -98,6 +100,25 @@ fn scan_nested_caches(root: &Path) -> Result<Vec<PathBuf>, DoctorError> {
 fn is_cache_dir(path: &Path) -> bool {
     let cache = path.join("cache");
     cache.join("state.sqlite").exists() || cache.join("cache.lock").exists()
+}
+
+fn removal_hint(path: &Path) -> String {
+    #[cfg(windows)]
+    {
+        format!(
+            "Remove-Item -LiteralPath {} -Recurse -Force",
+            powershell_single_quoted(path)
+        )
+    }
+    #[cfg(not(windows))]
+    {
+        format!("rm -rf {}", path.display())
+    }
+}
+
+#[cfg(windows)]
+fn powershell_single_quoted(path: &Path) -> String {
+    format!("'{}'", path.display().to_string().replace('\'', "''"))
 }
 
 #[cfg(test)]

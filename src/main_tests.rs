@@ -157,8 +157,8 @@ fn strip_ansi_codes_removes_escape_sequences() {
 #[test]
 fn maybe_run_self_command_update_and_uninstall_paths_execute() {
     let dir = unique_dir("knots-main-self-test");
-    let script = dir.join("install.sh");
-    std::fs::write(&script, "#!/bin/sh\nexit 0\n").expect("script should be writable");
+    let script = dir.join(installer_script_name("install"));
+    std::fs::write(&script, "exit 0\n").expect("script should be writable");
     let script_url = format!("file://{}", script.display());
 
     let upgrade_outcome = maybe_run_self_command(
@@ -239,8 +239,8 @@ fn maybe_run_self_command_update_and_uninstall_paths_execute() {
 #[test]
 fn maybe_run_self_command_upgrade_hint_tracks_hook_health() {
     let dir = unique_dir("knots-main-self-upgrade-hooks");
-    let script = dir.join("install.sh");
-    std::fs::write(&script, "#!/bin/sh\nexit 0\n").expect("script should be writable");
+    let script = dir.join(installer_script_name("install"));
+    std::fs::write(&script, "exit 0\n").expect("script should be writable");
     let script_url = format!("file://{}", script.display());
 
     let clean_repo = setup_git_repo("knots-main-self-upgrade-clean");
@@ -425,4 +425,12 @@ fn format_error_not_found_preserves_knot_id() {
         output.contains("knots-xyz9"),
         "should preserve the knot ID in the error output"
     );
+}
+
+fn installer_script_name(stem: &str) -> String {
+    if cfg!(target_os = "windows") {
+        format!("{stem}.ps1")
+    } else {
+        format!("{stem}.sh")
+    }
 }

@@ -12,6 +12,17 @@ that tag. Use semver sorting — **not** `git describe`, which returns the neare
 ancestor by commit distance and can return a lower version if tags exist
 out of semver order in history.
 
+PowerShell:
+
+```
+git fetch --tags
+$latest_tag = git tag --list 'v*' --sort=-version:refname | Select-Object -First 1
+echo "Latest tag: $latest_tag"
+git log "$latest_tag..HEAD" --oneline
+```
+
+Bash (macOS/Linux):
+
 ```
 git fetch --tags
 latest_tag=$(git tag --list 'v*' --sort=-version:refname | head -1)
@@ -94,6 +105,23 @@ Wait until the PR appears (check every 30 seconds, up to 5 minutes).
 
 Before merging, read the version from the Version Packages PR branch to confirm
 the planned tag is free:
+
+PowerShell:
+
+```
+gh pr checkout <number>
+$version_line = (Select-String '^version' Cargo.toml | Select-Object -First 1).Line
+$planned_tag = 'v' + ($version_line -replace 'version = "(.*)"', '$1')
+echo "Planned tag: $planned_tag"
+git ls-remote --exit-code --tags origin "refs/tags/$planned_tag" *> $null
+if ($LASTEXITCODE -eq 0) {
+  echo "ERROR: tag $planned_tag already exists on remote — do not merge, the release"
+  echo "workflow will silently skip publishing"
+}
+git checkout main
+```
+
+Bash (macOS/Linux):
 
 ```
 gh pr checkout <number>

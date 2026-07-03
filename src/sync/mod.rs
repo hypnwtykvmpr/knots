@@ -15,10 +15,11 @@ mod git;
 mod worktree;
 
 use apply::IncrementalApplier;
+pub(crate) use git::git_path;
 pub use git::GitAdapter;
 pub use worktree::KnotsWorktree;
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct SyncSummary {
     pub target_head: String,
     pub index_files: u64,
@@ -26,6 +27,17 @@ pub struct SyncSummary {
     pub knot_updates: u64,
     pub edge_adds: u64,
     pub edge_removes: u64,
+}
+
+impl SyncSummary {
+    pub fn new(target_head: String, index_files: u64, full_files: u64) -> Self {
+        Self {
+            target_head,
+            index_files,
+            full_files,
+            ..Self::default()
+        }
+    }
 }
 
 pub struct SyncService<'a> {
@@ -84,33 +96,20 @@ impl<'a> SyncService<'a> {
         emit_progress(reporter, ProgressKind::Info, "preparing knots worktree")?;
         worktree.ensure_exists(&self.git)?;
 
-        let target_head = match self.git.fetch_refspec_with_filter(
-            &self.repo_root,
-            worktree.remote(),
-            &worktree.fetch_refspec(),
-            crate::db::get_sync_fetch_blob_limit_kb(self.conn)?,
-        ) {
+        let fetch_limit_kb = crate::db::get_sync_fetch_blob_limit_kb(self.conn)?;
+        let fetch_result = self.fetch_worktree_refspec(&worktree, fetch_limit_kb);
+        let target_head = match fetch_result {
             Ok(()) => {
-                emit_progress(
-                    reporter,
-                    ProgressKind::Info,
-                    format!("resetting knots worktree to {}", worktree.tracking_rev()),
-                )?;
-                let head = self
-                    .git
-                    .rev_parse(&self.repo_root, &worktree.tracking_rev())?;
+                let reset_message = reset_worktree_message(&worktree);
+                emit_progress(reporter, ProgressKind::Info, reset_message)?;
+                let tracking_rev = worktree.tracking_rev();
+                let head = self.git.rev_parse(&self.repo_root, &tracking_rev)?;
                 self.git.reset_hard(worktree.path(), &head)?;
                 head
             }
             Err(err) if err.is_missing_remote() => {
-                emit_progress(
-                    reporter,
-                    ProgressKind::Warn,
-                    format!(
-                        "{} is unavailable; using local knots worktree state",
-                        worktree.remote_display()
-                    ),
-                )?;
+                let fallback_message = local_worktree_fallback_message(&worktree);
+                emit_progress(reporter, ProgressKind::Warn, fallback_message)?;
                 self.git.rev_parse(worktree.path(), "HEAD")?
             }
             Err(err) => return Err(err),
@@ -124,25 +123,44 @@ impl<'a> SyncService<'a> {
         )?;
 
         let known = self.known_workflow_ids();
-        let mut applier = IncrementalApplier::new(
-            self.conn,
-            worktree.path().to_path_buf(),
-            self.git.clone(),
-            known,
-        );
+        let worktree_path = worktree.path().to_path_buf();
+        let git = self.git.clone();
+        let mut applier = IncrementalApplier::new(self.conn, worktree_path, git, known);
         let summary = applier.apply_to_head(&target_head)?;
-        emit_progress(
-            reporter,
-            ProgressKind::Success,
-            format!(
-                "pull complete at {} (index={}, full={})",
-                short_commit(&summary.target_head),
-                summary.index_files,
-                summary.full_files
-            ),
-        )?;
+        let complete_message = format!(
+            "pull complete at {} (index={}, full={})",
+            short_commit(&summary.target_head),
+            summary.index_files,
+            summary.full_files
+        );
+        emit_progress(reporter, ProgressKind::Success, complete_message)?;
         Ok(summary)
     }
+
+    fn fetch_worktree_refspec(
+        &self,
+        worktree: &KnotsWorktree,
+        fetch_limit_kb: Option<u64>,
+    ) -> Result<(), SyncError> {
+        let fetch_refspec = worktree.fetch_refspec();
+        self.git.fetch_refspec_with_filter(
+            &self.repo_root,
+            worktree.remote(),
+            &fetch_refspec,
+            fetch_limit_kb,
+        )
+    }
+}
+
+fn reset_worktree_message(worktree: &KnotsWorktree) -> String {
+    format!("resetting knots worktree to {}", worktree.tracking_rev())
+}
+
+fn local_worktree_fallback_message(worktree: &KnotsWorktree) -> String {
+    format!(
+        "{} is unavailable; using local knots worktree state",
+        worktree.remote_display()
+    )
 }
 
 fn short_commit(commit: &str) -> &str {

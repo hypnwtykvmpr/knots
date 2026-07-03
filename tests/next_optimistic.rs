@@ -72,7 +72,15 @@ fn knots_binary() -> PathBuf {
 }
 
 fn configure_coverage_env(command: &mut Command) {
-    let _ = command;
+    if let Some(profile_file) = std::env::var_os("LLVM_PROFILE_FILE") {
+        let profile_file = PathBuf::from(profile_file);
+        if let Some(parent) = profile_file.parent() {
+            command.env(
+                "LLVM_PROFILE_FILE",
+                parent.join("knots-child-%p-%m.profraw"),
+            );
+        }
+    }
 }
 
 fn run_knots(repo_root: &Path, db_path: &Path, args: &[&str]) -> Output {

@@ -90,6 +90,15 @@ pub fn id_argv(args: IdArgs) -> Vec<String> {
     vec![args.id]
 }
 
+pub fn leased_id_argv(args: IdArgs, lease_id: Option<String>) -> Vec<String> {
+    let mut argv = id_argv(args);
+    if let Some(id) = lease_id {
+        argv.push("--lease".to_string());
+        argv.push(id);
+    }
+    argv
+}
+
 fn push_opt(argv: &mut Vec<String>, flag: &str, value: Option<String>) {
     if let Some(value) = value {
         argv.push(flag.to_string());
@@ -188,6 +197,15 @@ mod tests {
                 id: "k1".to_string()
             }),
             ["k1"]
+        );
+        assert_eq!(
+            leased_id_argv(
+                IdArgs {
+                    id: "k1".to_string()
+                },
+                Some("L1".to_string())
+            ),
+            ["k1", "--lease", "L1"]
         );
     }
 }

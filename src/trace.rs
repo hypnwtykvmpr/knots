@@ -20,6 +20,7 @@ struct TracePhase {
 
 pub struct TraceSession {
     enabled: bool,
+    telemetry: Option<crate::telemetry::TelemetryConfig>,
 }
 
 pub struct TracePhaseGuard {
@@ -31,7 +32,9 @@ pub struct TracePhaseGuard {
 
 impl TraceSession {
     pub fn start(cmd: &str, args: &[String], enabled: bool) -> Self {
-        if enabled {
+        let telemetry = crate::telemetry::from_env();
+        // Collect phase data if either the --trace flag or telemetry is on.
+        if enabled || telemetry.is_some() {
             ACTIVE_TRACE.with(|slot| {
                 *slot.borrow_mut() = Some(TraceState {
                     cmd: cmd.to_string(),
@@ -41,13 +44,13 @@ impl TraceSession {
                 });
             });
         }
-        Self { enabled }
+        Self { enabled, telemetry }
     }
 }
 
 impl Drop for TraceSession {
     fn drop(&mut self) {
-        if !self.enabled {
+        if !self.enabled && self.telemetry.is_none() {
             return;
         }
         ACTIVE_TRACE.with(|slot| {
@@ -55,28 +58,56 @@ impl Drop for TraceSession {
                 return;
             };
             let total_ms = state.start.elapsed().as_millis();
-            let args = if state.args.is_empty() {
-                String::from("[]")
-            } else {
-                format!("[{}]", state.args.join(", "))
-            };
-            eprintln!("[kno] cmd={} args={} total={}ms", state.cmd, args, total_ms);
-            for phase in state.phases {
-                match phase.detail {
-                    Some(detail) => {
-                        eprintln!(
-                            "  {}={}ms({})",
-                            phase.name,
-                            phase.elapsed.as_millis(),
-                            detail
-                        );
-                    }
-                    None => {
-                        eprintln!("  {}={}ms", phase.name, phase.elapsed.as_millis());
-                    }
-                }
+            if self.enabled {
+                emit_trace_to_stderr(&state, total_ms);
+            }
+            if let Some(config) = &self.telemetry {
+                let phases = state
+                    .phases
+                    .iter()
+                    .map(|phase| {
+                        crate::telemetry::phase_tuple(
+                            phase.name.clone(),
+                            phase.elapsed,
+                            phase.detail.clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                crate::telemetry::append(
+                    config,
+                    &crate::telemetry::SessionRecord {
+                        cmd: &state.cmd,
+                        args: &state.args,
+                        total_ms,
+                        phases: &phases,
+                    },
+                );
             }
         });
+    }
+}
+
+fn emit_trace_to_stderr(state: &TraceState, total_ms: u128) {
+    let args = if state.args.is_empty() {
+        String::from("[]")
+    } else {
+        format!("[{}]", state.args.join(", "))
+    };
+    eprintln!("[kno] cmd={} args={} total={}ms", state.cmd, args, total_ms);
+    for phase in &state.phases {
+        match &phase.detail {
+            Some(detail) => {
+                eprintln!(
+                    "  {}={}ms({})",
+                    phase.name,
+                    phase.elapsed.as_millis(),
+                    detail
+                );
+            }
+            None => {
+                eprintln!("  {}={}ms", phase.name, phase.elapsed.as_millis());
+            }
+        }
     }
 }
 
@@ -147,9 +178,24 @@ mod tests {
     use std::time::Duration;
 
     use super::{measure, phase, TraceSession};
+    use crate::test_env::EnvVarGuard;
+
+    const TELEMETRY_VARS: &[&str] = &["KNOTS_TELEMETRY_LOG", "KNOTS_TELEMETRY_ARGS"];
+
+    /// TraceSession::start reads the telemetry env vars, so tests that build a
+    /// session must hold the shared env lock and clear telemetry to avoid
+    /// racing a concurrent telemetry test's log path.
+    fn guard_without_telemetry() -> EnvVarGuard {
+        let env = EnvVarGuard::capture(TELEMETRY_VARS);
+        for var in TELEMETRY_VARS {
+            env.remove(var);
+        }
+        env
+    }
 
     #[test]
     fn trace_session_records_manual_and_measured_phases() {
+        let _env = guard_without_telemetry();
         let _session = TraceSession::start("ls", &["--json".to_string()], true);
         {
             let mut lock = phase("repo_lock");
@@ -160,6 +206,7 @@ mod tests {
 
     #[test]
     fn trace_record_and_empty_args() {
+        let _env = guard_without_telemetry();
         let _session = TraceSession::start("show", &[], true);
         super::record(
             "cache_hit",
@@ -172,5 +219,27 @@ mod tests {
     #[test]
     fn record_noop_when_disabled() {
         super::record("orphan", Duration::from_millis(1), None);
+    }
+
+    #[test]
+    fn telemetry_only_session_appends_record_on_drop() {
+        // --trace off (enabled=false), telemetry on via env: the session
+        // still collects phases and the Drop path appends a JSONL record.
+        let env = EnvVarGuard::capture(TELEMETRY_VARS);
+        let path = std::env::temp_dir().join(format!(
+            "knots-trace-telemetry-{}.jsonl",
+            uuid::Uuid::now_v7()
+        ));
+        env.set("KNOTS_TELEMETRY_LOG", &path);
+        env.remove("KNOTS_TELEMETRY_ARGS");
+        {
+            let _session = TraceSession::start("ls", &["--json".to_string()], false);
+            measure("query", || {});
+        }
+        let contents = std::fs::read_to_string(&path)
+            .expect("telemetry record should be written from the trace Drop path");
+        assert!(contents.contains("\"cmd\":\"ls\""));
+        assert!(contents.contains("\"name\":\"query\""));
+        let _ = std::fs::remove_file(path);
     }
 }

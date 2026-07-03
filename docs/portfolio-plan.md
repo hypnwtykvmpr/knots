@@ -397,7 +397,7 @@ semantics for local-only projects.
 - update README and command help
 - add end-to-end tests for sync, missing members, alias disambiguation, and
   local cache verification
-- run `make lint` and `make sanity`
+- run `make lint` and `make sanity` (on Windows: `pwsh ./Invoke-LocalChecks.ps1 -Sanity`)
 
 ## Risks
 

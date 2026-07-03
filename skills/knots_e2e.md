@@ -3,8 +3,8 @@ name: knots-e2e
 description: >-
   Use the Knots workflow through `kno` when asked to drive a knot end to end,
   run a claimed knot to completion, or keep advancing a knot until it reaches a
-  terminal state such as `SHIPPED`, or a passive waiting state such as
-  `BLOCKED` or `DEFERRED`.
+  terminal state such as `SHIPPED` or `ABANDONED`, or a passive escape state
+  such as `BLOCKED` or `DEFERRED`.
 ---
 
 # Knots E2E
@@ -54,7 +54,8 @@ working past the per-claim "complete exactly one workflow action" boundary
 that ordinary claims emit. After every successful `kno next`, create or
 receive a fresh lease, immediately re-claim with
 `kno claim --e2e <id> --lease <new-lease-id>`, and continue until the knot
-reaches `SHIPPED`, `BLOCKED`, or `DEFERRED`.
+reaches a terminal state (`SHIPPED` or `ABANDONED`) or a passive escape state
+(`BLOCKED` or `DEFERRED`).
 
 If the claim output shows `kind: single_action` (i.e. `--e2e` was not
 passed), do NOT continue past the boundary. Stop after the single action
@@ -72,7 +73,8 @@ kno claim --e2e <id> --lease <lease-id>
   `kno -C <path_to_repo> ...` because Knots is installed for the repo root,
   not the worktree path.
 - Record the current state from the claim output.
-- If the current state is `SHIPPED`, `BLOCKED`, or `DEFERRED`, stop cleanly.
+- If the current state is terminal (`SHIPPED` or `ABANDONED`) or passive
+  escape (`BLOCKED` or `DEFERRED`), stop cleanly.
 - Use the claim output to determine the current state's completion goals.
 - Do the work and validate it.
 - If the workflow prompt asks for handoff context between action states, attach
@@ -99,7 +101,8 @@ kno claim --e2e <id> --lease <new-lease-id>
 ```
 
 - Repeat the claim/work/validate/advance loop until the current state is
-  `SHIPPED`, `BLOCKED`, or `DEFERRED`.
+  terminal (`SHIPPED` or `ABANDONED`) or passive escape (`BLOCKED` or
+  `DEFERRED`).
 - If you are blocked, validation fails, or the state's goals were not met,
   roll back safely and stop:
 
@@ -132,8 +135,8 @@ default boundary fights the skill. Passing `--e2e` switches the boundary to
    so agents can detect e2e mode without inferring intent from prose.
 2. Tells the agent to re-claim after `kno next` and continue across action
    states.
-3. Authorizes terminal-state movement for this run, since `SHIPPED` /
-   `BLOCKED` / `DEFERRED` are valid stopping points for an e2e run.
+3. Authorizes movement to terminal and passive escape stopping points for this
+   run: `SHIPPED` / `ABANDONED` and `BLOCKED` / `DEFERRED`.
 
 Ordinary one-action claims continue to use the `single_action` boundary;
 `--e2e` is opt-in.

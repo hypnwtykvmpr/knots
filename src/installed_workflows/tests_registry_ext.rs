@@ -19,6 +19,34 @@ fn read_bundle_source_can_shell_out_to_loom() {
     std::fs::write(package_dir.join("loom.toml"), "name = 'pkg'").expect("loom.toml writes");
 
     let json_bundle = render_json_bundle_from_toml(SAMPLE_BUNDLE).expect("json render");
+    let loom_path = bin_dir.join(loom_file_name());
+    write_loom_build_script(&loom_path, &json_bundle);
+
+    let original_loom = std::env::var_os("KNOTS_LOOM_BIN");
+    std::env::set_var("KNOTS_LOOM_BIN", &loom_path);
+
+    let (raw, format) = read_bundle_source(&package_dir).expect("loom package should build");
+    assert!(matches!(format, BundleFormat::Json));
+    assert!(raw.contains("\"format\": \"knots-bundle\""));
+
+    restore_env_var("KNOTS_LOOM_BIN", original_loom);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+fn write_loom_build_script(loom_path: &std::path::Path, json_bundle: &str) {
+    #[cfg(windows)]
+    let loom_script = format!(
+        "$ErrorActionPreference = 'Stop'\n\
+         if ($args[0] -eq 'build' -and $args[2] -eq '--emit' -and \
+         $args[3] -eq 'knots-bundle') {{\n\
+         @'\n\
+{json_bundle}\n\
+'@\n\
+         exit 0\n\
+         }}\n\
+         exit 1\n"
+    );
+    #[cfg(not(windows))]
     let loom_script = format!(
         "#!/bin/sh\n\
          if [ \"$1\" = \"build\" ] && \
@@ -27,30 +55,8 @@ fn read_bundle_source_can_shell_out_to_loom() {
          cat <<'EOF'\n{json_bundle}\nEOF\n\
          else\nexit 1\nfi\n"
     );
-    let loom_path = bin_dir.join("loom");
-    std::fs::write(&loom_path, loom_script).expect("loom script writes");
-    make_executable(&loom_path);
-
-    let original_path = std::env::var_os("PATH");
-    let joined_path = match &original_path {
-        Some(path) => {
-            let mut paths = vec![bin_dir.clone()];
-            paths.extend(std::env::split_paths(path));
-            std::env::join_paths(paths).expect("joined path")
-        }
-        None => std::env::join_paths([bin_dir.clone()]).expect("joined path"),
-    };
-    std::env::set_var("PATH", joined_path);
-
-    let (raw, format) = read_bundle_source(&package_dir).expect("loom package should build");
-    assert!(matches!(format, BundleFormat::Json));
-    assert!(raw.contains("\"format\": \"knots-bundle\""));
-
-    match original_path {
-        Some(path) => std::env::set_var("PATH", path),
-        None => std::env::remove_var("PATH"),
-    }
-    let _ = std::fs::remove_dir_all(root);
+    std::fs::write(loom_path, loom_script).expect("loom script writes");
+    make_executable(loom_path);
 }
 
 #[test]
@@ -261,17 +267,9 @@ fn loom_failures_and_invalid_utf8_reported() {
     std::fs::create_dir_all(&package_dir).expect("pkg dir should exist");
     std::fs::write(package_dir.join("loom.toml"), "name = 'pkg'").expect("loom.toml writes");
 
-    let loom_path = bin_dir.join("loom");
-    let original_path = std::env::var_os("PATH");
-    let joined_path = match &original_path {
-        Some(path) => {
-            let mut paths = vec![bin_dir.clone()];
-            paths.extend(std::env::split_paths(path));
-            std::env::join_paths(paths).expect("joined path")
-        }
-        None => std::env::join_paths([bin_dir.clone()]).expect("joined path"),
-    };
-    std::env::set_var("PATH", joined_path);
+    let loom_path = bin_dir.join(loom_file_name());
+    let original_loom = std::env::var_os("KNOTS_LOOM_BIN");
+    std::env::set_var("KNOTS_LOOM_BIN", &loom_path);
 
     write_loom_failure_script(&loom_path);
     let err = read_bundle_source(&package_dir).expect_err("loom failure should bubble up");
@@ -283,10 +281,7 @@ fn loom_failures_and_invalid_utf8_reported() {
     let err = read_bundle_source(&package_dir).expect_err("invalid utf8 should fail");
     assert!(err.to_string().contains("invalid UTF-8 bundle output"));
 
-    match original_path {
-        Some(path) => std::env::set_var("PATH", path),
-        None => std::env::remove_var("PATH"),
-    }
+    restore_env_var("KNOTS_LOOM_BIN", original_loom);
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -390,110 +385,55 @@ fn registry_rejects_missing_default_workflow_even_if_registered_entries_exist() 
     let _ = std::fs::remove_dir_all(root);
 }
 
-#[test]
-fn ensure_builtin_registration_adds_missing_entries_without_changing_defaults() {
-    let root = unique_workspace("knots-installed-workflows-register-builtins");
-    let source = root.join("custom-flow.toml");
-    std::fs::write(&source, SAMPLE_BUNDLE).expect("bundle should write");
-    install_bundle(&root, &source).expect("bundle should install");
-
-    let mut config = ensure_builtin_registry(&root);
-    config.knot_type_workflows.insert(
-        KnotType::Work.as_str().to_string(),
-        KnotTypeWorkflowConfig {
-            default: WorkflowRef::new("custom_flow", Some(3)),
-            registered: vec![WorkflowRef::new("custom_flow", Some(3))],
-        },
-    );
-    config.knot_type_workflows.insert(
-        KnotType::Explore.as_str().to_string(),
-        KnotTypeWorkflowConfig {
-            default: WorkflowRef::new("custom_flow", Some(3)),
-            registered: vec![WorkflowRef::new("custom_flow", Some(3))],
-        },
-    );
-    write_repo_config(&root, &config).expect("config writes");
-
-    let config = ensure_builtin_workflows_registered(&root).expect("builtin registration");
-    assert_eq!(
-        config
-            .current_workflow_ref_for_knot_type(KnotType::Work)
-            .map(|workflow| workflow.workflow_id),
-        Some("custom_flow".to_string())
-    );
-    assert_eq!(
-        config
-            .current_workflow_ref_for_knot_type(KnotType::Explore)
-            .map(|workflow| workflow.workflow_id),
-        Some("custom_flow".to_string())
-    );
-    assert_eq!(
-        config
-            .current_workflow_ref_for_knot_type(KnotType::Gate)
-            .map(|workflow| workflow.workflow_id),
-        Some("gate_sdlc".to_string())
-    );
-    assert_eq!(
-        config
-            .current_workflow_ref_for_knot_type(KnotType::Lease)
-            .map(|workflow| workflow.workflow_id),
-        Some("lease_sdlc".to_string())
-    );
-    assert_eq!(
-        config
-            .current_workflow_ref_for_knot_type(KnotType::ExecutionPlan)
-            .map(|workflow| workflow.workflow_id),
-        Some("execution_plan_sdlc".to_string())
-    );
-    let registry = InstalledWorkflowRegistry::load(&root).expect("registry should load");
-    let work_ids = registry
-        .registered_workflows_for_knot_type(KnotType::Work)
-        .iter()
-        .map(|workflow| workflow.id.as_str())
-        .collect::<Vec<_>>();
-    assert!(work_ids.contains(&"custom_flow"));
-    assert!(work_ids.contains(&"work_sdlc"));
-
-    let explore_ids = registry
-        .registered_workflows_for_knot_type(KnotType::Explore)
-        .iter()
-        .map(|workflow| workflow.id.as_str())
-        .collect::<Vec<_>>();
-    assert!(explore_ids.contains(&"custom_flow"));
-    assert!(explore_ids.contains(&"explore_sdlc"));
-
-    let execution_plan_ids = registry
-        .registered_workflows_for_knot_type(KnotType::ExecutionPlan)
-        .iter()
-        .map(|workflow| workflow.id.as_str())
-        .collect::<Vec<_>>();
-    assert!(execution_plan_ids.contains(&"execution_plan_sdlc"));
-
-    let _ = std::fs::remove_dir_all(root);
-}
-
-fn make_executable(path: &std::path::Path) {
+fn make_executable(_path: &std::path::Path) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(path).expect("metadata").permissions();
+        let mut perms = std::fs::metadata(_path).expect("metadata").permissions();
         perms.set_mode(0o755);
-        std::fs::set_permissions(path, perms).expect("permissions");
+        std::fs::set_permissions(_path, perms).expect("permissions");
+    }
+}
+
+fn loom_file_name() -> &'static str {
+    if cfg!(windows) {
+        "loom.ps1"
+    } else {
+        "loom"
+    }
+}
+
+fn restore_env_var(name: &str, value: Option<std::ffi::OsString>) {
+    match value {
+        Some(path) => std::env::set_var(name, path),
+        None => std::env::remove_var(name),
     }
 }
 
 fn write_loom_failure_script(loom_path: &std::path::Path) {
-    std::fs::write(loom_path, "#!/bin/sh\necho boom >&2\nexit 1\n").expect("script writes");
+    #[cfg(windows)]
+    let script = "$ErrorActionPreference = 'Stop'\n\
+                  [Console]::Error.WriteLine('boom')\n\
+                  exit 1\n";
+    #[cfg(not(windows))]
+    let script = "#!/bin/sh\necho boom >&2\nexit 1\n";
+    std::fs::write(loom_path, script).expect("script writes");
     make_executable(loom_path);
 }
 
 fn write_loom_invalid_utf8_script(loom_path: &std::path::Path) {
-    std::fs::write(
-        loom_path,
-        "#!/bin/sh\n\
+    #[cfg(windows)]
+    let script = "$ErrorActionPreference = 'Stop'\n\
+                  if ($args[0] -eq 'build') {\n\
+                    $bytes = [byte[]](255, 254)\n\
+                    [Console]::OpenStandardOutput().Write($bytes, 0, $bytes.Length)\n\
+                    exit 0\n\
+                  }\n\
+                  exit 1\n";
+    #[cfg(not(windows))]
+    let script = "#!/bin/sh\n\
          if [ \"$1\" = \"build\" ]; then\n\
-         printf '\\377\\376'\nexit 0\nfi\nexit 1\n",
-    )
-    .expect("invalid utf8 script writes");
+         printf '\\377\\376'\nexit 0\nfi\nexit 1\n";
+    std::fs::write(loom_path, script).expect("invalid utf8 script writes");
     make_executable(loom_path);
 }

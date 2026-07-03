@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::db;
@@ -45,6 +46,40 @@ fn open_conn(root: &Path) -> rusqlite::Connection {
     std::fs::create_dir_all(db_path.parent().expect("db parent should exist"))
         .expect("db parent should be creatable");
     db::open_connection(db_path.to_str().expect("utf8 db path")).expect("db should open")
+}
+
+fn seed_hot_knot(conn: &rusqlite::Connection, knot_id: &str) {
+    db::upsert_knot_hot(
+        conn,
+        &db::UpsertKnotHot {
+            id: knot_id,
+            title: "Seed",
+            state: "work_item",
+            updated_at: "2026-02-25T10:00:00Z",
+            body: None,
+            description: None,
+            acceptance: None,
+            priority: None,
+            knot_type: Some("work"),
+            tags: &[],
+            notes: &[],
+            handoff_capsules: &[],
+            invariants: &[],
+            verification_steps: &[],
+            step_history: &[],
+            gate_data: &crate::domain::gate::GateData::default(),
+            lease_data: &crate::domain::lease::LeaseData::default(),
+            execution_plan_data: &crate::domain::execution_plan::ExecutionPlanData::default(),
+            lease_id: None,
+            workflow_id: "work_sdlc",
+            profile_id: "autopilot",
+            profile_etag: Some("seed-etag"),
+            deferred_from_state: None,
+            blocked_from_state: None,
+            created_at: Some("2026-02-25T10:00:00Z"),
+        },
+    )
+    .expect("hot knot should seed");
 }
 
 fn recent_ts() -> String {
@@ -138,6 +173,76 @@ fn apply_full_event_skips_knot_after_unknown_workflow_head() {
             .len(),
         0
     );
+
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn apply_full_event_updates_structured_metadata_payloads() {
+    let root = setup_repo();
+    let conn = open_conn(&root);
+    seed_hot_knot(&conn, "K-structured");
+    let applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
+    let events_dir = root.join(".knots/events/2026/02/25");
+    std::fs::create_dir_all(&events_dir).expect("events dir should exist");
+
+    for (index, (filename, event_type, data)) in [
+        (
+            "9100-knot.gate_data_set.json",
+            "knot.gate_data_set",
+            json!({"gate": {"owner_kind": "human", "failure_modes": {"broken": ["K-a"]}}}),
+        ),
+        (
+            "9101-knot.lease_data_set.json",
+            "knot.lease_data_set",
+            json!({"lease_data": {"lease_type": "manual", "nickname": "Manual"}}),
+        ),
+        (
+            "9102-knot.execution_plan_data_set.json",
+            "knot.execution_plan_data_set",
+            json!({"execution_plan": {"objective": "Coordinate work"}}),
+        ),
+        (
+            "9103-knot.scope_set.json",
+            "knot.scope_set",
+            json!({"volume": 8, "scale": "fib_v1", "reliability": 95}),
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        std::fs::write(
+            events_dir.join(filename),
+            json!({
+                "event_id": format!("91{index}"),
+                "occurred_at": "2026-02-25T11:00:00Z",
+                "knot_id": "K-structured",
+                "type": event_type,
+                "data": data
+            })
+            .to_string(),
+        )
+        .expect("structured event should write");
+        applier
+            .apply_full_event(
+                Path::new(".knots/events/2026/02/25")
+                    .join(filename)
+                    .as_path(),
+            )
+            .expect("structured metadata should apply");
+    }
+
+    let updated = db::get_knot_hot(&conn, "K-structured")
+        .expect("hot lookup should succeed")
+        .expect("structured knot should still be hot");
+    assert_eq!(updated.gate_data.owner_kind.as_str(), "human");
+    assert_eq!(updated.lease_data.nickname, "Manual");
+    assert_eq!(
+        updated.execution_plan_data.objective.as_deref(),
+        Some("Coordinate work")
+    );
+    assert_eq!(updated.scope_data.volume, Some(8));
+    assert_eq!(updated.scope_data.reliability, Some(95));
 
     let _ = std::fs::remove_dir_all(root);
 }
