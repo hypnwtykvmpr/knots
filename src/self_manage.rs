@@ -246,6 +246,8 @@ fn schedule_windows_deferred_removal(
 
 fn alias_paths(binary_path: &Path) -> Vec<PathBuf> {
     let parent = parent_dir(binary_path);
+    // Mutated only in the Windows cfg block below.
+    #[cfg_attr(not(target_os = "windows"), allow(unused_mut))]
     let mut paths = vec![
         parent.join(executable_file_name("kno")),
         parent.join(executable_file_name("knots")),
@@ -260,6 +262,8 @@ fn alias_paths(binary_path: &Path) -> Vec<PathBuf> {
 
 fn previous_paths(binary_path: &Path) -> Vec<PathBuf> {
     let parent = parent_dir(binary_path);
+    // Mutated only in the Windows cfg block below.
+    #[cfg_attr(not(target_os = "windows"), allow(unused_mut))]
     let mut paths = vec![
         parent.join(previous_file_name("kno")),
         parent.join(previous_file_name("knots")),

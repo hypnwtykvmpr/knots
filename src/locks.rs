@@ -215,6 +215,9 @@ fn process_alive(pid: u32) -> bool {
 enum ProcessStatus {
     Alive,
     Dead,
+    // Constructed only on non-unix targets (Windows wait probes and the
+    // portable fallback); unix kill(2) reports only alive or dead.
+    #[cfg_attr(unix, allow(dead_code))]
     Unknown,
 }
 
@@ -229,11 +232,11 @@ fn process_status(pid: u32) -> ProcessStatus {
         }
         // signal 0 checks if the process exists without sending a signal.
         let ret = unsafe { libc_kill(pid, 0) };
-        return if ret == 0 {
+        if ret == 0 {
             ProcessStatus::Alive
         } else {
             ProcessStatus::Dead
-        };
+        }
     }
     #[cfg(windows)]
     {
