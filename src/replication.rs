@@ -472,5 +472,8 @@ mod tests;
 mod tests_local_files;
 
 #[cfg(test)]
+#[path = "replication/tests_lease_block.rs"]
+mod tests_lease_block;
+#[cfg(test)]
 #[path = "replication/tests_ref_policy.rs"]
 mod tests_ref_policy;

@@ -428,3 +428,6 @@ fn created_id(result: &CallToolResult) -> Option<String> {
 #[cfg(test)]
 #[path = "server_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "server_wire_tests.rs"]
+mod wire_tests;

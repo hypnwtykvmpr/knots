@@ -18,23 +18,17 @@ mod apply_state;
 #[path = "apply_step_history.rs"]
 mod apply_step_history;
 use apply_helpers::{
-    build_index_upsert, current_unix_ms_string, invalid_event, is_stale_full_precondition,
-    is_stale_precondition, optional_i64, optional_string, parse_execution_plan_data,
-    parse_gate_data, parse_invariants, parse_lease_data, parse_metadata_entry, parse_scope_data,
-    parse_string_vec, read_json_file, required_profile_id, required_string, required_workflow_id,
-    IndexUpsertParams, MetadataProjection, WorkflowIdResolution,
+    build_index_upsert, current_unix_ms_string, is_stale_full_precondition, is_stale_precondition,
+    optional_i64, optional_string, parse_execution_plan_data, parse_gate_data, parse_invariants,
+    parse_lease_data, parse_metadata_entry, parse_scope_data, parse_string_vec, read_json_file,
+    required_profile_id, required_string, required_workflow_id, IndexUpsertParams,
+    MetadataProjection, WorkflowIdResolution,
 };
-use apply_state::resolve_tier;
-use apply_state::FullApplyOutcome;
+use apply_state::{
+    full_event_data, index_event_data, resolve_tier, sync_summary, unknown_workflow_warning,
+    FullApplyOutcome,
+};
 use apply_step_history::apply_state_set_step_history;
-
-fn unknown_workflow_warning(knot_id: &str, workflow_id: &str) -> String {
-    format!(
-        "warning: can't import knot '{knot_id}', unknown workflow '{workflow_id}'. \
-         The knot creator should install the workflow into the repository \
-         so other users can view the knot."
-    )
-}
 
 pub struct IncrementalApplier<'a> {
     conn: &'a Connection,
@@ -465,30 +459,6 @@ impl<'a> IncrementalApplier<'a> {
     }
 }
 
-fn sync_summary(target_head: &str, index_len: usize, full_len: usize) -> SyncSummary {
-    SyncSummary::new(target_head.to_string(), index_len as u64, full_len as u64)
-}
-
-fn index_event_data<'a>(
-    event: &'a IndexEvent,
-    path: &Path,
-) -> Result<&'a serde_json::Map<String, Value>, SyncError> {
-    event
-        .data
-        .as_object()
-        .ok_or_else(|| invalid_event(path, "idx.knot_head data must be an object"))
-}
-
-fn full_event_data<'a>(
-    event: &'a FullEvent,
-    path: &Path,
-) -> Result<&'a serde_json::Map<String, Value>, SyncError> {
-    event
-        .data
-        .as_object()
-        .ok_or_else(|| invalid_event(path, "full event data must be an object"))
-}
-
 #[cfg(test)]
 #[path = "apply_tests_acceptance_ext.rs"]
 mod tests_acceptance_ext;
@@ -513,6 +483,9 @@ mod tests_legacy_defaults;
 #[cfg(test)]
 #[path = "apply_tests_local_files.rs"]
 mod tests_local_files;
+#[cfg(test)]
+#[path = "apply_tests_local_files_ext.rs"]
+mod tests_local_files_ext;
 #[cfg(test)]
 #[path = "apply_tests_step_history.rs"]
 mod tests_step_history;

@@ -9,13 +9,13 @@ use crate::sync::{GitAdapter, SyncError};
 
 use super::{FullApplyOutcome, IncrementalApplier};
 
-fn unique_workspace() -> PathBuf {
+pub(super) fn unique_workspace() -> PathBuf {
     let root = std::env::temp_dir().join(format!("knots-sync-apply-local-{}", Uuid::now_v7()));
     std::fs::create_dir_all(&root).expect("workspace should be creatable");
     root
 }
 
-fn run_git(root: &Path, args: &[&str]) {
+pub(super) fn run_git(root: &Path, args: &[&str]) {
     let output = Command::new("git")
         .arg("-C")
         .arg(root)
@@ -30,7 +30,7 @@ fn run_git(root: &Path, args: &[&str]) {
     );
 }
 
-fn git_stdout(root: &Path, args: &[&str]) -> String {
+pub(super) fn git_stdout(root: &Path, args: &[&str]) -> String {
     let output = Command::new("git")
         .arg("-C")
         .arg(root)
@@ -41,7 +41,7 @@ fn git_stdout(root: &Path, args: &[&str]) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
-fn setup_repo() -> PathBuf {
+pub(super) fn setup_repo() -> PathBuf {
     let root = unique_workspace();
     run_git(&root, &["init"]);
     run_git(&root, &["config", "user.email", "knots@example.com"]);
@@ -52,24 +52,24 @@ fn setup_repo() -> PathBuf {
     root
 }
 
-fn open_conn(root: &Path) -> rusqlite::Connection {
+pub(super) fn open_conn(root: &Path) -> rusqlite::Connection {
     let db_path = root.join(".knots/cache/state.sqlite");
     std::fs::create_dir_all(db_path.parent().expect("db parent should exist"))
         .expect("db parent should be creatable");
     db::open_connection(db_path.to_str().expect("utf8 db path")).expect("db should open")
 }
 
-fn write_json(path: &Path, value: serde_json::Value) {
+pub(super) fn write_json(path: &Path, value: serde_json::Value) {
     std::fs::create_dir_all(path.parent().expect("fixture should have parent"))
         .expect("fixture parent should be creatable");
     std::fs::write(path, value.to_string()).expect("fixture should be writable");
 }
 
-fn slash(path: &Path) -> String {
+pub(super) fn slash(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
-fn seed_hot_knot(conn: &rusqlite::Connection, knot_id: &str) {
+pub(super) fn seed_hot_knot(conn: &rusqlite::Connection, knot_id: &str) {
     db::upsert_knot_hot(
         conn,
         &UpsertKnotHot {
@@ -435,75 +435,6 @@ fn apply_index_event_covers_stale_precondition_and_cold_tier_paths() {
         .expect("cold lookup")
         .expect("cold catalog row should exist");
     assert_eq!(cold.title, "Cold terminal");
-
-    let _ = std::fs::remove_dir_all(root);
-}
-
-#[test]
-fn apply_full_event_updates_description_acceptance_lease_id_and_unknown_events() {
-    let root = setup_repo();
-    let conn = open_conn(&root);
-    seed_hot_knot(&conn, "K-meta");
-    let applier = IncrementalApplier::new_with_builtins(&conn, root.clone(), GitAdapter::new());
-    let events_dir = root.join(".knots/events/2026/02/25");
-
-    let events = [
-        (
-            "3000-knot.description_set.json",
-            json!({"description": "  synced body  "}),
-            "knot.description_set",
-        ),
-        (
-            "3001-knot.acceptance_set.json",
-            json!({"acceptance": "  accepted  "}),
-            "knot.acceptance_set",
-        ),
-        (
-            "3002-knot.lease_id_set.json",
-            json!({"lease_id": "lease-1"}),
-            "knot.lease_id_set",
-        ),
-        (
-            "3003-knot.tag_add.json",
-            json!({"tag": "   "}),
-            "knot.tag_add",
-        ),
-        (
-            "3004-knot.unknown.json",
-            json!({"ignored": true}),
-            "knot.unknown",
-        ),
-    ];
-
-    for (index, (filename, data, event_type)) in events.into_iter().enumerate() {
-        write_json(
-            &events_dir.join(filename),
-            json!({
-                "event_id": format!("300{index}"),
-                "occurred_at": "2026-02-25T10:00:00Z",
-                "knot_id": "K-meta",
-                "type": event_type,
-                "data": data
-            }),
-        );
-        let outcome = applier
-            .apply_full_event(
-                Path::new(".knots/events/2026/02/25")
-                    .join(filename)
-                    .as_path(),
-            )
-            .expect("metadata event should apply");
-        assert!(matches!(outcome, FullApplyOutcome::Ignored));
-    }
-
-    let updated = db::get_knot_hot(&conn, "K-meta")
-        .expect("hot lookup should succeed")
-        .expect("hot knot should still exist");
-    assert_eq!(updated.description.as_deref(), Some("synced body"));
-    assert_eq!(updated.body.as_deref(), Some("synced body"));
-    assert_eq!(updated.acceptance.as_deref(), Some("accepted"));
-    assert_eq!(updated.lease_id.as_deref(), Some("lease-1"));
-    assert_eq!(updated.tags, vec!["alpha".to_string()]);
 
     let _ = std::fs::remove_dir_all(root);
 }

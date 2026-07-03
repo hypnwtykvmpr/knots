@@ -27,6 +27,8 @@ mod tests_parsing_outputs;
 #[cfg(test)]
 mod tests_registry;
 #[cfg(test)]
+mod tests_registry_builtins;
+#[cfg(test)]
 mod tests_registry_ext;
 #[cfg(test)]
 mod tests_validation;

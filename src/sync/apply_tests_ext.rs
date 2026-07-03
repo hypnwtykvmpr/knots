@@ -8,8 +8,9 @@ use crate::db::{self, UpsertKnotHot};
 use crate::events::WorkflowPrecondition;
 use crate::sync::{GitAdapter, SyncError};
 
+use super::apply_helpers::invalid_event;
 use super::{
-    invalid_event, is_stale_precondition, optional_i64, optional_string, parse_metadata_entry,
+    is_stale_precondition, optional_i64, optional_string, parse_metadata_entry,
     required_workflow_id, IncrementalApplier, WorkflowIdResolution,
 };
 

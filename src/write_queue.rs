@@ -257,4 +257,6 @@ impl QueuedWriteResponse {
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod tests_ops_serde;
+#[cfg(test)]
 mod tests_recovery;
