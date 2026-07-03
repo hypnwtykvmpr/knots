@@ -139,6 +139,42 @@ fn redact_strips_positional_values_after_double_dash() {
 }
 
 #[test]
+fn redact_covers_clap_token_grammar_edge_cases() {
+    // Hardening the surface that has leaked twice: enumerate clap token
+    // shapes and assert no attached/positional VALUE survives, while bare
+    // flags (which carry no value) are preserved for signal.
+    let args = vec![
+        "-C=SENTINEL_short_eq".to_string(), // short flag, attached value via '='
+        "-dSENTINEL_short_attached".to_string(), // short flag, directly attached value
+        "-abc".to_string(),                 // bundled short flags (no value)
+        "-5".to_string(),                   // negative-number-looking, single char
+        "--flag".to_string(),               // bare long flag
+        "SENTINEL_space_value".to_string(), // its space-separated value (positional)
+        "--=SENTINEL_empty_flag".to_string(), // degenerate long flag with empty name
+        "--café=SENTINEL_unicode".to_string(), // non-ascii flag name with value
+    ];
+    let redacted = redact_args(&args, false);
+    assert_eq!(
+        redacted,
+        vec![
+            "-C<redacted>".to_string(),
+            "-d<redacted>".to_string(),
+            "-a<redacted>".to_string(),
+            "-5".to_string(),
+            "--flag".to_string(),
+            "<redacted>".to_string(),
+            "--=<redacted>".to_string(),
+            "--café=<redacted>".to_string(),
+        ]
+    );
+    // The load-bearing invariant: not one sentinel value survives redaction.
+    assert!(
+        !redacted.join(" ").contains("SENTINEL"),
+        "no attached or positional value may survive default redaction"
+    );
+}
+
+#[test]
 fn append_writes_redacted_jsonl_record() {
     let env = EnvVarGuard::capture(&[ENABLE_VAR, ARGS_VAR]);
     let path = unique_log_path().join("events.jsonl");
