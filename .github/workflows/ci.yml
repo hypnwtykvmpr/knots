@@ -23,8 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # rust-toolchain.toml governs the actual toolchain version; installing
+      # a pinned one here would be overridden by rustup anyway.
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.93.1
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo artifacts
         uses: swatinem/rust-cache@v2

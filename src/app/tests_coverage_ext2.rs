@@ -148,7 +148,7 @@ fn default_profile_resolution_covers_config_and_fallback_paths() {
         .expect("fallback default profile should resolve");
     assert_eq!(fallback, "autopilot");
 
-    let config_path = root.join(".config/knots/config.toml");
+    let config_path = crate::project::config_path(Some(&root)).expect("config path should resolve");
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent).expect("config parent should be creatable");
     }

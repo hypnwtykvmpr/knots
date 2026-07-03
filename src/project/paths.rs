@@ -8,6 +8,12 @@ pub fn config_path(home_override: Option<&Path>) -> Result<PathBuf, String> {
 
 pub fn config_dir(home_override: Option<&Path>) -> Result<PathBuf, String> {
     if let Some(home) = explicit_home(home_override) {
+        // An override home mirrors a real home: on Windows use the native
+        // Roaming layout so config and data (AppData\Local, see data_dir)
+        // resolve under consistent roots rather than mixing conventions.
+        #[cfg(target_os = "windows")]
+        return Ok(home.join("AppData").join("Roaming").join(CONFIG_DIR_NAME));
+        #[cfg(not(target_os = "windows"))]
         return Ok(home.join(".config").join(CONFIG_DIR_NAME));
     }
 

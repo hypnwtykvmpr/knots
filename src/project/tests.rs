@@ -59,6 +59,23 @@ fn windows_config_and_data_dirs_prefer_native_appdata_env_vars() {
 
 #[cfg(target_os = "windows")]
 #[test]
+fn windows_override_home_uses_native_layout_consistently() {
+    // An override home mirrors a real Windows home: config under Roaming,
+    // data under Local, never a mixed portable/native split.
+    let home = temp_home();
+    assert_eq!(
+        config_dir(Some(&home)).expect("config dir"),
+        home.join("AppData").join("Roaming").join("knots")
+    );
+    assert_eq!(
+        data_dir(Some(&home)).expect("data dir"),
+        home.join("AppData").join("Local").join("knots")
+    );
+    let _ = fs::remove_dir_all(home);
+}
+
+#[cfg(target_os = "windows")]
+#[test]
 fn windows_config_and_data_dirs_fall_back_after_appdata() {
     let env = EnvVarGuard::capture(&[
         "HOME",

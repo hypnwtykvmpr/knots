@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if ($MaxAgeHours -le 0) {
-    Write-Error 'MAX_AGE_HOURS must be greater than zero'
+    Write-Error 'MaxAgeHours (env ARTIFACT_MAX_AGE_HOURS) must be greater than zero'
     exit 2
 }
 
