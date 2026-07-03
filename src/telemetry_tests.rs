@@ -111,6 +111,34 @@ fn redact_strips_values_attached_to_flags() {
 }
 
 #[test]
+fn redact_strips_positional_values_after_double_dash() {
+    // After `--`, clap treats every token as a positional value even when it
+    // starts with `-`; the redactor must not preserve them as bare flags.
+    let args = vec![
+        "new".to_string(),
+        "--".to_string(),
+        "--private-title".to_string(),
+        "-x".to_string(),
+        "plain positional".to_string(),
+    ];
+    let redacted = redact_args(&args, false);
+    assert_eq!(
+        redacted,
+        vec![
+            "<redacted>".to_string(),
+            "--".to_string(),
+            "<redacted>".to_string(),
+            "<redacted>".to_string(),
+            "<redacted>".to_string(),
+        ]
+    );
+    assert!(!redacted.iter().any(|a| a.contains("private-title")));
+
+    // Full-arg opt-in still keeps everything verbatim, separator included.
+    assert_eq!(redact_args(&args, true), args);
+}
+
+#[test]
 fn append_writes_redacted_jsonl_record() {
     let env = EnvVarGuard::capture(&[ENABLE_VAR, ARGS_VAR]);
     let path = unique_log_path().join("events.jsonl");

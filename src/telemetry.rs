@@ -4,10 +4,11 @@
 //! - OFF by default. Nothing is written unless `KNOTS_TELEMETRY_LOG` is set.
 //! - Writes only to a local runtime path outside the repo (or an explicit
 //!   path the operator chooses). Never committed; never network.
-//! - Redacts argument VALUES by default: positional values AND values
-//!   attached to a flag (`--desc=secret`, `-dsecret`) are stripped; only bare
-//!   flags (`--json`, `-C`) and phase timings survive. Full args are logged
-//!   solely when `KNOTS_TELEMETRY_ARGS=1` is also set — a second opt-in.
+//! - Redacts argument VALUES by default: positional values, values attached
+//!   to a flag (`--desc=secret`, `-dsecret`), and everything after the `--`
+//!   end-of-options separator are stripped; only bare flags (`--json`, `-C`)
+//!   and phase timings survive. Full args are logged solely when
+//!   `KNOTS_TELEMETRY_ARGS=1` is also set — a second opt-in.
 //! - Best-effort: any failure is swallowed so telemetry never affects the
 //!   command's exit status or output.
 
@@ -132,11 +133,27 @@ const REDACTED: &str = "<redacted>";
 /// (`--desc=secret`, `-dsecret`) carry user content and must have their value
 /// portion stripped — the flag heuristic `starts_with('-')` alone is not
 /// enough, because clap accepts those as a single argv token.
+///
+/// Redaction is stateful: after the `--` end-of-options separator, clap treats
+/// every remaining token as a positional value even when it looks like a flag,
+/// so everything past `--` is redacted regardless of prefix.
 fn redact_args(args: &[String], include_args: bool) -> Vec<String> {
     if include_args {
         return args.to_vec();
     }
-    args.iter().map(|arg| redact_one(arg)).collect()
+    let mut positional_only = false;
+    args.iter()
+        .map(|arg| {
+            if positional_only {
+                return REDACTED.to_string();
+            }
+            if arg == "--" {
+                positional_only = true;
+                return arg.clone(); // preserve the literal separator
+            }
+            redact_one(arg)
+        })
+        .collect()
 }
 
 fn redact_one(arg: &str) -> String {
