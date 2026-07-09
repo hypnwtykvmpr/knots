@@ -1,5 +1,11 @@
 # kno
 
+## 0.17.2
+
+### Patch Changes
+
+- ac9217b: Add native Windows home-directory handling, PowerShell completions, and a PowerShell installer path for Windows release artifacts.
+
 ## 0.17.1
 
 ### Patch Changes
