@@ -18,6 +18,24 @@ fn restore_env(name: &str, value: Option<std::ffi::OsString>) {
     }
 }
 
+/// Controlled PATH for resolution tests that still keeps the real git.exe
+/// reachable: PATH is process-global, and parallel tests in this binary
+/// spawn git — replacing PATH with only a temp dir turns them into
+/// NotFound flakes (observed on the CI runner). Resolved before the
+/// overwrite, under the env lock, so the real PATH is still intact.
+#[cfg(windows)]
+fn controlled_path_with_git(dir: &std::path::Path) -> std::ffi::OsString {
+    let mut path = dir.as_os_str().to_os_string();
+    if let Some(git_dir) = find_windows_path_program(std::ffi::OsStr::new("git"))
+        .as_deref()
+        .and_then(std::path::Path::parent)
+    {
+        path.push(";");
+        path.push(git_dir);
+    }
+    path
+}
+
 #[cfg(windows)]
 #[test]
 fn command_for_program_wraps_path_resolved_powershell_shim() {
@@ -29,7 +47,7 @@ fn command_for_program_wraps_path_resolved_powershell_shim() {
     let old_path = std::env::var_os("PATH");
     let old_pathext = std::env::var_os("PATHEXT");
 
-    std::env::set_var("PATH", &dir);
+    std::env::set_var("PATH", controlled_path_with_git(&dir));
     std::env::set_var("PATHEXT", ".EXE;.CMD");
     let command = command_for_program("loom");
     let args = command
@@ -66,7 +84,7 @@ fn command_for_program_resolves_bare_ps1_names_on_path() {
     std::fs::write(&shim, "exit 0").expect("shim should write");
     let old_path = std::env::var_os("PATH");
 
-    std::env::set_var("PATH", &dir);
+    std::env::set_var("PATH", controlled_path_with_git(&dir));
     let command = command_for_program("kno.ps1");
     let args = command
         .get_args()
@@ -91,7 +109,7 @@ fn command_for_program_accepts_exact_path_entry_without_extension() {
     std::fs::write(&tool, "fixture").expect("tool fixture should write");
     let old_path = std::env::var_os("PATH");
 
-    std::env::set_var("PATH", &dir);
+    std::env::set_var("PATH", controlled_path_with_git(&dir));
     let command = command_for_program("tool");
     assert_eq!(command.get_program(), tool.as_os_str());
 
@@ -107,7 +125,7 @@ fn command_for_program_falls_back_when_path_lookup_misses() {
     std::fs::create_dir_all(&dir).expect("temp dir should exist");
     let old_path = std::env::var_os("PATH");
 
-    std::env::set_var("PATH", &dir);
+    std::env::set_var("PATH", controlled_path_with_git(&dir));
     let command = command_for_program("missing-tool");
     assert_eq!(command.get_program(), OsStr::new("missing-tool"));
 
